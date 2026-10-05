@@ -231,11 +231,11 @@ async function renderTrailMap(view) {
       <div class="map-controls">
         <button type="button" data-zoom="in" aria-label="Zoom in">+</button>
         <button type="button" data-zoom="out" aria-label="Zoom out">−</button>
-        <button type="button" data-zoom="reset" aria-label="Show whole map">Reset</button>
+        <button type="button" data-zoom="reset" aria-label="Reset map">Reset</button>
       </div>
     </div>
 
-    <div class="info-card" id="map-info" role="dialog" aria-live="polite" hidden></div>
+    <div class="info-card" id="map-info" role="region" aria-label="Trail details" aria-live="polite" hidden></div>
 
     ${Object.keys(DIFFICULTY).map((d) => `
       <h2 class="list-head">${diffBadge(d)}</h2>
