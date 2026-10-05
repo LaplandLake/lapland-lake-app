@@ -1,0 +1,65 @@
+# Publishes the app to GitHub Pages, and every 30 minutes during the day
+# copies the latest trail report from the Lapland Lake website.
+name: Update and publish app
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '*/30 10-23 * * *'   # every 30 min, about 6am-8pm Eastern
+  workflow_dispatch:              # "Run workflow" button on GitHub
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: site
+  cancel-in-progress: false
+
+jobs:
+  update-and-publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Copy trail report from website
+        id: report
+        run: |
+          npm run update-trail-report || echo "Trail report update failed; keeping the previous report."
+          if git diff --quiet content/trail-report.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            git config user.name "Lapland Lake trail report bot"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git commit -am "Update trail report"
+            git pull --rebase && git push
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Scheduled runs only republish when the report changed.
+      - name: Gather app files
+        if: github.event_name != 'schedule' || steps.report.outputs.changed == 'true'
+        run: |
+          mkdir _site
+          cp -r index.html sw.js manifest.webmanifest css js content images _site/
+
+      - uses: actions/upload-pages-artifact@v3
+        if: github.event_name != 'schedule' || steps.report.outputs.changed == 'true'
+        with:
+          path: _site
+
+      - id: deploy
+        uses: actions/deploy-pages@v4
+        if: github.event_name != 'schedule' || steps.report.outputs.changed == 'true'

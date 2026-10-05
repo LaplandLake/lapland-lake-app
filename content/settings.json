@@ -1,3 +1,6 @@
 {
-  "fareharborUrl": "https://fareharbor.com/embeds/book/laplandlake/items/?flow=616192&language=en-us&full-items=yes"
+  "fareharborUrl": "https://fareharbor.com/embeds/book/laplandlake/items/?flow=616192&language=en-us&full-items=yes",
+  "trailReportUrl": "https://www.laplandlake.com/trails-and-conditions/",
+  "trailReportSelector": "",
+  "trailReportStaleAfterHours": 36
 }

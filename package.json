@@ -1,0 +1,11 @@
+{
+  "name": "lapland-lake-app",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "update-trail-report": "node scripts/update-trail-report.mjs"
+  },
+  "dependencies": {
+    "cheerio": "^1.2.0"
+  }
+}

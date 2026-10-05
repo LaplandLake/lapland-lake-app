@@ -87,14 +87,19 @@ async function renderTickets(view) {
 async function renderConditions(view) {
   view.innerHTML = `<h1>Trail Conditions</h1>${loading}`;
   try {
-    const report = await loadContent('trail-report.json');
+    const [report, settings] = await Promise.all([loadContent('trail-report.json'), loadContent('settings.json')]);
+    // Out of date if the last copy from the website failed, or the report hasn't changed in a while
+    const maxAgeHours = settings.trailReportStaleAfterHours || 36;
+    const ageHours = (Date.now() - new Date(report.updated)) / 36e5;
+    const stale = report.stale || !(ageHours < maxAgeHours);
     view.innerHTML = `
       <h1>Trail Conditions</h1>
-      ${report.stale ? '<div class="notice">This report may be out of date. We\'ll show the newest one as soon as it\'s posted.</div>' : ''}
+      ${stale ? '<div class="notice">This report may be out of date. We\'ll show the newest one as soon as it\'s posted.</div>' : ''}
       <div class="card">
         <p class="meta">Last updated: <strong>${formatDateTime(report.updated)}</strong></p>
         <div class="report-text">${esc(report.text)}</div>
-      </div>`;
+      </div>
+      ${report.source ? `<p class="meta">From the <a href="${esc(report.source)}" target="_blank" rel="noopener">trail report on our website</a>.</p>` : ''}`;
   } catch {
     view.innerHTML = `<h1>Trail Conditions</h1>${errorCard("today's trail report")}`;
   }

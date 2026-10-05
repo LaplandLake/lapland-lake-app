@@ -202,3 +202,5 @@ p  { margin: 0 0 12px; }
 
 /* Focus outlines for keyboard / accessibility */
 a:focus-visible, button:focus-visible { outline: 3px solid var(--lake); outline-offset: 2px; }
+
+main a:not(.btn):not(.tile) { color: var(--lake); font-weight: 600; }

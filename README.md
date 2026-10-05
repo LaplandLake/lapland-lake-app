@@ -11,7 +11,7 @@ Everything that changes day to day lives in the **`content/`** folder. Each file
 | `content/soup.json` | Soup of the day | Every day |
 | `content/menu.json` | Lodge menu | When the menu changes |
 | `content/settings.json` | FareHarbor booking link | Rarely |
-| `content/trail-report.json` | Trail conditions | Will be updated automatically (coming soon) |
+| `content/trail-report.json` | Trail conditions | Automatic. Don't edit by hand. |
 
 ### Example: changing the soup
 
@@ -27,6 +27,14 @@ Write the date as year-month-day. You can leave the description empty (`""`).
 
 **Tip for AI assistants:** "Update `content/soup.json` with today's date and the soup [name]" is all the instruction an assistant needs.
 
+## How the trail report updates itself
+
+Every 30 minutes during the day, GitHub reads the trail report page on laplandlake.com and copies the report into the app. Nobody has to retype it.
+
+- "Last updated" in the app shows when the report last changed.
+- If the website can't be read, the app keeps showing the last report with a note that it may be out of date. The same note appears if the report hasn't changed in 36 hours (change `trailReportStaleAfterHours` in `content/settings.json` to adjust).
+- To update right away instead of waiting: on GitHub, open **Actions**, pick **Update and publish app**, and press **Run workflow**.
+
 ## What the other files do (you won't normally touch these)
 
 - `index.html`: the page itself
@@ -35,6 +43,7 @@ Write the date as year-month-day. You can leave the description empty (`""`).
 - `sw.js`: lets the app open quickly and work on a weak signal
 - `manifest.webmanifest` and `images/icons/`: the app name and icon used when it's saved to a home screen
 - `images/logo.svg`: the logo (a placeholder for now)
+- `scripts/update-trail-report.mjs` and `.github/workflows/site.yml`: copy the trail report and publish the app
 
 ## Adding features later
 
