@@ -372,3 +372,4 @@ button.trail-row { cursor: pointer; }
 .tip-close svg { width: 22px; height: 22px; fill: none; stroke: var(--ink); stroke-width: 2.5; stroke-linecap: round; }
 .btn-secondary { background: var(--brand); color: #fff; font-size: 18px; min-height: 56px; }
 .btn-secondary:active { background: var(--brand-dark); }
+.title-note { color: var(--brand); }

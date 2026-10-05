@@ -325,8 +325,9 @@ async function renderMenu(view) {
   view.innerHTML = `<h1>Soup &amp; Menu</h1>${loading}`;
   try {
     const [soup, menu] = await Promise.all([loadContent('soup.json'), loadContent('menu.json')]);
+    // titleNote in menu.json (e.g. "Closed until Ski Season") replaces the usual title; remove it to go back
     view.innerHTML = `
-      <h1>Soup &amp; Menu</h1>
+      ${menu.titleNote ? `<h1>Menu - <span class="title-note">${esc(menu.titleNote)}</span></h1>` : '<h1>Soup &amp; Menu</h1>'}
       <div class="card soup">
         <div class="label">Soup of the Day</div>
         <div class="name">${esc(soup.soup)}</div>
