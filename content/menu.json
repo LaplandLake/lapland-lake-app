@@ -3,15 +3,41 @@
     {
       "name": "Hot Food",
       "items": [
-        { "name": "Placeholder: Grilled Cheese", "description": "Sample item, real menu coming soon", "price": "$0.00" },
-        { "name": "Placeholder: Chili", "description": "Sample item", "price": "$0.00" }
+        {
+          "name": "Chili",
+          "description": "",
+          "price": "$0.00"
+        },
+        {
+          "name": "Mac and Cheese",
+          "description": "",
+          "price": "$0.00"
+        },
+        {
+          "name": "Hot Dog",
+          "description": "",
+          "price": "$0.00"
+        },
+        {
+          "name": "Soup",
+          "description": "",
+          "price": "$0.00"
+        }
       ]
     },
     {
       "name": "Drinks",
       "items": [
-        { "name": "Placeholder: Hot Chocolate", "description": "", "price": "$0.00" },
-        { "name": "Placeholder: Coffee", "description": "", "price": "$0.00" }
+        {
+          "name": "Placeholder: Hot Chocolate",
+          "description": "",
+          "price": "$0.00"
+        },
+        {
+          "name": "Placeholder: Coffee",
+          "description": "",
+          "price": "$0.00"
+        }
       ]
     }
   ],
