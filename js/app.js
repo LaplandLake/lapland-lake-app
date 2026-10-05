@@ -132,7 +132,7 @@ async function renderLodging(view) {
     const settings = await loadContent('settings.json');
     view.innerHTML = `
       <h1>Lodge With Us</h1>
-      <p>Stay at Lapland Lake. See available lodging and book online.</p>
+      <p>Stay at Lapland Lake, Winter, Summer, or Fall. See available lodging and book online.</p>
       <a class="btn" href="${esc(settings.lodgingUrl)}" target="_blank" rel="noopener">
         Book Lodging ${svg('ext')}
       </a>
