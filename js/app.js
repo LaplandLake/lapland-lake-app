@@ -136,7 +136,8 @@ async function renderLodging(view) {
       <a class="btn" href="${esc(settings.lodgingUrl)}" target="_blank" rel="noopener">
         Book Lodging ${svg('ext')}
       </a>
-      <p class="meta" style="margin-top:12px">Reservations are handled by RezStream.</p>`;
+      <p class="tip-line"><strong>Tip:</strong> The booking calendar is much easier to see on a computer screen.</p>
+      <p class="meta">Reservations are handled by RezStream.</p>`;
   } catch {
     view.innerHTML = `<h1>Lodge With Us</h1>${errorCard('the booking link')}`;
   }
