@@ -11,7 +11,7 @@ Last updated: 2026-10-05. These are notes from working with the owner's team, so
 ## Lodge Map (not built yet)
 Plan: start with a photo of the building's front with each door labeled, then an inside layout. Owner is taking inside photos.
 
-Front of the building, doors numbered left to right (photo shared in chat, not yet saved in the project):
+Front of the building, doors numbered left to right (photos: `docs/photos/lodge-front.jpg`, `docs/photos/lodge-door-1-lounge.jpg`):
 1. **Far-left door** (Welcome sign, Olavi Hirvonen memorial plaque, large trail map sign, new wooden ramp with railing = step-free entrance)
    - Opens into the **lounge / common room**: wood stove, couch, chairs, loveseats around the fire, tables.
    - Inside, immediately to the right: **stairs up to the café** (probably the Kuuma Feeding Station; confirm).
