@@ -1,0 +1,19 @@
+{
+  "sections": [
+    {
+      "name": "Hot Food",
+      "items": [
+        { "name": "Placeholder: Grilled Cheese", "description": "Sample item, real menu coming soon", "price": "$0.00" },
+        { "name": "Placeholder: Chili", "description": "Sample item", "price": "$0.00" }
+      ]
+    },
+    {
+      "name": "Drinks",
+      "items": [
+        { "name": "Placeholder: Hot Chocolate", "description": "", "price": "$0.00" },
+        { "name": "Placeholder: Coffee", "description": "", "price": "$0.00" }
+      ]
+    }
+  ],
+  "note": "Menu items and prices may change."
+}

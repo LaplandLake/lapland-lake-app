@@ -1,0 +1,41 @@
+# Lapland Lake Guest App
+
+A phone web app for guests at Lapland Lake Nordic Vacation Center. Guests can save it to their home screen. It is not an App Store app.
+
+## Daily updates (no coding needed)
+
+Everything that changes day to day lives in the **`content/`** folder. Each file is plain text. Change the words between the quote marks, keep the quote marks and commas where they are, and save.
+
+| File | What it controls | How often |
+|---|---|---|
+| `content/soup.json` | Soup of the day | Every day |
+| `content/menu.json` | Lodge menu | When the menu changes |
+| `content/settings.json` | FareHarbor booking link | Rarely |
+| `content/trail-report.json` | Trail conditions | Will be updated automatically (coming soon) |
+
+### Example: changing the soup
+
+```json
+{
+  "date": "2026-10-05",
+  "soup": "Butternut Squash",
+  "description": "Vegetarian. Served with fresh bread."
+}
+```
+
+Write the date as year-month-day. You can leave the description empty (`""`).
+
+**Tip for AI assistants:** "Update `content/soup.json` with today's date and the soup [name]" is all the instruction an assistant needs.
+
+## What the other files do (you won't normally touch these)
+
+- `index.html`: the page itself
+- `css/styles.css`: colors and look. Brand colors are at the very top.
+- `js/app.js`: the screens and buttons
+- `sw.js`: lets the app open quickly and work on a weak signal
+- `manifest.webmanifest` and `images/icons/`: the app name and icon used when it's saved to a home screen
+- `images/logo.svg`: the logo (a placeholder for now)
+
+## Adding features later
+
+The screens are listed in one place (`SCREENS` in `js/app.js`). A future Nature Guide or skier game is added as one new entry there plus its own screen, so nothing that exists now has to change.

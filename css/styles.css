@@ -1,0 +1,204 @@
+/* ==========================================================
+   LAPLAND LAKE BRAND COLORS
+   These are placeholders. When we get the official colors,
+   only these lines need to change.
+   ========================================================== */
+:root {
+  --brand:        #1f4d3a;  /* main color: deep forest green */
+  --brand-dark:   #143326;
+  --accent:       #c8402b;  /* Buy Tickets button: warm red */
+  --accent-dark:  #9e2f1e;
+  --lake:         #1d5c86;  /* secondary: lake blue */
+  --snow:         #f5f7f6;  /* page background */
+  --card:         #ffffff;
+  --ink:          #111a16;  /* main text: near-black for sunlight readability */
+  --ink-soft:     #3d4a44;
+  --line:         #d5ddd9;
+  --warn-bg:      #fff4d6;
+  --warn-ink:     #6b4a00;
+
+  --radius: 16px;
+  --tap: 64px;              /* minimum height for buttons (big, glove-friendly) */
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  font-size: 18px;
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--snow);
+  min-height: 100vh;
+}
+
+/* ---------- Top bar ---------- */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 60px;
+  padding: calc(env(safe-area-inset-top) + 8px) 16px 8px;
+  background: var(--brand);
+  color: #fff;
+}
+.topbar a { color: #fff; text-decoration: none; }
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: 0.2px;
+}
+.brand img { border-radius: 8px; background: #fff; }
+.back {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 0 12px 0 4px;
+  margin-right: auto;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.15);
+  font-weight: 600;
+}
+.back svg { width: 24px; height: 24px; fill: none; stroke: #fff; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.back[hidden] { display: none; }
+.back:not([hidden]) + .brand span { display: none; }
+
+/* ---------- Page layout ---------- */
+main {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 16px 16px calc(env(safe-area-inset-bottom) + 32px);
+  outline: none;
+}
+h1 { font-size: 28px; line-height: 1.2; margin: 8px 0 16px; }
+h2 { font-size: 22px; line-height: 1.25; margin: 24px 0 8px; }
+p  { margin: 0 0 12px; }
+
+.welcome { margin: 4px 0 20px; }
+.welcome h1 { margin-bottom: 4px; }
+.welcome p { color: var(--ink-soft); margin: 0; }
+
+/* ---------- Home screen buttons ---------- */
+.tiles { display: grid; gap: 12px; }
+
+.tile {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 84px;
+  padding: 14px 18px;
+  border-radius: var(--radius);
+  background: var(--card);
+  border: 2px solid var(--line);
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 20px;
+  font-weight: 700;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.08s ease;
+}
+.tile:active { transform: scale(0.98); }
+.tile small { display: block; font-size: 15px; font-weight: 500; color: var(--ink-soft); }
+.tile .icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: var(--brand);
+}
+.tile .icon svg { width: 30px; height: 30px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.tile .chev { margin-left: auto; width: 22px; height: 22px; fill: none; stroke: var(--ink-soft); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+
+/* The Buy Tickets tile stands out */
+.tile.primary { background: var(--accent); border-color: var(--accent-dark); color: #fff; min-height: 96px; font-size: 22px; }
+.tile.primary small { color: rgba(255,255,255,0.9); }
+.tile.primary .icon { background: rgba(255,255,255,0.2); }
+.tile.primary .chev { stroke: #fff; }
+
+/* ---------- Generic content ---------- */
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  margin-bottom: 16px;
+}
+.meta { font-size: 15px; color: var(--ink-soft); }
+
+.notice {
+  background: var(--warn-bg);
+  color: var(--warn-ink);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.placeholder {
+  border: 2px dashed var(--line);
+  border-radius: var(--radius);
+  padding: 28px 18px;
+  text-align: center;
+  color: var(--ink-soft);
+  background: #fafcfb;
+  margin-bottom: 16px;
+}
+
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: var(--tap);
+  padding: 14px 20px;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: #fff;
+  font: inherit;
+  font-size: 20px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+.btn:active { background: var(--accent-dark); }
+.btn svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Soup */
+.soup {
+  background: var(--brand);
+  color: #fff;
+  border: 0;
+}
+.soup .label { font-size: 14px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; opacity: 0.85; }
+.soup .name { font-size: 26px; font-weight: 800; line-height: 1.2; margin: 4px 0 6px; }
+.soup .meta { color: rgba(255,255,255,0.85); }
+
+/* Menu */
+.menu-section { margin-bottom: 8px; }
+.menu-item { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.menu-item:last-child { border-bottom: 0; }
+.menu-item .name { font-weight: 700; }
+.menu-item .desc { font-size: 15px; color: var(--ink-soft); }
+.menu-item .price { font-weight: 700; white-space: nowrap; }
+
+/* Trail report */
+.report-text { white-space: pre-line; }
+
+/* Focus outlines for keyboard / accessibility */
+a:focus-visible, button:focus-visible { outline: 3px solid var(--lake); outline-offset: 2px; }

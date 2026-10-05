@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Lapland Lake</title>
+  <meta name="description" content="Lapland Lake Nordic Vacation Center guest app: tickets, trail conditions, trail map, soup and menu, lodge map.">
+  <meta name="theme-color" content="#1f4d3a">
+
+  <!-- "Add to Home Screen" support -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="images/icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="images/icons/icon-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Lapland Lake">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a href="#/" class="back" id="back" hidden aria-label="Back to home">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+      <span>Home</span>
+    </a>
+    <a href="#/" class="brand" aria-label="Lapland Lake home">
+      <!-- Placeholder logo: replace images/logo.svg with the real logo file -->
+      <img src="images/logo.svg" alt="" width="36" height="36">
+      <span>Lapland Lake</span>
+    </a>
+  </header>
+
+  <main id="view" tabindex="-1">
+    <noscript><p class="card">Please turn on JavaScript to use this app.</p></noscript>
+  </main>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
