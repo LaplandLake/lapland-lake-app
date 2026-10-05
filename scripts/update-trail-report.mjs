@@ -87,9 +87,8 @@ async function main() {
     if (!res.ok) throw new Error(`Website answered with status ${res.status}`);
     const parsed = parseReport(await res.text());
 
-    const sameAsBefore = previous && previous.source === url &&
-      JSON.stringify({ ...previous, updated: 0, stale: 0, source: 0 }) ===
-      JSON.stringify({ ...parsed, updated: 0, stale: 0, source: 0 });
+    const reportContent = (r) => JSON.stringify([r.reportDate, r.status, r.hours, r.stats, r.notes]);
+    const sameAsBefore = previous && previous.source === url && reportContent(previous) === reportContent(parsed);
     report = {
       updated: sameAsBefore ? previous.updated : new Date().toISOString(),
       stale: false,
