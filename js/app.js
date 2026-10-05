@@ -15,6 +15,7 @@ const ICONS = {
   alert:  '<path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/>',
   arrow:  '<path d="M12 20V5M6 11l6-6 6 6"/>',
   close:  '<path d="M6 6l12 12M18 6L6 18"/>',
+  bed:    '<path d="M3 19V6M3 15h18v4M21 15v-3a3 3 0 0 0-3-3h-7v6"/><circle cx="7" cy="11" r="2"/>',
 };
 const svg = (name, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[name]}</svg>`;
 
@@ -24,6 +25,7 @@ const SCREENS = [
   { path: 'map',     title: 'Trail Map',         sub: 'Zoom in and tap a trail',              icon: 'map',    render: renderTrailMap },
   { path: 'menu',    title: 'Soup & Menu',       sub: "Today's soup and lodge menu",          icon: 'soup',   render: renderMenu },
   { path: 'lodge',   title: 'Lodge Map',         sub: 'Rentals, food, restrooms',             icon: 'lodge',  render: renderLodge },
+  { path: 'stay',    title: 'Lodge With Us',     sub: 'Book your stay',                       icon: 'bed',    render: renderLodging },
 ];
 
 /* ---------- Helpers ---------- */
@@ -122,6 +124,22 @@ function noteHtml(note) {
       `<a href="${esc(link.href)}" target="_blank" rel="noopener">${esc(link.text)}</a>`);
   }
   return html;
+}
+
+async function renderLodging(view) {
+  view.innerHTML = `<h1>Lodge With Us</h1>${loading}`;
+  try {
+    const settings = await loadContent('settings.json');
+    view.innerHTML = `
+      <h1>Lodge With Us</h1>
+      <p>Stay at Lapland Lake. See available lodging and book online.</p>
+      <a class="btn" href="${esc(settings.lodgingUrl)}" target="_blank" rel="noopener">
+        Book Lodging ${svg('ext')}
+      </a>
+      <p class="meta" style="margin-top:12px">Reservations are handled by RezStream.</p>`;
+  } catch {
+    view.innerHTML = `<h1>Lodge With Us</h1>${errorCard('the booking link')}`;
+  }
 }
 
 async function renderConditions(view) {
