@@ -3,7 +3,7 @@
    - Content files (trail report, soup, menu) always try the internet first, and fall back
      to the last saved copy if there's no signal.
    Bump VERSION whenever app files (not content) change, so phones pick up the new version. */
-const VERSION = 'v2';
+const VERSION = 'v3';
 const APP_FILES = [
   './',
   'index.html',
@@ -11,6 +11,7 @@ const APP_FILES = [
   'js/app.js',
   'images/logo-wide.svg',
   'images/logo-mark.svg',
+  'js/vendor/panzoom.min.js',
   'images/icons/icon.svg',
   'images/icons/icon-180.png',
   'images/icons/icon-192.png',

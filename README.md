@@ -10,6 +10,7 @@ Everything that changes day to day lives in the **`content/`** folder. Each file
 |---|---|---|
 | `content/soup.json` | Soup of the day | Every day |
 | `content/menu.json` | Lodge menu | When the menu changes |
+| `content/trails.json` | Trail map: trail names, difficulty, lengths, and where each symbol sits | When trails change |
 | `content/settings.json` | FareHarbor booking link | Rarely |
 | `content/trail-report.json` | Trail conditions | Automatic. Don't edit by hand. |
 
@@ -26,6 +27,13 @@ Everything that changes day to day lives in the **`content/`** folder. Each file
 Write the date as year-month-day. You can leave the description empty (`""`).
 
 **Tip for AI assistants:** "Update `content/soup.json` with today's date and the soup [name]" is all the instruction an assistant needs.
+
+## Trail map
+
+The map picture is `images/trail-map.webp`, cut from the trail map PDF on the website. Everything you can tap is listed in `content/trails.json`:
+
+- `difficulty` is `easiest`, `more-difficult` or `most-difficult` (green circle, blue square, black diamond).
+- `spots` says where the symbol goes on the map picture, counted in pixels from the top-left corner (the picture is 2134 wide and 1822 tall). A trail can have several spots, or none (`[]`) to appear only in the list.
 
 ## How the trail report updates itself
 

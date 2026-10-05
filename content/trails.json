@@ -1,0 +1,46 @@
+{
+  "mapImage": "images/trail-map.webp",
+  "mapWidth": 2134,
+  "mapHeight": 1822,
+  "footnote": "* Measured from the bridge.",
+  "trails": [
+    { "name": "Lake Trail (2-way section)", "meaning": "Out and back", "difficulty": "easiest", "length": "2.6 km", "spots": [[1360, 1000], [1790, 1012]] },
+    { "name": "Olavin Uni", "meaning": "Olavi's Dream. 1-way section of the Lake Trail", "difficulty": "easiest", "length": "1.3 km", "spots": [[1225, 1258]] },
+    { "name": "Practice Field with Inside Loops", "difficulty": "easiest", "length": "1.2 km", "spots": [[720, 1440]] },
+    { "name": "Erä Polku", "meaning": "Forest Trail", "difficulty": "easiest", "length": "1.7 km", "spots": [[1450, 690]] },
+    { "name": "Woods Lake Loop", "difficulty": "easiest", "length": "3.0 km", "note": "Ice must be safe. Ski only on machine-groomed areas of the lake.", "spots": [[1950, 1190]] },
+    { "name": "Ski School Areas", "difficulty": "easiest", "length": "1.0 km", "spots": [] },
+
+    { "name": "Kippis", "meaning": "Finnish drinking toast", "difficulty": "more-difficult", "length": "0.7 km", "spots": [[1110, 880]] },
+    { "name": "Vasa", "meaning": "Baby Reindeer", "difficulty": "more-difficult", "length": "1.5 km", "spots": [[985, 1640]] },
+    { "name": "Joki Latu", "meaning": "Trail by the Stream", "difficulty": "more-difficult", "length": "1.5 km", "spots": [[690, 1580]] },
+    { "name": "Sisu", "meaning": "Determination", "difficulty": "more-difficult", "length": "4.2 km", "fromBridge": true, "spots": [[290, 960]] },
+    { "name": "Honka Tie", "meaning": "Large Pine Way", "difficulty": "more-difficult", "length": "1.1 km", "spots": [[640, 1170]] },
+    { "name": "Karhu Polku via short cuts", "meaning": "Bear Path", "difficulty": "more-difficult", "length": "7.0 km", "fromBridge": true, "spots": [[365, 835]] },
+    { "name": "Leilan Latu", "meaning": "Leila's Trail", "difficulty": "more-difficult", "length": "1.1 km", "spots": [[680, 905]] },
+    { "name": "Tuulen Tie", "meaning": "Way of the Wind", "difficulty": "more-difficult", "length": "1 km", "spots": [[830, 870]] },
+    { "name": "Short cuts to Honka/Sisu", "difficulty": "more-difficult", "length": "0.6 km", "spots": [] },
+    { "name": "Shortcut", "difficulty": "more-difficult", "length": "0.4 km", "spots": [] },
+
+    { "name": "Karhu Polku with upper expert loops", "meaning": "Bear Path", "difficulty": "most-difficult", "length": "9.0 km", "fromBridge": true, "note": "Sections marked ◆◆ are for experts only.", "spots": [[385, 290], [640, 330]] },
+    { "name": "Napa Piiri", "meaning": "Arctic Circle", "difficulty": "most-difficult", "length": "3.4 km", "fromBridge": true, "spots": [[960, 815]] },
+    { "name": "Tunturi Loop", "meaning": "Lapland Mountain", "difficulty": "most-difficult", "length": "1.5 km", "spots": [[1585, 1205]] }
+  ],
+  "routes": [
+    { "name": "Outside Loop West of Bridge", "length": "10.4 km" },
+    { "name": "Lapland Lenkki Loop", "length": "20 km", "note": "Follow the orange trail markers." },
+    { "name": "Lenkki Loop including lake", "length": "23 km" },
+    { "name": "Grant Lake Wilderness Trail", "length": "10 km", "note": "Out and back." },
+    { "name": "Ungroomed Snowshoe Trail to Woods Lake (East)", "length": "4.0 km" },
+    { "name": "Ungroomed Snowshoe Trails (West Side)", "length": "8.5 km" }
+  ],
+  "places": [
+    { "name": "Ski Lodge & Snack Bar", "icon": "lodge", "spots": [[843, 1298]] },
+    { "name": "Parking", "icon": "parking", "spots": [[867, 1244]] },
+    { "name": "Rental Cottages", "icon": "cottage", "spots": [[990, 1030]] },
+    { "name": "Giant Pine", "icon": "rest", "description": "Hanging seat rest station.", "spots": [[235, 1335]] },
+    { "name": "Large Pine", "icon": "rest", "description": "Hanging seat rest station.", "spots": [[1700, 1305]] },
+    { "name": "The Wall", "icon": "caution", "description": "Steep section with a small rock face.", "spots": [[835, 745]] },
+    { "name": "Entrance", "icon": "entrance", "description": "Entrance from Storer Road.", "spots": [[794, 1728]] }
+  ]
+}

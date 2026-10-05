@@ -222,3 +222,140 @@ main a:not(.btn):not(.tile) { color: var(--link); font-weight: 600; }
 .stats dt { font-size: 14px; color: var(--ink-soft); }
 .stats dd { margin: 0; font-size: 20px; font-weight: 700; overflow-wrap: anywhere; }
 .notes p:last-child { margin-bottom: 0; }
+
+/* ---------- Trail map ---------- */
+:root {
+  --easiest:        #12894a;  /* green circle */
+  --more-difficult: #1660c4;  /* blue square */
+  --most-difficult: #111111;  /* black diamond */
+}
+.sym { display: inline-block; flex: none; width: 16px; height: 16px; background: currentColor; }
+.sym-easiest        { color: var(--easiest); border-radius: 50%; }
+.sym-more-difficult { color: var(--more-difficult); }
+.sym-most-difficult { color: var(--most-difficult); width: 13px; height: 13px; margin: 1.5px; transform: rotate(45deg); }
+
+.legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 0 0 12px; }
+.diff { display: inline-flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 700; }
+
+.map-frame {
+  position: relative;
+  overflow: hidden;
+  margin: 0 -16px 16px;         /* full phone width */
+  background: #fff;
+  border-block: 1px solid var(--line);
+  touch-action: none;
+  scroll-margin-top: 90px;      /* stay below the top bar when scrolled to */
+}
+.map-canvas { position: relative; width: 100%; --inv: 1; }
+.map-canvas img { display: block; width: 100%; height: 100%; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+
+.pin {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.45);
+  transform: translate(-50%, -50%) scale(var(--inv));
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.pin::before { content: ""; position: absolute; inset: -9px; }  /* bigger invisible tap area */
+.pin .sym { width: 15px; height: 15px; }
+.pin .sym-most-difficult { width: 11px; height: 11px; }
+.pin-place .place-icon { width: 18px; height: 18px; font-size: 13px; }
+.pin-place .place-icon svg { width: 14px; height: 14px; }
+.pin.active { outline: 4px solid var(--accent); outline-offset: 1px; z-index: 2; }
+.pin-place { background: var(--brand); border-color: #fff; }
+
+.place-icon { display: grid; place-items: center; width: 22px; height: 22px; color: #fff; font-size: 16px; line-height: 1; }
+.place-icon svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.place-icon.small { width: 28px; height: 28px; border-radius: 50%; background: var(--brand); flex: none; }
+
+.map-controls {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  display: flex;
+  gap: 6px;
+}
+.map-controls button {
+  min-width: 48px;
+  height: 48px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--brand);
+  color: #fff;
+  font: inherit;
+  font-size: 24px;
+  font-weight: 700;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+}
+.map-controls button[data-zoom="reset"] { font-size: 16px; }
+
+/* Details card that slides up from the bottom when a trail is tapped */
+.info-card {
+  position: fixed;
+  z-index: 20;
+  left: 12px;
+  right: 12px;
+  bottom: calc(env(safe-area-inset-bottom) + 12px);
+  max-width: 616px;
+  margin: 0 auto;
+  padding: 16px 56px 16px 18px;
+  background: var(--card);
+  border: 2px solid var(--brand);
+  border-radius: var(--radius);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.25);
+}
+.info-card p { margin: 8px 0 0; }
+.info-name { font-size: 24px; font-weight: 800; line-height: 1.2; margin-top: 6px; }
+.info-meaning { color: var(--ink-soft); font-style: italic; }
+.info-length { font-size: 20px; font-weight: 700; margin-top: 4px; }
+.info-length small { font-size: 15px; font-weight: 500; color: var(--ink-soft); }
+.info-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: var(--snow);
+  cursor: pointer;
+}
+.info-close svg { width: 22px; height: 22px; fill: none; stroke: var(--ink); stroke-width: 2.5; stroke-linecap: round; }
+
+#view.has-info { padding-bottom: 240px; }  /* room for the details card */
+
+/* Trail list under the map */
+.list-head { margin-top: 20px; }
+.list-head .diff { font-size: 20px; }
+.list-head .sym { width: 20px; height: 20px; }
+.list-head .sym-most-difficult { width: 16px; height: 16px; margin: 2px; }
+.trail-list { list-style: none; margin: 0 0 8px; padding: 0; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); }
+.trail-list li + li { border-top: 1px solid var(--line); }
+.trail-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 10px 16px;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+}
+button.trail-row { cursor: pointer; }
+.trail-name { flex: 1; min-width: 0; font-weight: 700; }
+.trail-name small { display: block; font-weight: 500; font-size: 15px; color: var(--ink-soft); }
+.trail-len { font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
