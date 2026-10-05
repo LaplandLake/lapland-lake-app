@@ -303,21 +303,39 @@ async function renderTrailMap(view) {
     row.addEventListener('click', () => select(row.dataset.id, { focusMap: true })));
 }
 
+// Today's date as year-month-day, the format used in soup.json
+function todayString() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 async function renderMenu(view) {
   view.innerHTML = `<h1>Soup &amp; Menu</h1>${loading}`;
   try {
     const [soup, menu] = await Promise.all([loadContent('soup.json'), loadContent('menu.json')]);
+    // Only show the soup if it was posted for today, so guests never see yesterday's soup
+    const soupIsToday = soup.soup && soup.date === todayString();
     view.innerHTML = `
       <h1>Soup &amp; Menu</h1>
       <div class="card soup">
         <div class="label">Soup of the Day</div>
-        <div class="name">${esc(soup.soup)}</div>
-        ${soup.description ? `<p>${esc(soup.description)}</p>` : ''}
-        <div class="meta">${formatDate(soup.date)}</div>
+        ${soupIsToday ? `
+          <div class="name">${esc(soup.soup)}</div>
+          ${soup.description ? `<p>${esc(soup.description)}</p>` : ''}
+          <div class="meta">${formatDate(soup.date)}</div>` : `
+          <div class="name">Ask at the counter</div>
+          <p>Today's soup hasn't been posted yet.</p>`}
       </div>
+      ${menu.name ? `
+        <div class="card place">
+          <h2>${esc(menu.name)}</h2>
+          ${menu.location ? `<p>${esc(menu.location)}</p>` : ''}
+          ${menu.hours?.length ? `<dl class="hours">${menu.hours.map((h) => `<div><dt>${esc(h.days)}</dt><dd>${esc(h.time)}</dd></div>`).join('')}</dl>` : ''}
+          ${menu.hoursNote ? `<p class="meta">${esc(menu.hoursNote)}</p>` : ''}
+        </div>` : ''}
       ${menu.sections.map((section) => `
         <section class="menu-section">
-          <h2>${esc(section.name)}</h2>
+          <h2>${esc(section.name)}${section.time ? ` <span class="section-time">${esc(section.time)}</span>` : ''}</h2>
           <div class="card">
             ${section.items.map((item) => `
               <div class="menu-item">
@@ -362,5 +380,9 @@ route();
 
 /* ---------- Offline support ---------- */
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  // When a new version of the app takes over, reload once so the phone shows it right away
+  if (navigator.serviceWorker.controller) {
+    navigator.serviceWorker.addEventListener('controllerchange', () => location.reload(), { once: true });
+  }
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }

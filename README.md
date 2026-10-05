@@ -9,7 +9,7 @@ Everything that changes day to day lives in the **`content/`** folder. Each file
 | File | What it controls | How often |
 |---|---|---|
 | `content/soup.json` | Soup of the day | Every day |
-| `content/menu.json` | Lodge menu | When the menu changes |
+| `content/menu.json` | Kuuma Feeding Station: hours and menu (add a `price` to any item when ready) | When the menu changes |
 | `content/trails.json` | Trail map: trail names, difficulty, lengths, and where each symbol sits | When trails change |
 | `content/settings.json` | FareHarbor booking link | Rarely |
 | `content/trail-report.json` | Trail conditions | Automatic. Don't edit by hand. |
@@ -25,6 +25,8 @@ Everything that changes day to day lives in the **`content/`** folder. Each file
 ```
 
 Write the date as year-month-day. You can leave the description empty (`""`).
+
+The date must be **today's** date. If it isn't (for example, nobody updated it this morning), the app shows "Ask at the counter" instead of yesterday's soup.
 
 **Tip for AI assistants:** "Update `content/soup.json` with today's date and the soup [name]" is all the instruction an assistant needs.
 

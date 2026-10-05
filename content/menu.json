@@ -1,19 +1,31 @@
 {
+  "name": "Kuuma Feeding Station",
+  "location": "Second floor of the Finnish Line Lodge",
+  "hours": [
+    { "days": "Monday – Friday", "time": "10am – 3pm" },
+    { "days": "Saturday & Sunday", "time": "9am – 3pm" }
+  ],
+  "hoursNote": "Weekends may have outdoor service until 4pm. Daily status is posted in the trail conditions report.",
   "sections": [
     {
-      "name": "Hot Food",
+      "name": "All Day",
+      "time": "Grab and go",
       "items": [
-        { "name": "Placeholder: Grilled Cheese", "description": "Sample item, real menu coming soon", "price": "$0.00" },
-        { "name": "Placeholder: Chili", "description": "Sample item", "price": "$0.00" }
+        { "name": "Sandwiches", "description": "", "price": "" },
+        { "name": "Snacks", "description": "", "price": "" },
+        { "name": "Hot drinks", "description": "", "price": "" },
+        { "name": "Cold drinks", "description": "", "price": "" }
       ]
     },
     {
-      "name": "Drinks",
+      "name": "Quick Lunch",
+      "time": "11am – 3pm",
       "items": [
-        { "name": "Placeholder: Hot Chocolate", "description": "", "price": "$0.00" },
-        { "name": "Placeholder: Coffee", "description": "", "price": "$0.00" }
+        { "name": "Soup of the day", "description": "See above", "price": "" },
+        { "name": "Chili", "description": "", "price": "" },
+        { "name": "Mac and cheese", "description": "", "price": "" }
       ]
     }
   ],
-  "note": "Menu items and prices may change."
+  "note": "Indoor seating as available. Menu items may change."
 }
