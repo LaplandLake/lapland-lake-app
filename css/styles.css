@@ -1,19 +1,20 @@
 /* ==========================================================
-   LAPLAND LAKE BRAND COLORS
-   These are placeholders. When we get the official colors,
-   only these lines need to change.
+   LAPLAND LAKE BRAND COLORS (taken from the official logo)
+   To change a color everywhere in the app, change it here.
    ========================================================== */
 :root {
-  --brand:        #1f4d3a;  /* main color: deep forest green */
-  --brand-dark:   #143326;
-  --accent:       #c8402b;  /* Buy Tickets button: warm red */
-  --accent-dark:  #9e2f1e;
-  --lake:         #1d5c86;  /* secondary: lake blue */
-  --snow:         #f5f7f6;  /* page background */
+  --brand:        #0b6e76;  /* Lapland Lake teal: mountains and lettering */
+  --brand-dark:   #08535a;
+  --accent:       #fdb913;  /* logo sun yellow: Buy Tickets button */
+  --accent-dark:  #e3a300;
+  --accent-ink:   #0d2f33;  /* text on the yellow button */
+  --lake:         #88d3f3;  /* logo lake blue */
+  --link:         #0b6e76;
+  --snow:         #f3f8f9;  /* page background */
   --card:         #ffffff;
-  --ink:          #111a16;  /* main text: near-black for sunlight readability */
-  --ink-soft:     #3d4a44;
-  --line:         #d5ddd9;
+  --ink:          #0f2426;  /* main text: near-black for sunlight readability */
+  --ink-soft:     #3b5357;
+  --line:         #d3e2e4;
   --warn-bg:      #fff4d6;
   --warn-ink:     #6b4a00;
 
@@ -44,35 +45,33 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  min-height: 60px;
+  min-height: 64px;
   padding: calc(env(safe-area-inset-top) + 8px) 16px 8px;
-  background: var(--brand);
-  color: #fff;
+  background: #fff;
+  border-bottom: 4px solid var(--lake);
 }
-.topbar a { color: #fff; text-decoration: none; }
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-weight: 700;
-  font-size: 20px;
-  letter-spacing: 0.2px;
-}
-.brand img { border-radius: 8px; background: #fff; }
+.topbar a { text-decoration: none; }
+.brand { display: flex; align-items: center; }
+.brand img { display: block; height: 44px; width: auto; }
+.brand .logo-mark { display: none; }
 .back {
   display: flex;
   align-items: center;
   gap: 4px;
-  min-height: 44px;
-  padding: 0 12px 0 4px;
+  min-height: 48px;
+  padding: 0 14px 0 6px;
   margin-right: auto;
-  border-radius: 10px;
-  background: rgba(255,255,255,0.15);
-  font-weight: 600;
+  border-radius: 12px;
+  background: var(--brand);
+  color: #fff;
+  font-weight: 700;
+  font-size: 18px;
 }
 .back svg { width: 24px; height: 24px; fill: none; stroke: #fff; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
 .back[hidden] { display: none; }
-.back:not([hidden]) + .brand span { display: none; }
+/* On inner screens, show just the picture part of the logo next to the Home button */
+.back:not([hidden]) + .brand .logo-wide { display: none; }
+.back:not([hidden]) + .brand .logo-mark { display: block; height: 40px; }
 
 /* ---------- Page layout ---------- */
 main {
@@ -123,10 +122,10 @@ p  { margin: 0 0 12px; }
 .tile .chev { margin-left: auto; width: 22px; height: 22px; fill: none; stroke: var(--ink-soft); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
 
 /* The Buy Tickets tile stands out */
-.tile.primary { background: var(--accent); border-color: var(--accent-dark); color: #fff; min-height: 96px; font-size: 22px; }
-.tile.primary small { color: rgba(255,255,255,0.9); }
-.tile.primary .icon { background: rgba(255,255,255,0.2); }
-.tile.primary .chev { stroke: #fff; }
+.tile.primary { background: var(--accent); border-color: var(--accent-dark); color: var(--accent-ink); min-height: 96px; font-size: 22px; }
+.tile.primary small { color: var(--accent-ink); }
+.tile.primary .icon { background: var(--brand); }
+.tile.primary .chev { stroke: var(--accent-ink); }
 
 /* ---------- Generic content ---------- */
 .card {
@@ -169,7 +168,7 @@ p  { margin: 0 0 12px; }
   border: 0;
   border-radius: var(--radius);
   background: var(--accent);
-  color: #fff;
+  color: var(--accent-ink);
   font: inherit;
   font-size: 20px;
   font-weight: 700;
@@ -201,9 +200,9 @@ p  { margin: 0 0 12px; }
 .report-text { white-space: pre-line; }
 
 /* Focus outlines for keyboard / accessibility */
-a:focus-visible, button:focus-visible { outline: 3px solid var(--lake); outline-offset: 2px; }
+a:focus-visible, button:focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; }
 
-main a:not(.btn):not(.tile) { color: var(--lake); font-weight: 600; }
+main a:not(.btn):not(.tile) { color: var(--link); font-weight: 600; }
 
 /* Trail conditions */
 .status .status-line { font-size: 26px; font-weight: 800; line-height: 1.2; margin-bottom: 4px; }

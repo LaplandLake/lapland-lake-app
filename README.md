@@ -42,7 +42,7 @@ Every 30 minutes during the day, GitHub reads the trail report page on laplandla
 - `js/app.js`: the screens and buttons
 - `sw.js`: lets the app open quickly and work on a weak signal
 - `manifest.webmanifest` and `images/icons/`: the app name and icon used when it's saved to a home screen
-- `images/logo.svg`: the logo (a placeholder for now)
+- `images/logo-wide.svg`, `logo-stacked.svg`, `logo-mark.svg`: the logo, made from the original design file in `brand/`
 - `scripts/update-trail-report.mjs` and `.github/workflows/site.yml`: copy the trail report and publish the app
 
 ## Adding features later
