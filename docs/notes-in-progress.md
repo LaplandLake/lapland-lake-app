@@ -9,12 +9,14 @@ Last updated: 2026-10-05. These are notes from working with the owner's team, so
 - Live app: https://laplandlake.github.io/lapland-lake-app/ (GitHub user renamed from Tssngs75 to LaplandLake on 2026-10-05; old address no longer works).
 
 ## Lodge Map (not built yet)
-Plan: start with a photo of the building's front with each door labeled, then an inside layout. Owner is taking inside photos.
+Decided: a simple labeled **diagram** of the lodge (Lounge, Café upstairs, Bathrooms, Sauna, Rentals, Wax Room, etc.); tapping an area shows a **photo** of it. The app currently uses no photos besides the logo and trail map. Owner is taking inside photos.
+
+Photo permissions: the lounge photo (`lodge-lounge-inside.jpg`) is cleared for use; the two outside photos were taken by the owner's team.
 
 Front of the building, doors numbered left to right (photos: `docs/photos/lodge-front.jpg`, `docs/photos/lodge-door-1-lounge.jpg`):
 1. **Far-left door** (Welcome sign, Olavi Hirvonen memorial plaque, large trail map sign, new wooden ramp with railing = step-free entrance)
    - Opens into the **lounge / common room**: wood stove, couch, chairs, loveseats around the fire, tables.
-   - Inside photo: `docs/photos/lodge-lounge-inside.jpg` (professional shot: wood stove, leather couch, tapestry, two skiers). Candidate photo for the Lounge on the lodge map; confirm it's OK to use (people are pictured).
+   - Inside photo: `docs/photos/lodge-lounge-inside.jpg` (professional shot: wood stove, leather couch, tapestry, two skiers). Use for the Lounge; permission confirmed.
    - Inside, immediately to the right: **stairs up to the café** (probably the Kuuma Feeding Station; confirm).
    - At the back, **down a few steps**: men's and women's **bathrooms** on the left, **sauna** on the right. (Bathrooms are not step-free; don't label them accessible unless told otherwise.)
 2. **Middle door** (light above): unknown yet.
