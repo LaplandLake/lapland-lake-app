@@ -372,11 +372,3 @@ button.trail-row { cursor: pointer; }
 .tip-close svg { width: 22px; height: 22px; fill: none; stroke: var(--ink); stroke-width: 2.5; stroke-linecap: round; }
 .btn-secondary { background: var(--brand); color: #fff; font-size: 18px; min-height: 56px; }
 .btn-secondary:active { background: var(--brand-dark); }
-
-/* Food service details */
-.place h2 { margin: 0 0 4px; }
-.hours { display: grid; gap: 4px; margin: 10px 0; }
-.hours div { display: flex; justify-content: space-between; gap: 12px; }
-.hours dt { color: var(--ink-soft); }
-.hours dd { margin: 0; font-weight: 700; white-space: nowrap; }
-.section-time { font-size: 16px; font-weight: 600; color: var(--ink-soft); margin-left: 6px; }
