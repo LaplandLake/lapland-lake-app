@@ -2,6 +2,8 @@
 
 A phone web app for guests at Lapland Lake Nordic Vacation Center. Guests can save it to their home screen. It is not an App Store app.
 
+**Live at:** https://laplandlake.github.io/lapland-lake-app/
+
 ## Daily updates (no coding needed)
 
 Everything that changes day to day lives in the **`content/`** folder. Each file is plain text. Change the words between the quote marks, keep the quote marks and commas where they are, and save.
