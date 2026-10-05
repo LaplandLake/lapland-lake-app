@@ -1,6 +1,77 @@
 {
-  "updated": "2026-10-05T08:00:00-04:00",
+  "updated": "2026-10-05T19:36:01.419Z",
   "stale": false,
-  "source": "placeholder",
-  "text": "PLACEHOLDER REPORT\n\nThis is sample text. Soon this will be pulled automatically from the trail report on the Lapland Lake website every morning."
+  "source": "https://laplandlake.com/trails-and-conditions/",
+  "reportDate": "April 2, 2026",
+  "status": "Trails closed",
+  "hours": "Normal Trail hours Weekends & Holidays 9am – 4:30pm & non-holiday Mon-Fri 10am- 4:30pm.",
+  "stats": [
+    {
+      "label": "Daytime High",
+      "value": ""
+    },
+    {
+      "label": "New Snow",
+      "value": ""
+    },
+    {
+      "label": "Total Km Open",
+      "value": "closed"
+    },
+    {
+      "label": "Average Depth",
+      "value": ""
+    },
+    {
+      "label": "Km XC Groomed",
+      "value": "closed"
+    },
+    {
+      "label": "Surface",
+      "value": ""
+    },
+    {
+      "label": "Km Trackset",
+      "value": "closed"
+    },
+    {
+      "label": "Snowfall This Season",
+      "value": "103″"
+    },
+    {
+      "label": "Km Skate Lanes",
+      "value": "closed"
+    },
+    {
+      "label": "Total Days Open",
+      "value": "116"
+    },
+    {
+      "label": "Km Snowshoe",
+      "value": "closed"
+    }
+  ],
+  "notes": [
+    {
+      "text": "Thanks for a great season! Our first ski day was November 30, last ski day was April 1. Total of 116 ski days, 103″ snow."
+    },
+    {
+      "text": "Season passes for the 2026-27 winter season are on sale now and can be used for the remainder of the 2025-26 winter season. Download form here to mail with your check. For best pricing, purchase by August 1. .",
+      "links": [
+        {
+          "text": "here",
+          "href": "https://laplandlake.com/wp-content/uploads/2026/02/Season-Pass-Application_2026v1.pdf"
+        }
+      ]
+    },
+    {
+      "text": "Ski Shop is open by appointment – please call ahead. For seasonal rental equipment return, if we are not here you can drop off the equipment int he wax room (rightmost door) and call or email to arrange the refund of your deposit."
+    },
+    {
+      "text": "Summer Lodging season opens June 25"
+    },
+    {
+      "text": "Visit us on Facebook and Instragram for recent photos."
+    }
+  ]
 }

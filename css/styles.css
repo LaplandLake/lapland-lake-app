@@ -204,3 +204,22 @@ p  { margin: 0 0 12px; }
 a:focus-visible, button:focus-visible { outline: 3px solid var(--lake); outline-offset: 2px; }
 
 main a:not(.btn):not(.tile) { color: var(--lake); font-weight: 600; }
+
+/* Trail conditions */
+.status .status-line { font-size: 26px; font-weight: 800; line-height: 1.2; margin-bottom: 4px; }
+.stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 0 0 16px;
+}
+.stats div {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  min-width: 0;
+}
+.stats dt { font-size: 14px; color: var(--ink-soft); }
+.stats dd { margin: 0; font-size: 20px; font-weight: 700; overflow-wrap: anywhere; }
+.notes p:last-child { margin-bottom: 0; }
