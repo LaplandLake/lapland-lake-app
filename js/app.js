@@ -69,7 +69,32 @@ function renderHome(view) {
           <span>${esc(s.title)}<small>${esc(s.sub)}</small></span>
           ${svg('chev', 'chev')}
         </a>`).join('')}
-    </nav>`;
+    </nav>
+    ${samsungTip()}`;
+  view.querySelector('.tip-close')?.addEventListener('click', (e) => {
+    try { localStorage.setItem('hideSamsungTip', '1'); } catch {}
+    e.target.closest('.tip').remove();
+  });
+}
+
+// Samsung Internet packages home-screen apps in a way Google Play Protect flags as unsafe,
+// so Samsung Internet users get a tip to add the app from Chrome instead.
+function samsungTip() {
+  const isSamsungBrowser = /SamsungBrowser/i.test(navigator.userAgent);
+  const isInstalled = matchMedia('(display-mode: standalone)').matches;
+  let hidden = false;
+  try { hidden = localStorage.getItem('hideSamsungTip') === '1'; } catch {}
+  if (!isSamsungBrowser || isInstalled || hidden) return '';
+  const here = location.href.split('#')[0].replace(/^https?:\/\//, '');
+  const openInChrome = `intent://${here}#Intent;scheme=https;package=com.android.chrome;end`;
+  return `
+    <aside class="tip card">
+      <button type="button" class="tip-close" aria-label="Hide this tip">${svg('close')}</button>
+      <strong>Adding this app to your home screen?</strong>
+      <p>On Samsung phones, please add it from the Chrome browser. Samsung Internet can show a false security warning.</p>
+      <a class="btn btn-secondary" href="${esc(openInChrome)}">Open in Chrome</a>
+      <p class="meta">Then tap the ⋮ menu and choose <b>Add to home screen</b>.</p>
+    </aside>`;
 }
 
 async function renderTickets(view) {

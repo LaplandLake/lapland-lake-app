@@ -359,3 +359,16 @@ button.trail-row { cursor: pointer; }
 .trail-name { flex: 1; min-width: 0; font-weight: 700; }
 .trail-name small { display: block; font-weight: 500; font-size: 15px; color: var(--ink-soft); }
 .trail-len { font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+/* Tip for Samsung Internet users (home screen) */
+.tip { position: relative; margin-top: 20px; padding-right: 56px; }
+.tip p { margin: 6px 0 12px; }
+.tip .meta { margin: 10px 0 0; }
+.tip-close {
+  position: absolute; top: 8px; right: 8px;
+  width: 44px; height: 44px; display: grid; place-items: center;
+  border: 0; border-radius: 50%; background: var(--snow); cursor: pointer;
+}
+.tip-close svg { width: 22px; height: 22px; fill: none; stroke: var(--ink); stroke-width: 2.5; stroke-linecap: round; }
+.btn-secondary { background: var(--brand); color: #fff; font-size: 18px; min-height: 56px; }
+.btn-secondary:active { background: var(--brand-dark); }
