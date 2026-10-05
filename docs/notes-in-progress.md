@@ -33,6 +33,11 @@ Open questions: name for the lounge room; whether the café = Kuuma Feeding Stat
 - Paul (owner) and a staff member are requesting **Trailforks region admin** for "Lapland Lake Cross Country Ski Center" (draft request message was written in chat). Once approved, they'll download trail GPX files. Don't scrape Trailforks/Strava/AllTrails data; use files the owner or their instructors export.
 - The large trail map sign on the lounge wall may be a newer version; asked whether a digital file exists.
 - Still to add: Ski School Areas and the two shortcuts (owner said fix later).
+- **Future: GPS "you are here" dot** (owner is excited about this). Order: Trailforks admin → GPX files → new map drawn from real coordinates → "Show my location" button (browser Geolocation, permission prompt, location stays on the phone) → on-site test walking a couple of trails. The 2011 map is not to scale, so GPS can't go on it. Possible extras: current trail name, facing direction, distance back to the lodge.
+
+## App stores (discussed, not started)
+- Google Play: realistic via a wrapped web app (Trusted Web Activity). Needs $25 one-time developer account, privacy policy, store listing, and a verification file on the domain (easier with app.laplandlake.com). Would also avoid the Samsung Play Protect warning.
+- Apple App Store: $99/year, harder; risk of rejection for "just a website". App-only features like the GPS dot or grooming alerts would help. Suggested: Google Play first, Apple later.
 
 ## Menu
 - Menu screen title currently says "Menu - Closed until Ski Season" (`titleNote` in `content/menu.json`; remove it when the season opens).
