@@ -29,12 +29,37 @@
       "name": "Drinks",
       "items": [
         {
-          "name": "Placeholder: Hot Chocolate",
+          "name": "Water Bottle",
           "description": "",
           "price": "$0.00"
         },
         {
-          "name": "Placeholder: Coffee",
+          "name": "Coffee",
+          "description": "",
+          "price": "$0.00"
+        },
+        {
+          "name": "Hot Chocolate",
+          "description": "",
+          "price": "$0.00"
+        },
+        {
+          "name": "Cold Drinks",
+          "description": "",
+          "price": "$0.00"
+        },
+        {
+          "name": "Non-Alcoholic Beer",
+          "description": "",
+          "price": "$0.00"
+        },
+        {
+          "name": "Craft Beer/Cider",
+          "description": "",
+          "price": "$0.00"
+        },
+        {
+          "name": "Wine",
           "description": "",
           "price": "$0.00"
         }
