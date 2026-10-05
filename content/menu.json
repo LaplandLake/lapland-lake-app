@@ -14,12 +14,47 @@
           "price": "$0.00"
         },
         {
-          "name": "Hot Dog",
+          "name": "Soup",
           "description": "",
           "price": "$0.00"
         },
         {
-          "name": "Soup",
+          "name": "Hot Dog",
+          "description": "",
+          "price": "$0.00"
+        }
+      ]
+    },
+    {
+      "name": "Sandwiches",
+      "items": [
+        {
+          "name": "Cold Sandwich",
+          "description": "",
+          "price": "$0.00"
+        }
+      ]
+    },
+    {
+      "name": "Baked Goods",
+      "items": [
+        {
+          "name": "Brownies",
+          "description": "",
+          "price": "$0.00"
+        },
+        {
+          "name": "Muffins",
+          "description": "",
+          "price": "$0.00"
+        },
+        {
+          "name": "Chocolate Chip Cookies",
+          "description": "",
+          "price": "$0.00"
+        },
+        {
+          "name": "Decorated Sugar Cookies",
           "description": "",
           "price": "$0.00"
         }
@@ -34,12 +69,17 @@
           "price": "$0.00"
         },
         {
+          "name": "Hot Chocolate",
+          "description": "",
+          "price": "$0.00"
+        },
+        {
           "name": "Coffee",
           "description": "",
           "price": "$0.00"
         },
         {
-          "name": "Hot Chocolate",
+          "name": "Tea",
           "description": "",
           "price": "$0.00"
         },
