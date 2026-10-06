@@ -86,4 +86,14 @@ Open questions: name for the lounge room; whether the café = Kuuma Feeding Stat
 - Lots of seating for eating.
 - There are **two shower rooms upstairs**, but **they are not advertised**. Don't show them in the app.
 
-Owner paused the walkthrough at the retail shop; continue from there (door 2 area: retail, register, reservation desk; then rental desk, rental room, rental returns, wax room).
+**Retail shop (door 2), walking in from outside:**
+- The doorway from the lounge is on your **left**.
+- **Straight ahead:** snowshoes for sale on the left; apparel, hats, pants, coats and socks on the right.
+- **Just past the lounge doorway, on the left:** ski gear for sale (skis and boots).
+- **Straight ahead, up one step, on the right:** the **reservation desk** (lodging check-in / check-out).
+- **Beyond the reservation desk (staff only):** Todd's and Paul's offices, and a back stairway up to the back of the café, other offices and storage. Not for guests.
+- **About 45° to the right as you come in:** a counter with items for sale and the **register**. Buy retail items, **day passes** and **rentals** here (sometimes passes are also sold from a **booth out at the road**). For rentals, staff hand you a **form to fill out with your sizes**.
+
+**Rental flow:** pay at the register and get the size form → walk right, past the register, parallel to the front of the building → turn left to the **rental counter** → hand in the form, receive your equipment → leave through **door 3** (signed "Rentals" / "Rental Returns"). Door 3 is both the rental exit and where rentals are returned.
+
+(Earlier note:) Owner paused the walkthrough at the retail shop; continue from there (door 2 area: retail, register, reservation desk; then rental desk, rental room, rental returns, wax room).
