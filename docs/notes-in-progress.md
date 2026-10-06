@@ -96,4 +96,13 @@ Open questions: name for the lounge room; whether the café = Kuuma Feeding Stat
 
 **Rental flow:** pay at the register and get the size form → walk right, past the register, parallel to the front of the building → turn left to the **rental counter** → hand in the form, receive your equipment → leave through **door 3** (signed "Rentals" / "Rental Returns"). Door 3 is both the rental exit and where rentals are returned.
 
+**Door 4, Wax Room:** unlocked all the time.
+- **Winter:** wax tables with outlets. Guests bring their own iron; none are provided. (Waxing is declining; the room may be made smaller and part of it used for rental storage in a future year, but not this year.)
+- **Summer:** holds the **outdoor toys** guests can borrow: bats and balls, cornhole, KanJam, etc.
+- **Hardline telephone** at the end of the room. **There is no cell service at Lapland Lake.** There is Wi-Fi, and most people use Wi-Fi calling.
+
+**Online purchases:** guests who buy passes and/or rentals online still go to the **register** (unless someone is selling at the road booth), give their name, and get their ticket. Rental customers still get the size form and go to the rental counter. The owner can elaborate later on adding help for rental customers in the app.
+
+**Important for the app:** no cell service on site, so the app must work well offline / on Wi-Fi (it already saves itself on the phone).
+
 (Earlier note:) Owner paused the walkthrough at the retail shop; continue from there (door 2 area: retail, register, reservation desk; then rental desk, rental room, rental returns, wax room).
