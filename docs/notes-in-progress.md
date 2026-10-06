@@ -40,7 +40,8 @@ Open questions: name for the lounge room; whether the café = Kuuma Feeding Stat
 - Apple App Store: $99/year, harder; risk of rejection for "just a website". App-only features like the GPS dot or grooming alerts would help. Suggested: Google Play first, Apple later.
 
 ## Menu
-- Menu screen title currently says "Menu - Closed until Ski Season" (`titleNote` in `content/menu.json`; remove it when the season opens).
+- Café closed mode: `titleNote` in `content/menu.json` ("Closed until Ski Season") shows "Café Menu · Closed until Ski Season" and hides the soup card. Remove that line when the café opens.
+- In season, the soup card only appears when `content/soup.json` has today's date; otherwise it's hidden.
 - All prices are $0.00 placeholders until the owner provides real ones.
 
 ## Lodging

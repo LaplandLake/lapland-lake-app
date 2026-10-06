@@ -11,7 +11,7 @@ Everything that changes day to day lives in the **`content/`** folder. Each file
 | File | What it controls | How often |
 |---|---|---|
 | `content/soup.json` | Soup of the day | Every day |
-| `content/menu.json` | Lodge menu | When the menu changes |
+| `content/menu.json` | Café menu, and the "Closed until Ski Season" note (`titleNote`; delete it when the café opens) | When the menu changes |
 | `content/trails.json` | Trail map: trail names, difficulty, lengths, and where each symbol sits | When trails change |
 | `content/settings.json` | FareHarbor booking link | Rarely |
 | `content/trail-report.json` | Trail conditions | Automatic. Don't edit by hand. |
@@ -27,6 +27,8 @@ Everything that changes day to day lives in the **`content/`** folder. Each file
 ```
 
 Write the date as year-month-day. You can leave the description empty (`""`).
+
+The soup only shows when its date is **today**, so guests never see an old soup. While the café is closed (`titleNote` in `content/menu.json`), the soup is hidden.
 
 **Tip for AI assistants:** "Update `content/soup.json` with today's date and the soup [name]" is all the instruction an assistant needs.
 

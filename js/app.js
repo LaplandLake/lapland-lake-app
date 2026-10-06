@@ -21,11 +21,11 @@ const svg = (name, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" aria-hi
 
 const SCREENS = [
   { path: 'tickets', title: 'Buy Tickets',       sub: 'Trail passes, lessons, season passes', icon: 'ticket', primary: true, render: renderTickets },
-  { path: 'trails',  title: 'Trail Conditions',  sub: "Today's grooming report",              icon: 'snow',   render: renderConditions },
+  { path: 'trails',  title: 'Trail Conditions',  sub: 'Grooming, snow depth & km open',              icon: 'snow',   render: renderConditions },
   { path: 'map',     title: 'Trail Map',         sub: 'Zoom in and tap a trail',              icon: 'map',    render: renderTrailMap },
-  { path: 'menu',    title: 'Soup & Menu',       sub: "Today's soup and lodge menu",          icon: 'soup',   render: renderMenu },
-  { path: 'lodge',   title: 'Lodge Map',         sub: 'Rentals, food, restrooms',             icon: 'lodge',  render: renderLodge },
-  { path: 'stay',    title: 'Lodge With Us',     sub: 'Book your stay',                       icon: 'bed',    render: renderLodging },
+  { path: 'menu',    title: 'Café Menu',         sub: "Today's soup, food & drinks",          icon: 'soup',   render: renderMenu },
+  { path: 'lodge',   title: 'Lodge & Café Map',  sub: 'Rentals, food, restrooms',             icon: 'lodge',  render: renderLodge },
+  { path: 'stay',    title: 'Lodge With Us',     sub: 'Our cottages, studios & farmhouse',                       icon: 'bed',    render: renderLodging },
 ];
 
 /* ---------- Helpers ---------- */
@@ -61,8 +61,8 @@ const errorCard = (what) => `<div class="notice">Sorry, we couldn't load ${what}
 function renderHome(view) {
   view.innerHTML = `
     <section class="welcome">
-      <h1>Welcome!</h1>
-      <p>Lapland Lake Nordic Vacation Center · Northville, NY</p>
+      <h1>Welcome to Lapland Lake</h1>
+      <p>Nordic Vacation Center · Northville, NY</p>
     </section>
     <nav class="tiles" aria-label="Main menu">
       ${SCREENS.map((s) => `
@@ -155,6 +155,7 @@ async function renderConditions(view) {
     const stale = report.stale || !(ageHours < (settings.trailReportStaleAfterHours || 36));
     view.innerHTML = `
       <h1>Trail Conditions</h1>
+      <p class="updated">Last updated <strong>${formatDateTime(report.updated)}</strong><br><span class="meta">The time the app picked up the latest report from our website.</span></p>
       ${stale ? '<div class="notice">This report may be out of date. We\'ll show the newest one as soon as it\'s posted.</div>' : ''}
       <div class="card status">
         ${report.status ? `<div class="status-line">${esc(report.status)}</div>` : ''}
@@ -322,19 +323,30 @@ async function renderTrailMap(view) {
     row.addEventListener('click', () => select(row.dataset.id, { focusMap: true })));
 }
 
+// Today's date as year-month-day, the format used in soup.json
+function todayString() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 async function renderMenu(view) {
-  view.innerHTML = `<h1>Soup &amp; Menu</h1>${loading}`;
+  view.innerHTML = `<h1>Café Menu</h1>${loading}`;
   try {
     const [soup, menu] = await Promise.all([loadContent('soup.json'), loadContent('menu.json')]);
-    // titleNote in menu.json (e.g. "Closed until Ski Season") replaces the usual title; remove it to go back
+    // titleNote in menu.json (e.g. "Closed until Ski Season") means the café is closed:
+    // it's added to the title and the soup card is hidden. Remove it when the café opens.
+    const closed = Boolean(menu.titleNote);
+    // Only show the soup when it was posted for today, so guests never see an old soup
+    const showSoup = !closed && soup.soup && soup.date === todayString();
     view.innerHTML = `
-      ${menu.titleNote ? `<h1>Menu - <span class="title-note">${esc(menu.titleNote)}</span></h1>` : '<h1>Soup &amp; Menu</h1>'}
-      <div class="card soup">
-        <div class="label">Soup of the Day</div>
-        <div class="name">${esc(soup.soup)}</div>
-        ${soup.description ? `<p>${esc(soup.description)}</p>` : ''}
-        <div class="meta">${formatDate(soup.date)}</div>
-      </div>
+      ${closed ? `<h1>Café Menu · <span class="title-note">${esc(menu.titleNote)}</span></h1>` : '<h1>Café Menu</h1>'}
+      ${showSoup ? `
+        <div class="card soup">
+          <div class="label">Soup of the Day</div>
+          <div class="name">${esc(soup.soup)}</div>
+          ${soup.description ? `<p>${esc(soup.description)}</p>` : ''}
+          <div class="meta">${formatDate(soup.date)}</div>
+        </div>` : ''}
       ${menu.sections.map((section) => `
         <section class="menu-section">
           <h2>${esc(section.name)}</h2>
@@ -351,13 +363,13 @@ async function renderMenu(view) {
         </section>`).join('')}
       ${menu.note ? `<p class="meta">${esc(menu.note)}</p>` : ''}`;
   } catch {
-    view.innerHTML = `<h1>Soup &amp; Menu</h1>${errorCard('the menu')}`;
+    view.innerHTML = `<h1>Café Menu</h1>${errorCard('the menu')}`;
   }
 }
 
 function renderLodge(view) {
   view.innerHTML = `
-    <h1>Lodge Map</h1>
+    <h1>Lodge &amp; Café Map</h1>
     <div class="placeholder">
       <strong>Coming soon:</strong> a simple map of the main lodge showing rentals, food, and restrooms.
     </div>`;
