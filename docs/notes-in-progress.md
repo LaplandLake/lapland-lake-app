@@ -48,7 +48,7 @@ Open questions: name for the lounge room; whether the café = Kuuma Feeding Stat
 - Café closed mode: `titleNote` in `content/menu.json` ("Closed until Ski Season") shows "Café Menu · Closed until Ski Season". Remove that line when the café opens.
 - The Soup of the Day card always shows. It shows the soup name only when `content/soup.json` has today's date (and the café isn't closed); otherwise it shows a dash "—".
 - Lessons button: `lessonsUrl` in `content/settings.json` is FareHarbor item 328289 (lessons calendar), tracking codes removed.
-- **Menu prices published (2026-10-06)** from last season's café chalkboards (photo `docs/photos/promo/cafe-counter.jpg`), including salads, breakfast, snacks, scones and cinnamon rolls. Blank (no price shown): chili, mac and cheese, soup (cup $5.__/bowl $7.__), decorated sugar cookies, NA beer, all snacks. Muffin $4.50 was smudged. The owner will upload this year's prices (ideally a photo of the current chalkboards); update `content/menu.json` then.
+- **Menu prices published (2026-10-06)** from last season's café chalkboards (photo `docs/photos/promo/cafe-counter.jpg`), including salads, breakfast, snacks, scones and cinnamon rolls. Blank (no price shown): chili, mac and cheese, soup (cup $5.__/bowl $7.__), decorated sugar cookies, NA beer, all snacks. Muffin $4.50 was smudged. The café chalkboards have been erased for the off-season, so **this year's prices wait until the season starts**; then get a photo of the boards and update `content/menu.json`.
 
 ## Lodging
 - "Lodge With Us" opens RezStream. Owner chose to keep it simple for now.
