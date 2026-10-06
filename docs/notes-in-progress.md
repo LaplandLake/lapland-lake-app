@@ -109,6 +109,8 @@ Open questions: name for the lounge room; whether the café = Kuuma Feeding Stat
 - **Lessons:** students meet the instructor near **door 2, usually inside**; instructors take them down to the **practice field**.
 - **West side:** some skiers put their gear on and get on the trail **between the garage and the lodge building**, then ski the west side.
 
+**Parking:** main lot outside the lodge (obvious to visitors); **overflow lot across the road**; lodging guests park at their cottages.
+
 **Guest Wi-Fi:** network name **Lapland Lake Public**, open, **no password**. Show this in the app (e.g., on the lodge map and/or home screen) since there's no cell service.
 
 **Important for the app:** no cell service on site, so the app must work well offline / on Wi-Fi (it already saves itself on the phone).
