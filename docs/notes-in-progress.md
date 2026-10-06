@@ -147,3 +147,5 @@ Readable prices (last season; owner said menu prices may change):
 - Signs on the counter: "Please take items for purchase to the ski shop register downstairs" (**only when nobody is staffing the café**) and "Paper plates, cups, bowls without food purchase $1.00 each."
 - A separate "Today's Soups" chalkboard lists the day's soups (example: white chicken chili, sherried lobster bisque) plus mac n' cheese, sandwiches, hot dogs, salads.
 - Café also has a hot chocolate machine and a Boylan soda fridge by the stairs.
+
+- **Café prices published 2026-10-06** from the café photos (muffins $4.00, cookies $2.00 corrected). Mac and cheese and decorated sugar cookies still unpriced.
