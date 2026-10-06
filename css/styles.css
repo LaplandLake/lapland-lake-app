@@ -376,3 +376,7 @@ button.trail-row { cursor: pointer; }
 .tip-line { margin: 14px 0 6px; }
 .updated { margin: -4px 0 16px; }
 .section-note { font-size: 16px; font-weight: 500; color: var(--ink-soft); margin-left: 6px; }
+
+/* Website and phone at the bottom of the home screen */
+.home-footer { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 4px 10px; margin-top: 24px; font-size: 17px; color: var(--ink-soft); }
+.home-footer a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 4px; color: var(--link); font-weight: 600; }
