@@ -15,17 +15,19 @@ const ICONS = {
   alert:  '<path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/>',
   arrow:  '<path d="M12 20V5M6 11l6-6 6 6"/>',
   close:  '<path d="M6 6l12 12M18 6L6 18"/>',
+  skier:  '<circle cx="14" cy="4" r="2"/><path d="M8 21l3-7 3 2 1 5M11 14l1-5 4 3 3-1M12 9l-4 1-2 3M3 21l18-3"/>',
   bed:    '<path d="M3 19V6M3 15h18v4M21 15v-3a3 3 0 0 0-3-3h-7v6"/><circle cx="7" cy="11" r="2"/>',
 };
 const svg = (name, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[name]}</svg>`;
 
 const SCREENS = [
-  { path: 'tickets', title: 'Buy Tickets',       sub: 'Trail passes, lessons, season passes', icon: 'ticket', primary: true, render: renderTickets },
-  { path: 'trails',  title: 'Trail Conditions',  sub: 'Grooming, snow depth & km open',              icon: 'snow',   render: renderConditions },
-  { path: 'map',     title: 'Trail Map',         sub: 'Zoom in and tap a trail',              icon: 'map',    render: renderTrailMap },
-  { path: 'menu',    title: 'Café Menu',         sub: "Today's soup, food & drinks",          icon: 'soup',   render: renderMenu },
-  { path: 'lodge',   title: 'Lodge & Café Map',  sub: 'Rentals, food, restrooms',             icon: 'lodge',  render: renderLodge },
-  { path: 'stay',    title: 'Lodge With Us',     sub: 'Our cottages, studios & farmhouse',                       icon: 'bed',    render: renderLodging },
+  { path: 'trails',  title: 'Trail Conditions',  sub: 'Grooming, snow depth & km open',                       icon: 'snow',   render: renderConditions },
+  { path: 'tickets', title: 'Buy Tickets',       sub: 'Trail passes, equipment rentals, lessons, season passes', icon: 'ticket', primary: true, render: renderTickets },
+  { path: 'lessons', title: 'Lessons',           sub: 'Already have a ticket, season pass, or lodging with us?', icon: 'skier',  render: renderLessons },
+  { path: 'map',     title: 'Trail Map',         sub: 'Zoom in and tap a trail',                              icon: 'map',    render: renderTrailMap },
+  { path: 'menu',    title: 'Café Menu',         sub: "Today's soup, food & drinks",                          icon: 'soup',   render: renderMenu },
+  { path: 'lodge',   title: 'Lodge & Café Map',  sub: 'Rentals, retail, food, restrooms',                     icon: 'lodge',  render: renderLodge },
+  { path: 'stay',    title: 'Lodge With Us',     sub: 'Our cottages, studios & farmhouse',                    icon: 'bed',    render: renderLodging },
 ];
 
 /* ---------- Helpers ---------- */
@@ -62,7 +64,7 @@ function renderHome(view) {
   view.innerHTML = `
     <section class="welcome">
       <h1>Welcome to Lapland Lake</h1>
-      <p>139 Lapland Lake Road<br>Northville, NY 12134</p>
+      <p>Cross-Country Ski Area &amp; Lodging</p>
     </section>
     <nav class="tiles" aria-label="Main menu">
       ${SCREENS.map((s) => `
@@ -105,7 +107,7 @@ async function renderTickets(view) {
     const settings = await loadContent('settings.json');
     view.innerHTML = `
       <h1>Buy Tickets</h1>
-      <p>Buy trail passes, lessons, and season passes online. You'll go to our secure booking page.</p>
+      <p>Buy trail passes, equipment rentals, lessons, and season passes online. You'll go to our secure booking page.</p>
       <a class="btn" href="${esc(settings.fareharborUrl)}" target="_blank" rel="noopener">
         Buy Tickets Now ${svg('ext')}
       </a>
@@ -124,6 +126,22 @@ function noteHtml(note) {
       `<a href="${esc(link.href)}" target="_blank" rel="noopener">${esc(link.text)}</a>`);
   }
   return html;
+}
+
+async function renderLessons(view) {
+  view.innerHTML = `<h1>Lessons</h1>${loading}`;
+  try {
+    const settings = await loadContent('settings.json');
+    view.innerHTML = `
+      <h1>Lessons</h1>
+      <p>Already have a ticket, season pass, or lodging with us? Book a lesson here.</p>
+      <a class="btn" href="${esc(settings.lessonsUrl || settings.fareharborUrl)}" target="_blank" rel="noopener">
+        Book a Lesson ${svg('ext')}
+      </a>
+      <p class="meta" style="margin-top:12px">Booking and payment are handled by FareHarbor.</p>`;
+  } catch {
+    view.innerHTML = `<h1>Lessons</h1>${errorCard('the booking link')}`;
+  }
 }
 
 async function renderLodging(view) {
@@ -155,11 +173,11 @@ async function renderConditions(view) {
     const stale = report.stale || !(ageHours < (settings.trailReportStaleAfterHours || 36));
     view.innerHTML = `
       <h1>Trail Conditions</h1>
-      <p class="updated">Last updated <strong>${formatDateTime(report.updated)}</strong><br><span class="meta">The time the app picked up the latest report from our website.</span></p>
+      <p class="updated">Last updated <strong>${report.reportDate ? esc(report.reportDate) : formatDate(report.updated)}</strong></p>
       ${stale ? '<div class="notice">This report may be out of date. We\'ll show the newest one as soon as it\'s posted.</div>' : ''}
       <div class="card status">
         ${report.status ? `<div class="status-line">${esc(report.status)}</div>` : ''}
-        <div class="meta">${report.reportDate ? `Report for <strong>${esc(report.reportDate)}</strong>` : `Last updated: <strong>${formatDateTime(report.updated)}</strong>`}</div>
+
       </div>
       ${report.stats?.length ? `
         <dl class="stats">
@@ -334,19 +352,20 @@ async function renderMenu(view) {
   try {
     const [soup, menu] = await Promise.all([loadContent('soup.json'), loadContent('menu.json')]);
     // titleNote in menu.json (e.g. "Closed until Ski Season") means the café is closed:
-    // it's added to the title and the soup card is hidden. Remove it when the café opens.
+    // it's added to the title and the soup shows a dash. Remove it when the café opens.
     const closed = Boolean(menu.titleNote);
-    // Only show the soup when it was posted for today, so guests never see an old soup
+    // Only show the soup's name when it was posted for today; otherwise the card shows a dash
     const showSoup = !closed && soup.soup && soup.date === todayString();
     view.innerHTML = `
       ${closed ? `<h1>Café Menu · <span class="title-note">${esc(menu.titleNote)}</span></h1>` : '<h1>Café Menu</h1>'}
-      ${showSoup ? `
-        <div class="card soup">
-          <div class="label">Soup of the Day</div>
+      <div class="card soup">
+        <div class="label">Soup of the Day</div>
+        ${showSoup ? `
           <div class="name">${esc(soup.soup)}</div>
           ${soup.description ? `<p>${esc(soup.description)}</p>` : ''}
-          <div class="meta">${formatDate(soup.date)}</div>
-        </div>` : ''}
+          <div class="meta">${formatDate(soup.date)}</div>` : `
+          <div class="name" aria-label="Not posted yet">—</div>`}
+      </div>
       ${menu.sections.map((section) => `
         <section class="menu-section">
           <h2>${esc(section.name)}</h2>
