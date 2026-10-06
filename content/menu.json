@@ -28,12 +28,32 @@
       ]
     },
     {
-      "name": "Sandwiches",
+      "name": "Sandwiches & Salads",
       "items": [
         {
           "name": "Cold Sandwich",
           "description": "",
           "price": "$8.50"
+        },
+        {
+          "name": "Garden Salad",
+          "description": "",
+          "price": "$8.00"
+        },
+        {
+          "name": "Chef Salad",
+          "description": "",
+          "price": "$9.50"
+        }
+      ]
+    },
+    {
+      "name": "Breakfast",
+      "items": [
+        {
+          "name": "Cold Cereal",
+          "description": "",
+          "price": "$2.00"
         }
       ]
     },
@@ -57,6 +77,46 @@
         },
         {
           "name": "Decorated Sugar Cookies",
+          "description": "",
+          "price": ""
+        },
+        {
+          "name": "Scones",
+          "description": "",
+          "price": "$4.00"
+        },
+        {
+          "name": "Cinnamon Rolls",
+          "description": "",
+          "price": "$4.00"
+        }
+      ]
+    },
+    {
+      "name": "Snacks",
+      "items": [
+        {
+          "name": "Chips",
+          "description": "",
+          "price": ""
+        },
+        {
+          "name": "Yogurt",
+          "description": "",
+          "price": ""
+        },
+        {
+          "name": "Banana",
+          "description": "",
+          "price": ""
+        },
+        {
+          "name": "Clementine",
+          "description": "",
+          "price": ""
+        },
+        {
+          "name": "Apple",
           "description": "",
           "price": ""
         }
