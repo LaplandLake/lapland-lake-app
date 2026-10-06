@@ -88,6 +88,8 @@ Confirmed: the doorway on the far right of the lounge (by the fire extinguisher 
 **Café access:** no step-free route; the café is only reachable by the two flights of stairs.
 **Downstairs restrooms** (photos `restrooms-hallway.jpg`, `restroom-women.jpg`, `restroom-second.jpg`): straight back from door 1 past the tables, a small step down into a hallway with a blue sign "RESTROOMS ↓ / Additional restrooms upstairs". A **Women's** room, and a second room whose door sign reads **"RESTROOM"** with both figures (owner called it the men's room; confirm label). The sauna door is further along on the right.
 
+**Lodging Guest Sauna** (photos `sauna-1.jpg`…`sauna-5.jpg`): door on the right at the end of the restroom hallway. Inside: a changing area with a bench, hooks and hangers, a firewood box, a "Sauna Fun Club" poster, a sauna guest book, and a **shower** (Lapland Lake logo curtain). Through a wooden door: the hot room with a **wood-fired Helo stove** and an electric Metos heater, two-level benches, and a bucket and ladle. Lodging guests only.
+
 **Upstairs (café level):**
 - At the top of the stairs: a **soda machine** on the right; the **café counter** straight ahead.
 - **To the right of the counter:** more **bathrooms**.
