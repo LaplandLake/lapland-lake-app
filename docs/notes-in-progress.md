@@ -85,6 +85,9 @@ Open questions: name for the lounge room; whether the café = Kuuma Feeding Stat
 Confirmed: the doorway on the far right of the lounge (by the fire extinguisher and "Ski School / To Lodge" sign) leads into the **retail shop**.
 **Stairs to the café** (photos `door1-inside-right-cafe-door.jpg`, `cafe-stairs-1.jpg`, `cafe-stairs-2.jpg`): just inside door 1 to the right, past a table, is a white door; behind it is a short carpeted flight with a handrail, a landing (Ski Patrol raffle poster), then a second flight up to the café counter. Not step-free.
 
+**Café access:** no step-free route; the café is only reachable by the two flights of stairs.
+**Downstairs restrooms** (photos `restrooms-hallway.jpg`, `restroom-women.jpg`, `restroom-second.jpg`): straight back from door 1 past the tables, a small step down into a hallway with a blue sign "RESTROOMS ↓ / Additional restrooms upstairs". A **Women's** room, and a second room whose door sign reads **"RESTROOM"** with both figures (owner called it the men's room; confirm label). The sauna door is further along on the right.
+
 **Upstairs (café level):**
 - At the top of the stairs: a **soda machine** on the right; the **café counter** straight ahead.
 - **To the right of the counter:** more **bathrooms**.
