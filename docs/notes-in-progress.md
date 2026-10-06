@@ -110,6 +110,8 @@ Confirmed: the raised room straight back from door 2 (step up, desk and chair) i
 
 **Reservation desk photo:** `reservation-desk.jpg`: up one step, a "RESERVATIONS" sign over the desk; an "Employees Only" office to the left; a small gift wall (bags, hats, souvenirs) to the right.
 
+**Rental area reference photos** (`rental-counter-ref.jpg`, `rental-exit-door3-ref.jpg`): **for layout reference only, NOT for use in the app** (owner: the place was messy after a wedding). The rental counter is just past the register on the left; the rental room with skis, boots and snowshoes is behind it; a "Bridges to trails on west side ←" sign is by the counter. Straight ahead is **door 3** (exit), with a bench and **trail maps** by the front window, a "Shop Rates" board (binding install, hot wax), and a "Please carry skis to trail, do not ski in parking areas or roadway" sign. Use the promo photos (`docs/photos/promo/rental-desk.jpg`, `rentals.jpg`) in the app instead.
+
 **Rental flow:** pay at the register and get the size form → walk right, past the register, parallel to the front of the building → turn left to the **rental counter** → hand in the form, receive your equipment → leave through **door 3** (signed "Rentals" / "Rental Returns"). Door 3 is both the rental exit and where rentals are returned.
 
 **Door 4, Wax Room:** unlocked all the time.
