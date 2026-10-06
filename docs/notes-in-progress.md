@@ -80,6 +80,8 @@ Open questions: name for the lounge room; whether the café = Kuuma Feeding Stat
 - **At the back, down 2 steps:** on the left, the **men's room**, then a separate **ladies' room**. A step or two further straight, on the right: the **Lodging Guest Sauna** (with a shower), **for lodging guests only**.
 - **To the retail shop:** a few steps in from door 1, turn right and walk along the wall (the outside of the stairway), with the leather couches on your left, then through a doorway into the **retail shop**. The retail shop is where door 2 comes in.
 
+**Door 1 photos (owner, Oct 2026):** `docs/photos/door1-inside-straight.jpg` (straight in: bookshelves on left, picnic tables, hallway at back right to the restrooms down 2 steps), `door1-inside-left-recycling.jpg` (left: bins for deposit bottles/cans and other recyclables, trash, cabinets, bookshelves, window), `door1-inside-right-lounge.jpg` (right: wood stove lounge with leather loveseat, benches, posts; hallway to restrooms on the far left; a "Ski School / Lapland Lake / To Lodge" sign and fire extinguisher by a doorway on the right).
+
 **Upstairs (café level):**
 - At the top of the stairs: a **soda machine** on the right; the **café counter** straight ahead.
 - **To the right of the counter:** more **bathrooms**.
