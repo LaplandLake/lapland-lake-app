@@ -22,7 +22,7 @@ const svg = (name, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" aria-hi
 
 const SCREENS = [
   { path: 'trails',  title: 'Trail Conditions',  sub: 'Grooming, snow depth & km open',                       icon: 'snow',   render: renderConditions },
-  { path: 'tickets', title: 'Buy Tickets',       sub: 'Trail passes, equipment rentals, lessons, season passes', icon: 'ticket', primary: true, render: renderTickets },
+  { path: 'tickets', title: 'Buy Tickets',       sub: 'Trail passes, equipment rentals, lessons, season passes', icon: 'ticket', render: renderTickets },
   { path: 'lessons', title: 'Lessons',           sub: 'Already have a ticket, season pass, or lodging with us?', icon: 'skier',  render: renderLessons },
   { path: 'map',     title: 'Trail Map',         sub: 'Zoom in and tap a trail',                              icon: 'map',    render: renderTrailMap },
   { path: 'menu',    title: 'Café Menu',         sub: "Today's soup, food & drinks",                          icon: 'soup',   render: renderMenu },
