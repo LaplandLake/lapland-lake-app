@@ -380,3 +380,37 @@ button.trail-row { cursor: pointer; }
 /* Website and phone at the bottom of the home screen */
 .home-footer { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 4px 10px; margin-top: 24px; font-size: 17px; color: var(--ink-soft); }
 .home-footer a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 4px; color: var(--link); font-weight: 600; }
+
+/* ---------- Lodge & Café map ---------- */
+.wifi { border-color: var(--brand); }
+.wifi p { margin: 4px 0 0; }
+.lodge-photo { display: block; width: 100%; border-radius: var(--radius); margin-bottom: 8px; }
+.door-list .place-icon.door { background: var(--accent); color: var(--accent-ink); font-weight: 800; }
+.plan-list .place-icon.small, .door-list .place-icon.small { font-size: 15px; font-weight: 800; }
+.floor-tabs { display: flex; gap: 8px; margin: 4px 0 8px; }
+.floor-tabs button {
+  flex: 1; min-height: 48px; border: 2px solid var(--brand); border-radius: 12px;
+  background: var(--card); color: var(--brand); font: inherit; font-weight: 700; cursor: pointer;
+}
+.floor-tabs button[aria-selected="true"] { background: var(--brand); color: #fff; }
+.plan-canvas { position: relative; margin: 0 -16px 12px; background: #fff; border-block: 1px solid var(--line); }
+.plan-canvas svg { display: block; width: 100%; height: auto; }
+.plan-canvas .pin { --inv: 1; }
+.plan-canvas .pin .place-icon { font-size: 13px; font-weight: 800; }
+.plan-room { fill: #f7fbfb; stroke: var(--ink-soft); stroke-width: 3; }
+.plan-area { fill: #eef6f7; stroke: var(--ink-soft); stroke-width: 1.5; }
+.plan-staff { fill: #e6e6e6; stroke: var(--ink-soft); stroke-width: 1.5; }
+.plan-wall { stroke: var(--ink-soft); stroke-width: 1.5; }
+.plan-stairs { fill: #dfe9ea; stroke: var(--ink-soft); stroke-width: 1.5; stroke-dasharray: 3 3; }
+.plan-counter { fill: #d8c3a5; stroke: #8a6d47; stroke-width: 1.5; }
+.plan-table { fill: #e8dcc8; stroke: #a58b62; stroke-width: 1; }
+.plan-out { fill: #fff; stroke: var(--ink-soft); stroke-width: 1.5; stroke-dasharray: 3 2; }
+.plan-door { fill: #fff; stroke: none; }
+.plan-door-num { fill: var(--accent); }
+.plan-door-text { fill: var(--accent-ink); font: 800 11px var(--font); text-anchor: middle; }
+.plan-label { fill: var(--ink-soft); font: 700 13px var(--font); text-anchor: middle; }
+.plan-label.small { font-size: 10px; font-weight: 600; }
+.steps { padding-left: 38px; }
+.steps li { margin: 6px 0; }
+.info-card { max-height: 75vh; overflow-y: auto; }
+.info-photo { display: block; width: 100%; max-height: 220px; object-fit: cover; border-radius: 10px; margin-top: 10px; }

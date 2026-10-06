@@ -1,0 +1,183 @@
+{
+  "wifi": {
+    "name": "Lapland Lake Public",
+    "password": ""
+  },
+  "noSignal": "There's no cell service at Lapland Lake. Join the free Wi-Fi to call or text.",
+  "outsidePhoto": "images/lodge/outside.webp",
+  "doors": [
+    {
+      "number": 1,
+      "name": "Lounge",
+      "detail": "Seating, wood stove, restrooms, stairs to the café. Step-free ramp."
+    },
+    {
+      "number": 2,
+      "name": "Shop & Register",
+      "detail": "Buy passes and rentals, retail shop, lodging check-in."
+    },
+    {
+      "number": 3,
+      "name": "Rentals",
+      "detail": "Rental exit, and where you return rental gear."
+    },
+    {
+      "number": 4,
+      "name": "Wax Room",
+      "detail": "Wax benches in winter. Outdoor games in summer. Phone."
+    }
+  ],
+  "floors": [
+    {
+      "name": "Downstairs",
+      "spots": [
+        {
+          "id": "portajohns",
+          "name": "Porta-Johns (winter)",
+          "x": 14,
+          "y": 205,
+          "photo": "",
+          "description": "Outside, around the left corner of the building past door 1. Handy when you don't want to take your boots off."
+        },
+        {
+          "id": "tables",
+          "name": "Tables & Gear Cubbies",
+          "x": 75,
+          "y": 185,
+          "photo": "images/lodge/tables.webp",
+          "description": "Picnic tables by the sunny windows. Store your gear in the cubbies and eat your lunch here. Recycling is just inside door 1."
+        },
+        {
+          "id": "lounge",
+          "name": "Wood Stove Lounge",
+          "x": 135,
+          "y": 115,
+          "photo": "images/lodge/lounge.webp",
+          "description": "Warm up by the wood stove on the leather couch, chair and loveseat."
+        },
+        {
+          "id": "restrooms",
+          "name": "Restrooms",
+          "x": 70,
+          "y": 42,
+          "photo": "images/lodge/restrooms.webp",
+          "description": "Straight back from door 1, down 2 steps: a women's restroom and a restroom for men and all. More restrooms upstairs by the café."
+        },
+        {
+          "id": "sauna",
+          "name": "Lodging Guest Sauna",
+          "x": 140,
+          "y": 42,
+          "photo": "images/lodge/sauna.webp",
+          "description": "Wood-fired Finnish sauna with a shower. For lodging guests only."
+        },
+        {
+          "id": "stairs",
+          "name": "Stairs to the Café",
+          "x": 172,
+          "y": 222,
+          "photo": "images/lodge/stairs.webp",
+          "description": "Just inside door 1, to the right: the white door leads up two short flights of stairs to the café."
+        },
+        {
+          "id": "retail",
+          "name": "Retail Shop",
+          "x": 225,
+          "y": 140,
+          "photo": "images/lodge/retail.webp",
+          "description": "Lapland Lake apparel, hats, socks, skis, boots and snowshoes for sale. Enter through door 2, or from the lounge."
+        },
+        {
+          "id": "register",
+          "name": "Register",
+          "x": 280,
+          "y": 200,
+          "photo": "images/lodge/register.webp",
+          "description": "Pay here for day passes, rentals and shop items. Bought online? Give your name here to pick up your ticket and rental form."
+        },
+        {
+          "id": "reservations",
+          "name": "Lodging Check-In",
+          "x": 270,
+          "y": 42,
+          "photo": "images/lodge/reservations.webp",
+          "description": "The reservation desk, up one step at the back of the shop. Check in and out of your lodging here."
+        },
+        {
+          "id": "rentals",
+          "name": "Rental Counter",
+          "x": 345,
+          "y": 120,
+          "photo": "images/lodge/rental-desk.webp",
+          "description": "Hand in your size form and get your skis, boots, poles or snowshoes. Then head out door 3."
+        },
+        {
+          "id": "wax",
+          "name": "Wax Room",
+          "x": 400,
+          "y": 170,
+          "photo": "images/lodge/wax-room.webp",
+          "description": "Door 4, always open. Wax benches with outlets in winter (bring your own iron). Outdoor games to borrow in summer. Landline phone and message board."
+        }
+      ]
+    },
+    {
+      "name": "Upstairs (Café)",
+      "spots": [
+        {
+          "id": "cafe-stairs",
+          "name": "Top of the Stairs",
+          "x": 115,
+          "y": 210,
+          "photo": "",
+          "description": "Coming up from the lounge, the café opens up in front of you."
+        },
+        {
+          "id": "fridge",
+          "name": "Drink Fridge",
+          "x": 170,
+          "y": 205,
+          "photo": "images/lodge/cafe-fridge.webp",
+          "description": "Cold drinks, yogurt, sandwiches and salads. On your right at the top of the stairs."
+        },
+        {
+          "id": "counter",
+          "name": "Café Counter",
+          "x": 245,
+          "y": 70,
+          "photo": "images/lodge/cafe-counter.webp",
+          "description": "The Kuuma Feeding Station: soups, hot dogs, baked goods, coffee and hot chocolate. If nobody is at the counter, pay at the shop register downstairs."
+        },
+        {
+          "id": "cafe-restrooms",
+          "name": "Restrooms",
+          "x": 345,
+          "y": 70,
+          "photo": "",
+          "description": "Two restrooms, to the right of the café counter."
+        },
+        {
+          "id": "seating",
+          "name": "Café Seating",
+          "x": 270,
+          "y": 165,
+          "photo": "images/lodge/cafe-tables.webp",
+          "description": "Plenty of tables to eat and warm up."
+        }
+      ]
+    }
+  ],
+  "rentalSteps": [
+    "Pay at the register inside door 2 (or pick up your online order there). You'll get a size form.",
+    "Fill in the form, then walk past the register to the rental counter.",
+    "Hand in the form and get your equipment.",
+    "Head out door 3. Please carry your skis to the trail, not through the parking lot or road.",
+    "When you're done, return everything at door 3 (Rental Returns)."
+  ],
+  "goodToKnow": [
+    "Door 1 has a step-free ramp. The café upstairs is only reachable by stairs.",
+    "In winter, porta-johns are outside, around the left corner of the building past door 1.",
+    "Beginners: walk across the road to start on the Lake Trail. West side trails start between the garage and the lodge.",
+    "Taking a lesson? Meet your instructor inside door 2."
+  ]
+}

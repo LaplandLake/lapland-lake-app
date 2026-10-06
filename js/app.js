@@ -391,12 +391,116 @@ async function renderMenu(view) {
   }
 }
 
-function renderLodge(view) {
+// Simple floor-plan drawings for the lodge map. Coordinates match the "x"/"y" of the
+// spots in content/lodge.json (a 430 x 270 drawing; the front of the building is at the bottom).
+const LODGE_PLANS = [
+  // Downstairs
+  `<rect class="plan-out" x="3" y="185" width="22" height="45" rx="3"/>
+   <rect class="plan-room" x="30" y="15" width="330" height="230"/>
+   <rect class="plan-room" x="360" y="110" width="60" height="135"/>
+   <rect class="plan-area" x="30" y="15" width="80" height="55"/>
+   <rect class="plan-area" x="110" y="15" width="60" height="55"/>
+   <rect class="plan-staff" x="190" y="15" width="40" height="55"/>
+   <rect class="plan-area" x="230" y="15" width="75" height="55"/>
+   <rect class="plan-area" x="305" y="15" width="55" height="230"/>
+   <line class="plan-wall" x1="190" y1="70" x2="190" y2="200"/>
+   <line class="plan-wall" x1="305" y1="70" x2="305" y2="245"/>
+   <rect class="plan-stairs" x="145" y="198" width="42" height="47"/>
+   <text class="plan-label" x="110" y="160">Lounge</text>
+   <text class="plan-label" x="247" y="110">Shop</text>
+   <text class="plan-label small" x="210" y="45">Staff</text>
+   <text class="plan-label small" x="332" y="235">Rentals</text>
+   ${[[55, 1], [240, 2], [332, 3], [390, 4]].map(([x, n]) => `
+     <rect class="plan-door" x="${x - 9}" y="241" width="18" height="8"/>
+     <circle class="plan-door-num" cx="${x}" cy="260" r="9"/><text class="plan-door-text" x="${x}" y="264">${n}</text>`).join('')}`,
+  // Upstairs (café)
+  `<rect class="plan-room" x="90" y="20" width="290" height="225"/>
+   <rect class="plan-area" x="320" y="20" width="60" height="85"/>
+   <rect class="plan-counter" x="185" y="40" width="125" height="22"/>
+   <rect class="plan-stairs" x="95" y="190" width="40" height="52"/>
+   <rect class="plan-area" x="158" y="188" width="22" height="34"/>
+   ${[[220, 140], [280, 140], [340, 150], [220, 200], [280, 200], [340, 205]].map(([x, y]) =>
+     `<rect class="plan-table" x="${x - 16}" y="${y - 9}" width="32" height="18" rx="3"/>`).join('')}
+   <text class="plan-label" x="250" y="235">Seating</text>`,
+];
+
+async function renderLodge(view) {
+  view.innerHTML = `<h1>Lodge &amp; Café Map</h1>${loading}`;
+  let data;
+  try { data = await loadContent('lodge.json'); }
+  catch { view.innerHTML = `<h1>Lodge &amp; Café Map</h1>${errorCard('the lodge map')}`; return; }
+
+  const spotsById = Object.fromEntries(data.floors.flatMap((f) => f.spots.map((s) => [s.id, s])));
+  const floorHtml = (floor, i) => `
+    <div class="plan" data-floor="${i}" ${i ? 'hidden' : ''}>
+      <div class="plan-canvas">
+        <svg viewBox="0 0 430 270" aria-hidden="true">${LODGE_PLANS[i] || ''}</svg>
+        ${floor.spots.map((s) => `
+          <button class="pin pin-place" data-spot="${esc(s.id)}" style="left:${(s.x / 430) * 100}%;top:${(s.y / 270) * 100}%" aria-label="${esc(s.name)}">
+            <span class="place-icon">${String.fromCharCode(65 + floor.spots.indexOf(s))}</span>
+          </button>`).join('')}
+      </div>
+      <ol class="trail-list plan-list">${floor.spots.map((s) => `
+        <li><button class="trail-row" data-spot="${esc(s.id)}">
+          <span class="place-icon small" aria-hidden="true">${String.fromCharCode(65 + floor.spots.indexOf(s))}</span>
+          <span class="trail-name">${esc(s.name)}</span>
+        </button></li>`).join('')}</ol>
+    </div>`;
+
   view.innerHTML = `
     <h1>Lodge &amp; Café Map</h1>
-    <div class="placeholder">
-      <strong>Coming soon:</strong> a simple map of the main lodge showing rentals, food, and restrooms.
-    </div>`;
+    <div class="card wifi">
+      <div><strong>Free Wi-Fi:</strong> ${esc(data.wifi.name)}${data.wifi.password ? ` · Password: ${esc(data.wifi.password)}` : ' · no password'}</div>
+      ${data.noSignal ? `<p class="meta">${esc(data.noSignal)}</p>` : ''}
+    </div>
+
+    <h2>The doors</h2>
+    ${data.outsidePhoto ? `<img class="lodge-photo" src="${esc(data.outsidePhoto)}" alt="The front of the lodge" loading="lazy">` : ''}
+    <ol class="trail-list door-list">${data.doors.map((d) => `
+      <li><div class="trail-row">
+        <span class="place-icon small door" aria-hidden="true">${d.number}</span>
+        <span class="trail-name">Door ${d.number}: ${esc(d.name)}<small>${esc(d.detail)}</small></span>
+      </div></li>`).join('')}</ol>
+    <p class="meta">Doors are numbered left to right as you face the lodge from the parking lot.</p>
+
+    <h2>Inside</h2>
+    <div class="floor-tabs" role="tablist">
+      ${data.floors.map((f, i) => `<button type="button" role="tab" aria-selected="${!i}" data-tab="${i}">${esc(f.name)}</button>`).join('')}
+    </div>
+    <p class="meta">Tap a letter to see what's there. Yellow numbers are the doors. Not to scale.</p>
+    ${data.floors.map(floorHtml).join('')}
+
+    ${data.rentalSteps?.length ? `
+      <h2>How to rent equipment</h2>
+      <ol class="card steps">${data.rentalSteps.map((s) => `<li>${esc(s)}</li>`).join('')}</ol>` : ''}
+
+    ${data.goodToKnow?.length ? `
+      <h2>Good to know</h2>
+      <ul class="card steps">${data.goodToKnow.map((s) => `<li>${esc(s)}</li>`).join('')}</ul>` : ''}
+
+    <div class="info-card" id="lodge-info" role="region" aria-label="Place details" aria-live="polite" hidden></div>`;
+
+  const info = view.querySelector('#lodge-info');
+  function show(id) {
+    view.querySelectorAll('.pin.active').forEach((p) => p.classList.remove('active'));
+    const s = id && spotsById[id];
+    view.classList.toggle('has-info', !!s);
+    if (!s) { info.hidden = true; return; }
+    view.querySelectorAll(`.pin[data-spot="${id}"]`).forEach((p) => p.classList.add('active'));
+    info.innerHTML = `
+      <button type="button" class="info-close" aria-label="Close">${svg('close')}</button>
+      <div class="info-name">${esc(s.name)}</div>
+      <p>${esc(s.description)}</p>
+      ${s.photo ? `<img class="info-photo" src="${esc(s.photo)}" alt="${esc(s.name)}">` : ''}`;
+    info.hidden = false;
+  }
+  info.addEventListener('click', (e) => { if (e.target.closest('.info-close')) show(null); });
+  view.querySelectorAll('[data-spot]').forEach((el) => el.addEventListener('click', () => show(el.dataset.spot)));
+  view.querySelectorAll('[data-tab]').forEach((tab) => tab.addEventListener('click', () => {
+    view.querySelectorAll('[data-tab]').forEach((t) => t.setAttribute('aria-selected', t === tab));
+    view.querySelectorAll('.plan').forEach((p) => { p.hidden = p.dataset.floor !== tab.dataset.tab; });
+    show(null);
+  }));
 }
 
 /* ---------- Navigation ---------- */
