@@ -3,7 +3,7 @@
    - Content files (trail report, soup, menu) always try the internet first, and fall back
      to the last saved copy if there's no signal.
    Bump VERSION whenever app files (not content) change, so phones pick up the new version. */
-const VERSION = 'v10';
+const VERSION = 'v11';
 const APP_FILES = [
   './',
   'index.html',
@@ -19,7 +19,12 @@ const APP_FILES = [
 ];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(VERSION).then((c) => c.addAll(APP_FILES)).then(() => self.skipWaiting()));
+  // cache: 'reload' skips the phone's own web cache, so a new version always saves fresh files
+  event.waitUntil(
+    caches.open(VERSION)
+      .then((c) => c.addAll(APP_FILES.map((url) => new Request(url, { cache: 'reload' }))))
+      .then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener('activate', (event) => {
@@ -50,7 +55,7 @@ self.addEventListener('fetch', (event) => {
     // Saved copy first (fast), then refresh it in the background
     event.respondWith(
       caches.match(req, { ignoreSearch: true }).then((cached) => {
-        const fresh = fetch(req).then((res) => {
+        const fresh = fetch(req, { cache: 'no-cache' }).then((res) => {
           if (res.ok) {
             const copy = res.clone();
             caches.open(VERSION).then((c) => c.put(req, copy));
