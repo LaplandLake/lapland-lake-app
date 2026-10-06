@@ -93,7 +93,7 @@ Confirmed: the doorway on the far right of the lounge (by the fire extinguisher 
 **Upstairs (café level):**
 - At the top of the stairs: a **soda machine** on the right; the **café counter** straight ahead.
 - **To the right of the counter:** **two restrooms**, open to everyone (owner thinks possibly one women's and one men's; not sure — label as "Restrooms" until confirmed).
-- Lots of seating for eating.
+- Lots of seating for eating: **one big room** around the counter (the two café table photos are the same room). Owner will take photos of the upstairs layout.
 - There are **two shower rooms upstairs**, but **they are not advertised**. Don't show them in the app.
 
 **Retail shop (door 2), walking in from outside:**
