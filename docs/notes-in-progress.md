@@ -119,6 +119,8 @@ Confirmed: the raised room straight back from door 2 (step up, desk and chair) i
 - **Summer:** holds the **outdoor toys** guests can borrow: bats and balls, cornhole, KanJam, etc.
 - **Hardline telephone** at the end of the room. **There is no cell service at Lapland Lake.** There is Wi-Fi, and most people use Wi-Fi calling.
 
+**Door 4 photo (summer setup):** `door4-wax-room-summer.jpg`: long wooden tables holding the summer toys (balls, frisbees, KanJam, Mölkky, croquet, bats, beach toys); a **Message Board** whiteboard and the **hardline phone** on the back wall. In winter the tables are the wax benches.
+
 **Online purchases:** guests who buy passes and/or rentals online still go to the **register** (unless someone is selling at the road booth), give their name, and get their ticket. Rental customers still get the size form and go to the rental counter. The owner can elaborate later on adding help for rental customers in the app.
 
 **Getting onto the trails:**
