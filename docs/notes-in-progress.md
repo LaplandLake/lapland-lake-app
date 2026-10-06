@@ -22,7 +22,10 @@ Front of the building, doors numbered left to right (photos: `docs/photos/lodge-
    - Opens into the **lounge / common room**: wood stove, couch, chairs, loveseats around the fire, tables.
    - Inside photo: `docs/photos/lodge-lounge-inside.jpg` (professional shot: wood stove, leather couch, tapestry, two skiers). Use for the Lounge; permission confirmed.
    - Inside, immediately to the right: **stairs up to the café** (probably the Kuuma Feeding Station; confirm).
-   - At the back, **down a few steps**: men's and women's **bathrooms** on the left, **sauna** on the right. (Bathrooms are not step-free; don't label them accessible unless told otherwise.)
+   - Walking in (photo `docs/photos/lodge-door-1-inside-seating.jpg`): a **downstairs seating area** with long benches, a bookshelf with books and puzzles, and cabinets.
+   - Straight ahead, **down 2 stairs**: the **downstairs bathrooms** are on the left. Keep going straight, then right: the **sauna**, which is **for lodging guests only**. (Bathrooms are not step-free; don't label them accessible unless told otherwise.)
+   - **Winter: portajohns** outside, around the building's left corner (past door 1).
+   - Close-up of door 1 with the Welcome sign and Olavi Hirvonen plaque: `docs/photos/lodge-door-1-closeup.jpg`.
 2. **Middle door**: opens into the **retail shop** with the **cash register** (pay for things downstairs) and the **reservation desk** (lodging check-in / check-out).
 3. **Second door from right**: sign over door reads **RENTAL RETURNS** (photo `outside-rental-returns-wax-room.jpg`).
 4. **Far-right door**: sign reads **WAX ROOM / TELEPHONE / MESSAGE BOARD** (confirmed from photo).
