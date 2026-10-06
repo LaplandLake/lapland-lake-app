@@ -84,7 +84,7 @@ h1 { font-size: 28px; line-height: 1.2; margin: 8px 0 16px; }
 h2 { font-size: 22px; line-height: 1.25; margin: 24px 0 8px; }
 p  { margin: 0 0 12px; }
 
-.welcome { margin: 4px 0 20px; }
+.welcome { margin: 4px 0 20px; text-align: center; }
 .welcome h1 { margin-bottom: 4px; }
 .welcome p { color: var(--ink-soft); margin: 0; }
 

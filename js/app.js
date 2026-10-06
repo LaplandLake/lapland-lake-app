@@ -26,8 +26,8 @@ const SCREENS = [
   { path: 'lessons', title: 'Lessons',           sub: 'Already have a ticket, season pass, or lodging with us?', icon: 'skier',  render: renderLessons },
   { path: 'map',     title: 'Trail Map',         sub: 'Zoom in and tap a trail',                              icon: 'map',    render: renderTrailMap },
   { path: 'menu',    title: 'Café Menu',         sub: "Today's soup, food & drinks",                          icon: 'soup',   render: renderMenu },
-  { path: 'lodge',   title: 'Lodge & Café Map',  sub: 'Rentals, retail, food, restrooms',                     icon: 'lodge',  render: renderLodge },
   { path: 'stay',    title: 'Lodge With Us',     sub: 'Our cottages, studios & farmhouse',                    icon: 'bed',    render: renderLodging },
+  { path: 'lodge',   title: 'Lodge & Café Map',  sub: 'Rentals, retail, food, restrooms',                     icon: 'lodge',  render: renderLodge },
 ];
 
 /* ---------- Helpers ---------- */
