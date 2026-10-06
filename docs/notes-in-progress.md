@@ -103,6 +103,8 @@ Open questions: name for the lounge room; whether the café = Kuuma Feeding Stat
 
 **Online purchases:** guests who buy passes and/or rentals online still go to the **register** (unless someone is selling at the road booth), give their name, and get their ticket. Rental customers still get the size form and go to the rental counter. The owner can elaborate later on adding help for rental customers in the app.
 
+**Guest Wi-Fi:** network name **Lapland Lake Public**, open, **no password**. Show this in the app (e.g., on the lodge map and/or home screen) since there's no cell service.
+
 **Important for the app:** no cell service on site, so the app must work well offline / on Wi-Fi (it already saves itself on the phone).
 
 (Earlier note:) Owner paused the walkthrough at the retail shop; continue from there (door 2 area: retail, register, reservation desk; then rental desk, rental room, rental returns, wax room).
