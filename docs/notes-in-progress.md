@@ -23,9 +23,9 @@ Front of the building, doors numbered left to right (photos: `docs/photos/lodge-
    - Inside photo: `docs/photos/lodge-lounge-inside.jpg` (professional shot: wood stove, leather couch, tapestry, two skiers). Use for the Lounge; permission confirmed.
    - Inside, immediately to the right: **stairs up to the café** (probably the Kuuma Feeding Station; confirm).
    - At the back, **down a few steps**: men's and women's **bathrooms** on the left, **sauna** on the right. (Bathrooms are not step-free; don't label them accessible unless told otherwise.)
-2. **Middle door** (light above): unknown yet.
-3. **Second door from right** ("Return rental skis and poles here" sign on rack): unknown yet.
-4. **Far-right door**: trail report text says the **wax room** is the "rightmost door"; confirm.
+2. **Middle door** (light above): unknown yet (photos show the rental desk with a "Trail Maps" sign and sizing chart; confirm which door).
+3. **Second door from right**: sign over door reads **RENTAL RETURNS** (photo `outside-rental-returns-wax-room.jpg`).
+4. **Far-right door**: sign reads **WAX ROOM / TELEPHONE / MESSAGE BOARD** (confirmed from photo).
 
 Open questions: name for the lounge room; whether the café = Kuuma Feeding Station; what's behind doors 2-4; ticket/check-in, rentals location.
 
@@ -55,3 +55,5 @@ Open questions: name for the lounge room; whether the café = Kuuma Feeding Stat
 - Custom address app.laplandlake.com (needs a CNAME record from whoever manages the domain).
 - Accessibility: automated WCAG check passed except trail-map symbols overlapping when zoomed out (trail list provides the same function). Suggested a phone screen-reader test.
 - Samsung Internet shows a false Play Protect warning when installing; the app shows Samsung users a tip to install from Chrome.
+
+- All lodge promo photos in `docs/photos/promo/` are now sharp 2,000 px versions (lounge, lounge-woodstove-2000, first-floor-tables, cafe-counter, cafe-tables, cafe-tables-2, rental-desk, rentals, retail-shop-2000, retail-shop-2-2000, outside, outside-sunny, outside-rental-returns-wax-room). The cafe-counter photo shows chalkboard menus with real prices; offered to use them for the menu, waiting on the owner's OK.
