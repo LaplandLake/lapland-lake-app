@@ -8,22 +8,22 @@
         {
           "name": "Chili",
           "description": "",
-          "price": "$0.00"
+          "price": ""
         },
         {
           "name": "Mac and Cheese",
           "description": "",
-          "price": "$0.00"
+          "price": ""
         },
         {
           "name": "Soup",
           "description": "",
-          "price": "$0.00"
+          "price": ""
         },
         {
           "name": "Hot Dog",
           "description": "",
-          "price": "$0.00"
+          "price": "$3.50"
         }
       ]
     },
@@ -33,7 +33,7 @@
         {
           "name": "Cold Sandwich",
           "description": "",
-          "price": "$0.00"
+          "price": "$8.50"
         }
       ]
     },
@@ -43,22 +43,22 @@
         {
           "name": "Brownies",
           "description": "",
-          "price": "$0.00"
+          "price": "$4.50"
         },
         {
           "name": "Muffins",
           "description": "",
-          "price": "$0.00"
+          "price": "$4.50"
         },
         {
           "name": "Chocolate Chip Cookies",
           "description": "",
-          "price": "$0.00"
+          "price": "$2.50"
         },
         {
           "name": "Decorated Sugar Cookies",
           "description": "",
-          "price": "$0.00"
+          "price": ""
         }
       ]
     },
@@ -68,42 +68,42 @@
         {
           "name": "Water Bottle",
           "description": "",
-          "price": "$0.00"
+          "price": "$2.50"
         },
         {
           "name": "Hot Chocolate",
           "description": "",
-          "price": "$0.00"
+          "price": "$3.00"
         },
         {
           "name": "Coffee",
           "description": "",
-          "price": "$0.00"
+          "price": "$3.00"
         },
         {
           "name": "Tea",
           "description": "",
-          "price": "$0.00"
+          "price": "$3.00"
         },
         {
           "name": "Cold Drinks",
           "description": "",
-          "price": "$0.00"
+          "price": "$3.70"
         },
         {
           "name": "Non-Alcoholic Beer",
           "description": "",
-          "price": "$0.00"
+          "price": ""
         },
         {
           "name": "Craft Beer/Cider",
           "description": "",
-          "price": "$0.00"
+          "price": "$7.50"
         },
         {
           "name": "Wine",
           "description": "",
-          "price": "$0.00"
+          "price": "$7.50"
         }
       ]
     }
