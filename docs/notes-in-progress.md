@@ -23,7 +23,7 @@ Front of the building, doors numbered left to right (photos: `docs/photos/lodge-
    - Inside photo: `docs/photos/lodge-lounge-inside.jpg` (professional shot: wood stove, leather couch, tapestry, two skiers). Use for the Lounge; permission confirmed.
    - Inside, immediately to the right: **stairs up to the café** (probably the Kuuma Feeding Station; confirm).
    - At the back, **down a few steps**: men's and women's **bathrooms** on the left, **sauna** on the right. (Bathrooms are not step-free; don't label them accessible unless told otherwise.)
-2. **Middle door** (light above): unknown yet (photos show the rental desk with a "Trail Maps" sign and sizing chart; confirm which door).
+2. **Middle door**: opens into the **retail shop** with the **cash register** (pay for things downstairs) and the **reservation desk** (lodging check-in / check-out).
 3. **Second door from right**: sign over door reads **RENTAL RETURNS** (photo `outside-rental-returns-wax-room.jpg`).
 4. **Far-right door**: sign reads **WAX ROOM / TELEPHONE / MESSAGE BOARD** (confirmed from photo).
 
