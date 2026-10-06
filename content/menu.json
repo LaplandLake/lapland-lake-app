@@ -8,7 +8,7 @@
         {
           "name": "Chili",
           "description": "",
-          "price": ""
+          "price": "Cup $5.50 · Bowl $7.00"
         },
         {
           "name": "Mac and Cheese",
@@ -17,8 +17,8 @@
         },
         {
           "name": "Soup",
-          "description": "",
-          "price": ""
+          "description": "See today's soups on the board",
+          "price": "Cup $5.50 · Bowl $7.00"
         },
         {
           "name": "Hot Dog",
@@ -32,7 +32,7 @@
       "items": [
         {
           "name": "Cold Sandwich",
-          "description": "",
+          "description": "Ham or turkey, Swiss or provolone, lettuce & tomato",
           "price": "$8.50"
         },
         {
@@ -68,12 +68,12 @@
         {
           "name": "Muffins",
           "description": "",
-          "price": "$4.50"
+          "price": "$4.00"
         },
         {
           "name": "Chocolate Chip Cookies",
           "description": "",
-          "price": "$2.50"
+          "price": "$2.00"
         },
         {
           "name": "Decorated Sugar Cookies",
@@ -96,29 +96,34 @@
       "name": "Snacks",
       "items": [
         {
+          "name": "Hard-Boiled Egg",
+          "description": "",
+          "price": "$2.00"
+        },
+        {
           "name": "Chips",
           "description": "",
-          "price": ""
+          "price": "$2.00"
         },
         {
           "name": "Yogurt",
-          "description": "",
-          "price": ""
+          "description": "Greek yogurt",
+          "price": "$3.70"
         },
         {
           "name": "Banana",
           "description": "",
-          "price": ""
+          "price": "$1.00"
         },
         {
           "name": "Clementine",
           "description": "",
-          "price": ""
+          "price": "$0.50"
         },
         {
           "name": "Apple",
           "description": "",
-          "price": ""
+          "price": "$1.00"
         }
       ]
     },
@@ -147,13 +152,13 @@
         },
         {
           "name": "Cold Drinks",
-          "description": "",
+          "description": "Soda, Gatorade, Snapple, Nesquik, sparkling water and more",
           "price": "$3.70"
         },
         {
           "name": "Non-Alcoholic Beer",
           "description": "",
-          "price": ""
+          "price": "$7.50"
         },
         {
           "name": "Craft Beer/Cider",
