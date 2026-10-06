@@ -143,7 +143,7 @@ Readable prices (last season; owner said menu prices may change):
 - Snacks: chips $2.00, Greek yogurt $3.70 (fridge list), banana $1.00, clementine $0.50, apple $1.00.
 - Drinks (fridge list): Poland Spring water $2.50; Bai, Coke products, Pepsi products, Gatorade, Poppi, sparkling water, Snapple, Nesquik, craft soda, Rain spring water $3.70 each. 12 oz coffee/tea/cocoa $3.00 (board).
 - Beer/cider/wine/NA beer (drink list sheet): **all $7.50**. Beers: Allagash Ski House, Einstök Arctic Pale Ale, Einstök Icelandic Wee Heavy, Juice Bomb IPA, Left Hand Candy Cane Nitro, Sixpoint Bone Chiller, Southern Tier Old Man Winter. Cider: Hudson North Ski Trip. Wine: Archer Roose Pinot Grigio. NA beer: Athletic Brewing Run Wild IPA, Athletic Brewing Wit's Peak.
-- Mac and cheese: price not visible. Decorated sugar cookies, scones, muffins visible in the case.
-- Signs on the counter: "Please take items for purchase to the ski shop register downstairs" (ask owner when this applies) and "Paper plates, cups, bowls without food purchase $1.00 each."
+- Mac and cheese: price not visible; owner thinks it may be the same as soup (cup $5.50 / bowl $7.00) but isn't sure. Leave blank until confirmed. Decorated sugar cookies, scones, muffins visible in the case.
+- Signs on the counter: "Please take items for purchase to the ski shop register downstairs" (**only when nobody is staffing the café**) and "Paper plates, cups, bowls without food purchase $1.00 each."
 - A separate "Today's Soups" chalkboard lists the day's soups (example: white chicken chili, sherried lobster bisque) plus mac n' cheese, sandwiches, hot dogs, salads.
 - Café also has a hot chocolate machine and a Boylan soda fridge by the stairs.
