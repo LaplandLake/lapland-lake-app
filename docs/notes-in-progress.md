@@ -13,6 +13,8 @@ Decided: a simple labeled **diagram** of the lodge (Lounge, Café upstairs, Bath
 
 The owner has professional promo photos (cleared for Lapland Lake use) covering many lodge areas; they'll send them labeled by area. Resize/compress for weak connections before adding to the app.
 
+**Promo photos (found 2026-10-06):** Google Drive folder "APP PICS" (folder id 1L1eSEwZgjFpsOan4e_9s7qjqvftRiEv7) has 8 labeled photos: 1st floor lounge, 1st floor tables, Cafe Counter - 2nd floor, Cafe tables - 2nd floor, Cafe tables2 - 2nd floor, Equipment Rental Desk, Equipment Rental, Outside the lodge. They are 25-47 MB each, too large for the Drive connector to download. The owner has smaller copies and will either attach them in chat or add them to the folder. Ask for ~2,000 px wide (1-3 MB). Don't ask for full-size originals again.
+
 Photo permissions: the lounge photo (`lodge-lounge-inside.jpg`) is cleared for use; the two outside photos were taken by the owner's team.
 
 Front of the building, doors numbered left to right (photos: `docs/photos/lodge-front.jpg`, `docs/photos/lodge-door-1-lounge.jpg`):
