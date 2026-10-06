@@ -106,6 +106,8 @@ Confirmed: the doorway on the far right of the lounge (by the fire extinguisher 
 
 **Retail shop photos:** `retail-from-door2.jpg` (straight in from door 2: apparel racks, boot wall on the left, a step up to the back area straight ahead, register area to the right), `retail-lounge-doorway.jpg` (doorway to the lounge on the left wall, snowshoes, Lapland Lake hoodies, boot wall, bench), `retail-register.jpg` (register and glass display counter; past it, a blue rental rates sign over the passage to the rental area; a bench along the front windows).
 
+Confirmed: the raised room straight back from door 2 (step up, desk and chair) is the **reservation desk**. The **rental shop** is past the register, through the opening under the blue rental rates sign (see `retail-register.jpg`).
+
 **Rental flow:** pay at the register and get the size form → walk right, past the register, parallel to the front of the building → turn left to the **rental counter** → hand in the form, receive your equipment → leave through **door 3** (signed "Rentals" / "Rental Returns"). Door 3 is both the rental exit and where rentals are returned.
 
 **Door 4, Wax Room:** unlocked all the time.
