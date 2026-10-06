@@ -108,6 +108,8 @@ Confirmed: the doorway on the far right of the lounge (by the fire extinguisher 
 
 Confirmed: the raised room straight back from door 2 (step up, desk and chair) is the **reservation desk**. The **rental shop** is past the register, through the opening under the blue rental rates sign (see `retail-register.jpg`).
 
+**Reservation desk photo:** `reservation-desk.jpg`: up one step, a "RESERVATIONS" sign over the desk; an "Employees Only" office to the left; a small gift wall (bags, hats, souvenirs) to the right.
+
 **Rental flow:** pay at the register and get the size form → walk right, past the register, parallel to the front of the building → turn left to the **rental counter** → hand in the form, receive your equipment → leave through **door 3** (signed "Rentals" / "Rental Returns"). Door 3 is both the rental exit and where rentals are returned.
 
 **Door 4, Wax Room:** unlocked all the time.
