@@ -68,3 +68,22 @@ Open questions: name for the lounge room; whether the café = Kuuma Feeding Stat
 - Approval: owner will check **once a day**: send a **daily email digest** (only on days with new photos that passed AI screening). Originally suggested a weekly email digest with thumbnails and Approve/Skip buttons; approved photos go to the in-app gallery and an "Approved" folder. Nothing goes public without approval.
 - Accounts/storage: owner created a dedicated **"Todd's AI" Gmail account** for AI-related services. Use its Google Drive for uploads and send the digest via it. (Get the address from the owner when building.)
 - Needs: a small upload/receiving service (the app is static on GitHub Pages and can't accept files), an AI provider account for screening (low cost; confirm current pricing), consent wording (have someone at the business review it), and a rule about photos of other people/kids.
+
+## Lodge layout, walkthrough from the owner (2026-10-06)
+**Outside door 1 (ramp door):** around the outside corner to the left are usually **two porta-johns** (for people in a hurry, COVID-cautious guests, and race days with lots of kids).
+
+**Inside door 1, downstairs seating area** (the front door is behind you):
+- **Immediately left:** recycling cans and a garbage can, then a shelf with magazines.
+- **Left side:** **cubbies** for storing gear (in summer, two library bookshelves; removed in winter), then the **picnic tables** ("tables") by the sunny window. Many people eat lunch here.
+- **Immediately right:** another table; beyond it, a **doorway to the stairs up to the café** (two short sections of stairs; owner has photos).
+- **Right of the picnic tables:** the **wood stove lounge** with a leather couch, leather chair and leather loveseat. A walkway runs between the lounge and the picnic tables, straight to the back of the building.
+- **At the back, down 2 steps:** on the left, the **men's room**, then a separate **ladies' room**. A step or two further straight, on the right: the **Lodging Guest Sauna** (with a shower), **for lodging guests only**.
+- **To the retail shop:** a few steps in from door 1, turn right and walk along the wall (the outside of the stairway), with the leather couches on your left, then through a doorway into the **retail shop**. The retail shop is where door 2 comes in.
+
+**Upstairs (café level):**
+- At the top of the stairs: a **soda machine** on the right; the **café counter** straight ahead.
+- **To the right of the counter:** more **bathrooms**.
+- Lots of seating for eating.
+- There are **two shower rooms upstairs**, but **they are not advertised**. Don't show them in the app.
+
+Owner paused the walkthrough at the retail shop; continue from there (door 2 area: retail, register, reservation desk; then rental desk, rental room, rental returns, wax room).
