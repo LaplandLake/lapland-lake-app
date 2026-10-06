@@ -62,7 +62,7 @@ function renderHome(view) {
   view.innerHTML = `
     <section class="welcome">
       <h1>Welcome to Lapland Lake</h1>
-      <p>Nordic Vacation Center · Northville, NY</p>
+      <p>139 Lapland Lake Road, Northville, NY 12134</p>
     </section>
     <nav class="tiles" aria-label="Main menu">
       ${SCREENS.map((s) => `
