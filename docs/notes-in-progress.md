@@ -42,7 +42,7 @@ Open questions: name for the lounge room; whether the café = Kuuma Feeding Stat
 ## Menu
 - Café closed mode: `titleNote` in `content/menu.json` ("Closed until Ski Season") shows "Café Menu · Closed until Ski Season". Remove that line when the café opens.
 - The Soup of the Day card always shows. It shows the soup name only when `content/soup.json` has today's date (and the café isn't closed); otherwise it shows a dash "—".
-- Lessons button: `lessonsUrl` in `content/settings.json` is a placeholder (same as the tickets link) until the owner provides the lessons booking link.
+- Lessons button: `lessonsUrl` in `content/settings.json` is FareHarbor item 328289 (lessons calendar), tracking codes removed.
 - All prices are $0.00 placeholders until the owner provides real ones.
 
 ## Lodging
