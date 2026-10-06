@@ -82,6 +82,9 @@ Open questions: name for the lounge room; whether the café = Kuuma Feeding Stat
 
 **Door 1 photos (owner, Oct 2026):** `docs/photos/door1-inside-straight.jpg` (straight in: bookshelves on left, picnic tables, hallway at back right to the restrooms down 2 steps), `door1-inside-left-recycling.jpg` (left: bins for deposit bottles/cans and other recyclables, trash, cabinets, bookshelves, window), `door1-inside-right-lounge.jpg` (right: wood stove lounge with leather loveseat, benches, posts; hallway to restrooms on the far left; a "Ski School / Lapland Lake / To Lodge" sign and fire extinguisher by a doorway on the right).
 
+Confirmed: the doorway on the far right of the lounge (by the fire extinguisher and "Ski School / To Lodge" sign) leads into the **retail shop**.
+**Stairs to the café** (photos `door1-inside-right-cafe-door.jpg`, `cafe-stairs-1.jpg`, `cafe-stairs-2.jpg`): just inside door 1 to the right, past a table, is a white door; behind it is a short carpeted flight with a handrail, a landing (Ski Patrol raffle poster), then a second flight up to the café counter. Not step-free.
+
 **Upstairs (café level):**
 - At the top of the stairs: a **soda machine** on the right; the **café counter** straight ahead.
 - **To the right of the counter:** more **bathrooms**.
