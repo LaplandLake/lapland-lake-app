@@ -368,7 +368,7 @@ async function renderMenu(view) {
       </div>
       ${menu.sections.map((section) => `
         <section class="menu-section">
-          <h2>${esc(section.name)}</h2>
+          <h2>${esc(section.name)}${section.note ? ` <span class="section-note">${esc(section.note)}</span>` : ''}</h2>
           <div class="card">
             ${section.items.map((item) => `
               <div class="menu-item">

@@ -3,6 +3,7 @@
   "sections": [
     {
       "name": "Hot Food",
+      "note": "Availability varies daily",
       "items": [
         {
           "name": "Chili",

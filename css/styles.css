@@ -375,3 +375,4 @@ button.trail-row { cursor: pointer; }
 .title-note { color: var(--brand); }
 .tip-line { margin: 14px 0 6px; }
 .updated { margin: -4px 0 16px; }
+.section-note { font-size: 16px; font-weight: 500; color: var(--ink-soft); margin-left: 6px; }
