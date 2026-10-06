@@ -65,6 +65,6 @@ Open questions: name for the lounge room; whether the café = Kuuma Feeding Stat
 - Idea: guests upload photos in the app; Lapland Lake can use them afterward.
 - Uses: **all** — social media, website, and a guest gallery in the app.
 - Flow agreed in principle: guest picks photos, enters name + email (and optional photo credit), checks a permission box → photos go to a private folder → **AI screens** (reject inappropriate; also blurry/dark/duplicates) → owner approves.
-- Approval: owner wants to check but keep work low. Suggested a **weekly email digest** with thumbnails and Approve/Skip buttons; approved photos go to the in-app gallery and an "Approved" folder. Nothing goes public without approval.
+- Approval: owner will check **once a day**: send a **daily email digest** (only on days with new photos that passed AI screening). Originally suggested a weekly email digest with thumbnails and Approve/Skip buttons; approved photos go to the in-app gallery and an "Approved" folder. Nothing goes public without approval.
 - Accounts/storage: owner created a dedicated **"Todd's AI" Gmail account** for AI-related services. Use its Google Drive for uploads and send the digest via it. (Get the address from the owner when building.)
 - Needs: a small upload/receiving service (the app is static on GitHub Pages and can't accept files), an AI provider account for screening (low cost; confirm current pricing), consent wording (have someone at the business review it), and a rule about photos of other people/kids.
