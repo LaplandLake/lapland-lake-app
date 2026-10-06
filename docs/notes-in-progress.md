@@ -103,6 +103,12 @@ Open questions: name for the lounge room; whether the café = Kuuma Feeding Stat
 
 **Online purchases:** guests who buy passes and/or rentals online still go to the **register** (unless someone is selling at the road booth), give their name, and get their ticket. Rental customers still get the size form and go to the rental counter. The owner can elaborate later on adding help for rental customers in the app.
 
+**Getting onto the trails:**
+- **Beginners:** walk across the road to the start of the **Lake Trail** (easiest trail). This is the **east side** of the trail system.
+- **Lake Trail night skiing:** the Lake Trail is lit at night, but **night skiing is for lodging guests only**.
+- **Lessons:** students meet the instructor near **door 2, usually inside**; instructors take them down to the **practice field**.
+- **West side:** some skiers put their gear on and get on the trail **between the garage and the lodge building**, then ski the west side.
+
 **Guest Wi-Fi:** network name **Lapland Lake Public**, open, **no password**. Show this in the app (e.g., on the lodge map and/or home screen) since there's no cell service.
 
 **Important for the app:** no cell service on site, so the app must work well offline / on Wi-Fi (it already saves itself on the phone).
