@@ -60,3 +60,11 @@ Open questions: name for the lounge room; whether the café = Kuuma Feeding Stat
 - Samsung Internet shows a false Play Protect warning when installing; the app shows Samsung users a tip to install from Chrome.
 
 - All lodge promo photos in `docs/photos/promo/` are now sharp 2,000 px versions (lounge, lounge-woodstove-2000, first-floor-tables, cafe-counter, cafe-tables, cafe-tables-2, rental-desk, rentals, retail-shop-2000, retail-shop-2-2000, outside, outside-sunny, outside-rental-returns-wax-room). The cafe-counter photo shows chalkboard menus with real prices; offered to use them for the menu, waiting on the owner's OK.
+
+## Guest photo uploads (planned, not started — do after the lodge map)
+- Idea: guests upload photos in the app; Lapland Lake can use them afterward.
+- Uses: **all** — social media, website, and a guest gallery in the app.
+- Flow agreed in principle: guest picks photos, enters name + email (and optional photo credit), checks a permission box → photos go to a private folder → **AI screens** (reject inappropriate; also blurry/dark/duplicates) → owner approves.
+- Approval: owner wants to check but keep work low. Suggested a **weekly email digest** with thumbnails and Approve/Skip buttons; approved photos go to the in-app gallery and an "Approved" folder. Nothing goes public without approval.
+- Accounts/storage: owner created a dedicated **"Todd's AI" Gmail account** for AI-related services. Use its Google Drive for uploads and send the digest via it. (Get the address from the owner when building.)
+- Needs: a small upload/receiving service (the app is static on GitHub Pages and can't accept files), an AI provider account for screening (low cost; confirm current pricing), consent wording (have someone at the business review it), and a rule about photos of other people/kids.
