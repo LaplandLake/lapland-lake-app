@@ -540,16 +540,18 @@ function openCamera() {
     };
     cam.querySelector('.camera-close').addEventListener('click', () => finish(null));
     cam.querySelector('.camera-shutter').addEventListener('click', () => {
+      // Capture straight at upload size (1600 on the long side), so there's nothing left to shrink
+      const scale = Math.min(1, 1600 / Math.max(video.videoWidth, video.videoHeight));
       const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      canvas.getContext('2d').drawImage(video, 0, 0);
+      canvas.width = Math.round(video.videoWidth * scale);
+      canvas.height = Math.round(video.videoHeight * scale);
+      canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
       canvas.toBlob((blob) => {
         photo = blob;
         if (still.src) URL.revokeObjectURL(still.src);
         still.src = URL.createObjectURL(blob);
         showLive(false);
-      }, 'image/jpeg', 0.92);
+      }, 'image/jpeg', 0.85);
     });
     cam.querySelector('.camera-retake').addEventListener('click', () => showLive(true));
     cam.querySelector('.camera-use').addEventListener('click', () => finish(photo));
@@ -587,11 +589,21 @@ async function sendToInbox(uploadUrl, message) {
 
 let sharingPhoto = false;
 
+// Google's photo program takes a few seconds to wake up; nudge it awake as soon as a guest
+// starts taking or choosing a photo, so it's ready by the time the photo is sent.
+let lastWakeUp = 0;
+function wakeInbox(uploadUrl) {
+  if (!uploadUrl || Date.now() - lastWakeUp < 60000) return;
+  lastWakeUp = Date.now();
+  fetch(uploadUrl).catch(() => {});
+}
+
 function setUpSharing(box, uploadUrl) {
-  box.querySelector('input').addEventListener('click', () => { sharingPhoto = true; });
+  box.querySelector('input').addEventListener('click', () => { sharingPhoto = true; wakeInbox(uploadUrl); });
   box.querySelector('input').addEventListener('change', (e) => sendPhotos(box, uploadUrl, [...e.target.files]));
   box.querySelector('.take-photo')?.addEventListener('click', async () => {
     sharingPhoto = true;
+    wakeInbox(uploadUrl);
     const photo = await openCamera();
     if (photo) sendPhotos(box, uploadUrl, [photo]);
   });
@@ -684,14 +696,17 @@ async function sendPhotos(box, uploadUrl, files) {
 // photo inbox; the photos in content/photos.json are always shown after them.
 async function loadApproved(uploadUrl) {
   if (!uploadUrl) return [];
+  // (the last list is remembered on the phone, so returning guests see photos instantly)
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 10000);
   try {
     const res = await fetch(`${uploadUrl}?list=1`, { signal: ctrl.signal });
     const reply = await res.json();
-    return Array.isArray(reply.photos) ? reply.photos : [];
+    const list = Array.isArray(reply.photos) ? reply.photos : [];
+    try { localStorage.setItem('approvedPhotos', JSON.stringify(list)); } catch {}
+    return list;
   } catch {
-    return [];
+    return null; // no signal: keep showing the remembered photos
   } finally {
     clearTimeout(timer);
   }
@@ -702,11 +717,16 @@ async function renderPhotos(view) {
   let data;
   try { data = await loadContent('photos.json'); }
   catch { view.innerHTML = `<h1>Guest Photos</h1>${errorCard('the photos')}`; return; }
-  let photos = data.photos || [];
+  const starters = data.photos || [];
+  let remembered = [];
+  try { remembered = JSON.parse(localStorage.getItem('approvedPhotos') || '[]'); } catch {}
+  let photos = [...remembered, ...starters];
   const caption = (ph) => [photoDate(ph.date), ph.by].filter(Boolean).map(esc).join(' · ');
+  // Drive photos can be fetched at any width: small tiles get small files, so the gallery loads fast
+  const sized = (src, w) => src.replace(/=w\d+$/, `=w${w}`);
   const galleryHtml = () => photos.map((ph, i) => `
     <button type="button" class="gallery-item${i === 0 ? ' first' : ''}" data-i="${i}">
-      <img src="${esc(ph.src)}" alt="Guest photo${ph.date ? ', ' + esc(photoDate(ph.date)) : ''}" loading="lazy">
+      <img src="${esc(sized(ph.src, i === 0 ? 1000 : 500))}" alt="Guest photo${ph.date ? ', ' + esc(photoDate(ph.date)) : ''}" loading="lazy">
       ${caption(ph) ? `<span class="gallery-cap">${caption(ph)}</span>` : ''}
     </button>`).join('');
   view.innerHTML = `
@@ -719,8 +739,9 @@ async function renderPhotos(view) {
 
   const gallery = view.querySelector('.gallery');
   loadApproved(data.uploadUrl).then((approved) => {
-    if (!approved.length || !gallery.isConnected) return;
-    photos = [...approved, ...photos];
+    if (!approved || !gallery.isConnected) return;
+    if (JSON.stringify(approved) === JSON.stringify(remembered)) return; // nothing new
+    photos = [...approved, ...starters];
     gallery.innerHTML = galleryHtml();
   });
 
@@ -734,7 +755,7 @@ async function renderPhotos(view) {
     box.setAttribute('aria-label', 'Photo');
     box.innerHTML = `
       <button type="button" class="lightbox-close" aria-label="Close photo">${svg('close')}</button>
-      <img src="${esc(ph.src)}" alt="">
+      <img src="${esc(sized(ph.src, 1600))}" alt="">
       ${caption(ph) ? `<p>${caption(ph)}</p>` : ''}`;
     const close = () => { box.remove(); item.focus(); };
     box.addEventListener('click', close);

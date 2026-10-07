@@ -59,7 +59,7 @@ function doGet(e) {
   }
   photos.sort((a, b) => b.time - a.time);
   const out = JSON.stringify({ photos: photos.slice(0, 40).map(({ src, date, by }) => ({ src, date, by })) });
-  cache.put('gallery', out, 120); // reuse for 2 minutes so the app stays quick
+  cache.put('gallery', out, 600); // reuse for 10 minutes (cleared right away when a photo is approved)
   return ContentService.createTextOutput(out).setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -80,6 +80,12 @@ function doPost(e) {
     const review = reviewFolder_();
 
     if (msg.type === 'photo') {
+      // Guard against floods: at most 300 photos an hour
+      const cache = CacheService.getScriptCache();
+      const hourKey = 'uploads-' + Utilities.formatDate(new Date(), 'UTC', 'yyyyMMddHH');
+      const count = Number(cache.get(hourKey) || 0);
+      if (count >= 300) return reply_('busy');
+      cache.put(hourKey, String(count + 1), 3600);
       if (typeof msg.photo !== 'string' || msg.photo.length > MAX_PHOTO_CHARS) return reply_('too big');
       const stamp = Utilities.formatDate(new Date(), 'America/New_York', 'yyyy-MM-dd HHmmss');
       const blob = Utilities.newBlob(Utilities.base64Decode(msg.photo), 'image/jpeg', stamp + ' ' + batch + '.jpg');
