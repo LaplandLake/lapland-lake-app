@@ -713,6 +713,7 @@ async function sendPhotos(box, uploadUrl, files) {
     await Promise.all([worker(), worker(), worker()]);
     waiting = failed;
     if (unreadable.length && !failed.length && !sentCount) {
+      heading.textContent = `Sorry, we couldn't open ${plural ? 'those photos' : 'that photo'}.`;
       line.className = 'upload-line failed';
       line.innerHTML = `This phone saves photos in a format we can't open (HEIF). Please use <b>Take a Photo</b> instead, or turn off <b>High efficiency pictures</b> in your camera's settings.`;
       return false;
