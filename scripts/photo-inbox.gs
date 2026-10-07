@@ -3,6 +3,7 @@
    - receives photos guests send from the app's Guest Photos screen,
    - saves them in Google Drive: "Lapland Lake App Photos" > "To Review",
    - emails Todd once a day with that day's new photos.
+   - shows the photos in the "Approved" folder in the app's gallery, newest first.
    Good photos: move them into the "Approved" folder. Nothing appears in the app until then.
 
    One-time setup: paste this whole file into a new project at script.google.com,
@@ -21,6 +22,32 @@ function setup() {
   // About 4:30 pm (Google runs it within 15 minutes of that)
   ScriptApp.newTrigger('dailyEmail').timeBased().everyDays(1).atHour(16).nearMinute(30).inTimezone('America/New_York').create();
   Logger.log('All set. Folders are in your Drive under "' + MAIN_FOLDER + '".');
+}
+
+// The app asks for the approved photos (newest first) to show in its gallery.
+// Approved photos are shared "anyone with the link" so phones can load them.
+function doGet(e) {
+  if (!e || !e.parameter.list) return reply_('ok');
+  const approved = folder_(folder_(DriveApp, MAIN_FOLDER), 'Approved').getFiles();
+  const photos = [];
+  while (approved.hasNext()) {
+    const f = approved.next();
+    if (!/^image\//.test(f.getMimeType())) continue;
+    try {
+      if (f.getSharingAccess() !== DriveApp.Access.ANYONE_WITH_LINK) {
+        f.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      }
+    } catch (err) {} // if sharing is blocked, the photo still lists; it just won't load for guests
+    photos.push({
+      src: 'https://lh3.googleusercontent.com/d/' + f.getId() + '=w1200',
+      date: Utilities.formatDate(f.getDateCreated(), 'America/New_York', 'yyyy-MM-dd'),
+      by: (f.getDescription() || '').replace(/^Credit:\s*/, ''),
+      time: f.getDateCreated().getTime(),
+    });
+  }
+  photos.sort((a, b) => b.time - a.time);
+  const out = photos.slice(0, 40).map(({ src, date, by }) => ({ src, date, by }));
+  return ContentService.createTextOutput(JSON.stringify({ photos: out })).setMimeType(ContentService.MimeType.JSON);
 }
 
 // The app sends one message per photo, then (optionally) one with the guest's name.

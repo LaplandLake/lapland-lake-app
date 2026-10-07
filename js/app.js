@@ -411,7 +411,7 @@ const shareButton = () => `
     ${svg('camera')} Share a Photo
     <input type="file" accept="image/*" multiple class="visually-hidden">
   </label>
-  <p class="meta share-note">We check every photo before it appears here. By sharing, you allow Lapland Lake to post your photos.</p>`;
+  <p class="meta share-note"><b>Tip:</b> take your photo first, then share it from your gallery.<br>We check every photo before it appears here. By sharing, you allow Lapland Lake to post your photos.</p>`;
 
 // Shrinks a photo before sending (faster on weak signal) and drops hidden
 // details like the phone's GPS location.
@@ -481,29 +481,51 @@ function setUpSharing(box, uploadUrl) {
   });
 }
 
+// Approved guest photos come live from Todd's Drive ("Approved" folder) through the
+// photo inbox; the photos in content/photos.json are always shown after them.
+async function loadApproved(uploadUrl) {
+  if (!uploadUrl) return [];
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 10000);
+  try {
+    const res = await fetch(`${uploadUrl}?list=1`, { signal: ctrl.signal });
+    const reply = await res.json();
+    return Array.isArray(reply.photos) ? reply.photos : [];
+  } catch {
+    return [];
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function renderPhotos(view) {
   view.innerHTML = `<h1>Guest Photos</h1>${loading}`;
   let data;
   try { data = await loadContent('photos.json'); }
   catch { view.innerHTML = `<h1>Guest Photos</h1>${errorCard('the photos')}`; return; }
-  const photos = data.photos || [];
+  let photos = data.photos || [];
   const caption = (ph) => [photoDate(ph.date), ph.by].filter(Boolean).map(esc).join(' · ');
+  const galleryHtml = () => photos.map((ph, i) => `
+    <button type="button" class="gallery-item${i === 0 ? ' first' : ''}" data-i="${i}">
+      <img src="${esc(ph.src)}" alt="Guest photo${ph.date ? ', ' + esc(photoDate(ph.date)) : ''}" loading="lazy">
+      ${caption(ph) ? `<span class="gallery-cap">${caption(ph)}</span>` : ''}
+    </button>`).join('');
   view.innerHTML = `
     <h1>Guest Photos</h1>
     <p>Show us your Lapland Lake adventures! Skiing, snowshoeing, hiking, or just relaxing, in any season.</p>
     <div id="share">${shareButton()}</div>
-    <div class="gallery">
-      ${photos.map((ph, i) => `
-        <button type="button" class="gallery-item${i === 0 ? ' first' : ''}" data-i="${i}">
-          <img src="${esc(ph.src)}" alt="Guest photo${ph.date ? ', ' + esc(photoDate(ph.date)) : ''}" loading="lazy">
-          ${caption(ph) ? `<span class="gallery-cap">${caption(ph)}</span>` : ''}
-        </button>`).join('')}
-    </div>
-    ${photos.length ? '' : '<p class="meta">No photos yet. Be the first!</p>'}`;
+    <div class="gallery">${galleryHtml()}</div>`;
 
   setUpSharing(view.querySelector('#share'), data.uploadUrl);
 
-  view.querySelector('.gallery').addEventListener('click', (e) => {
+  const gallery = view.querySelector('.gallery');
+  loadApproved(data.uploadUrl).then((approved) => {
+    if (!approved.length || !gallery.isConnected) return;
+    photos = [...approved, ...photos];
+    gallery.innerHTML = galleryHtml();
+  });
+
+  gallery.addEventListener('click', (e) => {
     const item = e.target.closest('.gallery-item');
     if (!item) return;
     const ph = photos[item.dataset.i];
