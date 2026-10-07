@@ -2,8 +2,9 @@
    Runs in Todd's Google account (todd@laplandlake.com). It:
    - receives photos guests send from the app's Guest Photos screen,
    - saves them in Google Drive: "Lapland Lake App Photos" > "To Review",
-   - emails Todd once a day with every photo waiting for review, each with
-     an Approve and a Delete button (one tap, no Drive needed),
+   - checks every hour; when new photos came in, emails Todd every photo waiting
+     for review, each with an Approve and a Delete button (one tap, no Drive needed),
+     and deletes the previous photo email so only the latest one is in the inbox,
    - shows the photos in the "Approved" folder in the app's gallery, newest first.
    Nothing appears in the app until it's approved. (Dragging a photo into the
    "Approved" folder in Drive works too.)
@@ -21,8 +22,7 @@ function setup() {
   folder_(main, 'To Review');
   folder_(main, 'Approved');
   ScriptApp.getProjectTriggers().forEach((t) => ScriptApp.deleteTrigger(t));
-  // About 4:30 pm (Google runs it within 15 minutes of that)
-  ScriptApp.newTrigger('dailyEmail').timeBased().everyDays(1).atHour(16).nearMinute(30).inTimezone('America/New_York').create();
+  ScriptApp.newTrigger('hourlyCheck').timeBased().everyHours(1).create();
   Logger.log('All set. Folders are in your Drive under "' + MAIN_FOLDER + '".');
 }
 
@@ -80,15 +80,23 @@ function doPost(e) {
   }
 }
 
-// Once a day: one email with every photo waiting for review, each with
-// Approve and Delete buttons. Nothing is sent when nothing is waiting.
-function dailyEmail() {
-  const review = folder_(folder_(DriveApp, MAIN_FOLDER), 'To Review');
-  const files = review.getFiles();
-  const waiting = [];
-  while (files.hasNext()) waiting.push(files.next());
+const EMAIL_SUBJECT = 'Lapland Lake app: guest photos to review';
+
+// Every hour: if new photos came in since the last email, send a fresh email with
+// every photo still waiting. When nothing is waiting, the old email is cleared away.
+function hourlyCheck() {
+  const props = PropertiesService.getScriptProperties();
+  const lastSent = Number(props.getProperty('LAST_SENT') || 0);
+  const waiting = waiting_();
+  if (!waiting.length) { clearOldEmails_(); return; }
+  if (!waiting.some((f) => f.getDateCreated().getTime() > lastSent)) return;
+  sendReviewEmail();
+}
+
+// Run this by hand any time to get the email right now.
+function sendReviewEmail() {
+  const waiting = waiting_();
   if (!waiting.length) return;
-  waiting.sort((a, b) => a.getDateCreated() - b.getDateCreated());
 
   const url = ScriptApp.getService().getUrl();
   const link = (action, ids) => url + '?action=' + action + '&ids=' + ids.join(',') + '&key=' + key_();
@@ -110,15 +118,30 @@ function dailyEmail() {
   const all = shown.length > 1
     ? '<p>' + button(link('approve', shown.map((f) => f.getId())), '✓ Approve all ' + shown.length, '#0b6e76') + '</p>' : '';
   const more = waiting.length > shown.length
-    ? '<p>…and ' + (waiting.length - shown.length) + ' more. They\'ll be in tomorrow\'s email.</p>' : '';
+    ? '<p>…and ' + (waiting.length - shown.length) + ' more. They\'ll be in the next email.</p>' : '';
 
-  MailApp.sendEmail({
-    to: REVIEW_EMAIL,
-    subject: 'Lapland Lake app: ' + waiting.length + ' guest photo' + (waiting.length > 1 ? 's' : '') + ' to review',
-    htmlBody: '<p>Tap <b>Approve</b> to put a photo in the app, or <b>Delete</b> to get rid of it.</p>' +
-      all + html + more,
+  clearOldEmails_();
+  GmailApp.sendEmail(REVIEW_EMAIL, EMAIL_SUBJECT, waiting.length + ' guest photo(s) to review.', {
+    htmlBody: '<p><b>' + waiting.length + ' guest photo' + (waiting.length > 1 ? 's' : '') + ' waiting.</b> ' +
+      'Tap <b>Approve</b> to put a photo in the app, or <b>Delete</b> to get rid of it.</p>' + all + html + more,
     inlineImages: images,
   });
+  PropertiesService.getScriptProperties().setProperty('LAST_SENT', String(Date.now()));
+}
+
+// Photos waiting in "To Review", oldest first.
+function waiting_() {
+  const files = folder_(folder_(DriveApp, MAIN_FOLDER), 'To Review').getFiles();
+  const list = [];
+  while (files.hasNext()) list.push(files.next());
+  return list.sort((a, b) => a.getDateCreated() - b.getDateCreated());
+}
+
+// Only ever touches this program's own photo emails.
+function clearOldEmails_() {
+  GmailApp.search('subject:"' + EMAIL_SUBJECT + '" -in:trash')
+    .filter((t) => t.getFirstMessageSubject() === EMAIL_SUBJECT)
+    .forEach((t) => t.moveToTrash());
 }
 
 // The Approve / Delete buttons in the email land here.

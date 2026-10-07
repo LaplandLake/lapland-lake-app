@@ -42,7 +42,7 @@ The map picture is `images/trail-map.webp`, cut from the trail map PDF on the we
 
 ## Guest photos
 
-Guests tap **Share a Photo** in the app. Photos go to Todd's Google Drive (**Lapland Lake App Photos → To Review**) through the small Google program in `scripts/photo-inbox.gs`, and Todd gets one email a day around 4:30 pm. The 4:30 email lists every photo waiting, each with **Approve** and **Delete** buttons. Approved photos (or any photo dragged into the **Approved** folder) show in the gallery automatically, newest first. The starter photos in `content/photos.json` show after the approved ones.
+Guests tap **Share a Photo** in the app. Photos go to Todd's Google Drive (**Lapland Lake App Photos → To Review**) through the small Google program in `scripts/photo-inbox.gs`, and the program checks every hour. When new photos come in, Todd gets one email listing every photo waiting (the previous photo email is deleted, so there is only ever one), each with **Approve** and **Delete** buttons. Approved photos (or any photo dragged into the **Approved** folder) show in the gallery automatically, newest first. The starter photos in `content/photos.json` show after the approved ones.
 
 ## How the trail report updates itself
 
