@@ -171,15 +171,14 @@ async function renderConditions(view) {
   view.innerHTML = `<h1>Trail Conditions</h1>${loading}`;
   try {
     const [report, settings] = await Promise.all([loadContent('trail-report.json'), loadContent('settings.json')]);
-    // Out of date if the last copy from the website failed, or the posted report is too old.
-    // Age counts from the date posted on the website ("Current Date"), or else from when it last changed.
-    const postedDate = report.reportDate ? new Date(report.reportDate) : null;
-    const since = postedDate && !isNaN(postedDate) ? postedDate : new Date(report.updated);
-    const ageHours = (Date.now() - since) / 36e5;
+    // "Last updated" is when the report on the website last changed (noticed within 30 minutes),
+    // not the "Current Date" typed into the report, which doesn't always get changed.
+    // Out of date if the last copy from the website failed, or the report hasn't changed in a while.
+    const ageHours = (Date.now() - new Date(report.updated)) / 36e5;
     const stale = report.stale || !(ageHours < (settings.trailReportStaleAfterHours || 36));
     view.innerHTML = `
       <h1>Trail Conditions</h1>
-      <p class="updated">Last updated <strong>${report.reportDate ? esc(report.reportDate) : formatDate(report.updated)}</strong></p>
+      <p class="updated">Last updated <strong>${formatDateTime(report.updated)}</strong></p>
       ${stale ? '<div class="notice">This report may be out of date. We\'ll show the newest one as soon as it\'s posted.</div>' : ''}
       <div class="card status">
         ${report.status ? `<div class="status-line">${esc(report.status)}</div>` : ''}
