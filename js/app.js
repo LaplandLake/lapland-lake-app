@@ -597,63 +597,85 @@ function setUpSharing(box, uploadUrl) {
   });
 }
 
+// Shows "Thanks!" right away and sends the photos in the background, with a small
+// status line ("Uploading…" → "✓ Sent", or "Try again" if the signal drops).
 async function sendPhotos(box, uploadUrl, files) {
-    if (!files.length) return;
-    const batch = Date.now().toString(36);
-    const plural = files.length > 1;
-    // Sends up to 3 photos at a time, so several photos don't wait in line.
-    let sentCount = 0;
-    const status = () => {
-      box.innerHTML = `<div class="share-status" role="status">Sending${plural ? ` ${Math.min(sentCount + 1, files.length)} of ${files.length}` : ''}…</div>`;
-    };
-    status();
-    const queue = [...files];
+  if (!files.length) return;
+  const batch = Date.now().toString(36);
+  const plural = files.length > 1;
+  let saved = '';
+  try { saved = localStorage.getItem('photoCredit') || ''; } catch {}
+  box.innerHTML = `
+    <div class="share-done" role="status">
+      <strong>Thanks! We got your ${plural ? 'photos' : 'photo'}.</strong>
+      <p class="upload-line" aria-live="polite"></p>
+      <p>Want credit when we post? <span class="meta">(optional)</span></p>
+      <form class="tag-form">
+        <label class="visually-hidden" for="credit">Your name or Instagram</label>
+        <input id="credit" type="text" autocapitalize="words" autocomplete="name" placeholder="Name or @Instagram" value="${esc(saved)}">
+        <button class="btn btn-secondary" type="submit">Credit Me</button>
+      </form>
+    </div>
+    <button type="button" class="link-btn share-again">Share another photo</button>`;
+  const line = box.querySelector('.upload-line');
+
+  // Upload: shrink one photo at a time (easy on memory), send up to 3 at once.
+  let waiting = [...files];
+  let sentCount = 0;
+  const upload = async () => {
+    const queue = [...waiting];
+    const failed = [];
     let shrinking = Promise.resolve();
+    const show = () => {
+      line.className = 'upload-line uploading';
+      line.textContent = `Uploading${plural ? ` ${Math.min(sentCount + 1, files.length)} of ${files.length}` : ''}… please keep this page open.`;
+    };
+    show();
     const worker = async () => {
       while (queue.length) {
         const file = queue.shift();
-        // Shrink one photo at a time (easy on memory); sending can overlap
-        const shrunk = shrinking.then(() => shrinkPhoto(file));
-        shrinking = shrunk.catch(() => {});
-        await sendToInbox(uploadUrl, { batch, photo: await shrunk, type: 'photo' });
-        sentCount++;
-        status();
+        try {
+          const shrunk = shrinking.then(() => shrinkPhoto(file));
+          shrinking = shrunk.catch(() => {});
+          await sendToInbox(uploadUrl, { batch, photo: await shrunk, type: 'photo' });
+          sentCount++;
+          show();
+        } catch {
+          failed.push(file);
+        }
       }
     };
-    try {
-      await Promise.all([worker(), worker(), worker()]);
-    } catch {
-      box.innerHTML = `<div class="notice">Sorry, ${plural ? 'your photos' : 'your photo'} didn't send. Please check your connection and try again.</div>${shareButton()}`;
-      setUpSharing(box, uploadUrl);
-      return;
+    await Promise.all([worker(), worker(), worker()]);
+    waiting = failed;
+    if (failed.length) {
+      line.className = 'upload-line failed';
+      line.innerHTML = `${plural ? `${failed.length} photo${failed.length > 1 ? 's' : ''}` : 'Your photo'} didn't send. <button type="button" class="link-btn retry">Try again</button>`;
+      line.querySelector('.retry').addEventListener('click', () => { uploads = upload(); });
+      return false;
     }
-    let saved = '';
-    try { saved = localStorage.getItem('photoCredit') || ''; } catch {}
-    box.innerHTML = `
-      <div class="share-done" role="status">
-        <strong>Thanks! We got your ${plural ? 'photos' : 'photo'}.</strong>
-        <p>Want credit when we post? <span class="meta">(optional)</span></p>
-        <form class="tag-form">
-          <label class="visually-hidden" for="credit">Your name or Instagram</label>
-          <input id="credit" type="text" autocapitalize="words" autocomplete="name" placeholder="Name or @Instagram" value="${esc(saved)}">
-          <button class="btn btn-secondary" type="submit">Credit Me</button>
-        </form>
-      </div>
-      <button type="button" class="link-btn share-again">Share another photo</button>`;
-    box.querySelector('.tag-form').addEventListener('submit', async (ev) => {
-      ev.preventDefault();
-      const credit = box.querySelector('#credit').value.trim();
-      if (!credit) return;
-      try { localStorage.setItem('photoCredit', credit); } catch {}
-      const form = ev.target;
-      form.innerHTML = '<p class="meta">Saving…</p>';
-      try { await sendToInbox(uploadUrl, { batch, credit, type: 'credit' }); form.outerHTML = `<p>Got it! We'll credit you as <b>${esc(credit)}</b></p>`; }
-      catch { form.outerHTML = '<p class="meta">Sorry, that didn\'t save. Your photos still got through.</p>'; }
-    });
-    box.querySelector('.share-again').addEventListener('click', () => {
-      box.innerHTML = shareButton();
-      setUpSharing(box, uploadUrl);
-    });
+    line.className = 'upload-line sent';
+    line.textContent = `✓ Sent`;
+    sharingPhoto = false;
+    return true;
+  };
+  let uploads = upload();
+
+  box.querySelector('.tag-form').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const credit = box.querySelector('#credit').value.trim();
+    if (!credit) return;
+    try { localStorage.setItem('photoCredit', credit); } catch {}
+    const form = ev.target;
+    form.innerHTML = '<p class="meta">Saving…</p>';
+    // The credit is attached to the photos, so wait until they've arrived
+    while (!(await uploads)) await new Promise((r) => setTimeout(r, 1000));
+    try { await sendToInbox(uploadUrl, { batch, credit, type: 'credit' }); form.outerHTML = `<p>Got it! We'll credit you as <b>${esc(credit)}</b></p>`; }
+    catch { form.outerHTML = '<p class="meta">Sorry, that didn\'t save. Your photos still got through.</p>'; }
+  });
+  box.querySelector('.share-again').addEventListener('click', () => {
+    box.innerHTML = shareButton();
+    setUpSharing(box, uploadUrl);
+  });
 }
 
 // Approved guest photos come live from Todd's Drive ("Approved" folder) through the
