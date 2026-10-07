@@ -156,3 +156,5 @@ Readable prices (last season; owner said menu prices may change):
 - Optional box after sending: "Want credit when we post?" (name or @Instagram). Facebook pages often can't tag people, so credit by name.
 - Motivations: name on photo, featured on social, family memories, helping others. Prize (Photo of the Week) — Paul OK, Kathy maybe not; start without it.
 - Idea with potential (not decided): interactive Photo Challenges so guests can be creative — own hashtags, guest-started challenges (like last year's chair one), scavenger hunt, per-season challenges.
+- LIVE (Oct 7): Guest Photos published. Photos go to todd@laplandlake.com Drive > Lapland Lake App Photos > To Review (Apps Script "photo-inbox.gs", deployed as web app; URL in content/photos.json). Daily email ~4:30 pm. Drag into Approved = shows in app automatically. To update the script: paste new code, Deploy > Manage deployments > pencil > New version.
+- Samsung: choosing Camera from the picker can make Android restart the app (photo lost). Tip on the page says to take the photo first and share from gallery.
