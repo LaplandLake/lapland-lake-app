@@ -768,13 +768,23 @@ async function sendPhotos(box, uploadUrl, files) {
     if (!credit) return;
     try { localStorage.setItem('photoCredit', credit); } catch {}
     const form = ev.target;
-    form.innerHTML = '<p class="meta">Saving…</p>';
-    // The credit is attached to the photos, so wait until they've arrived
+    // Say "Got it" right away; the credit is saved quietly in the background
+    // (after the photos have arrived, since it's attached to them), with a few retries.
+    form.outerHTML = `<p class="credit-line">Got it! We'll credit you as <b>${esc(credit)}</b></p>`;
+    const creditLine = box.querySelector('.credit-line');
+    sharingPhoto = true; // don't reload for an app update until this is saved
     while (!(await uploads)) await new Promise((r) => setTimeout(r, 1000));
-    const sendCredit = () => sendToInbox(uploadUrl, { batch, credit, type: 'credit' });
-    // Google sometimes answers slowly or drops one reply; try once more before giving up
-    try { await sendCredit().catch(() => new Promise((r) => setTimeout(r, 2000)).then(sendCredit)); form.outerHTML = `<p>Got it! We'll credit you as <b>${esc(credit)}</b></p>`; }
-    catch { form.outerHTML = '<p class="meta">Sorry, that didn\'t save. Your photos still got through.</p>'; }
+    for (let attempt = 0; attempt < 4; attempt++) {
+      try {
+        await sendToInbox(uploadUrl, { batch, credit, type: 'credit' });
+        sharingPhoto = false;
+        return;
+      } catch {
+        await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
+      }
+    }
+    sharingPhoto = false;
+    if (creditLine?.isConnected) creditLine.insertAdjacentHTML('afterend', '<p class="meta">(Your name didn\'t save because of a weak signal, but your photos got through.)</p>');
   });
   box.querySelector('.share-again').addEventListener('click', () => {
     box.innerHTML = shareButton();
