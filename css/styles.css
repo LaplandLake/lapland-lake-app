@@ -380,3 +380,31 @@ button.trail-row { cursor: pointer; }
 /* Website and phone at the bottom of the home screen */
 .home-footer { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 4px 10px; margin-top: 24px; font-size: 17px; color: var(--ink-soft); }
 .home-footer a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 4px; color: var(--link); font-weight: 600; }
+
+/* ---------- Guest photos ---------- */
+.btn > svg:first-child { width: 26px; height: 26px; }
+.share-note { margin: 10px 0 20px; }
+.gallery { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.gallery-item {
+  position: relative; display: block; padding: 0; border: 0; border-radius: 12px;
+  overflow: hidden; background: var(--line); aspect-ratio: 1; cursor: pointer;
+}
+.gallery-item.first { grid-column: 1 / -1; aspect-ratio: 3 / 2; }
+.gallery-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.gallery-cap {
+  position: absolute; left: 0; right: 0; bottom: 0; padding: 18px 10px 8px;
+  background: linear-gradient(transparent, rgba(0,0,0,.65));
+  color: #fff; font-size: 14px; font-weight: 600; text-align: left;
+}
+.gallery-item.first .gallery-cap { font-size: 16px; }
+.lightbox {
+  position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,.96);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px;
+}
+.lightbox img { max-width: 100%; max-height: 80vh; border-radius: 8px; }
+.lightbox p { color: #fff; margin: 12px 0 0; }
+.lightbox-close {
+  position: absolute; top: max(12px, env(safe-area-inset-top)); right: 12px;
+  width: 48px; height: 48px; border: 0; border-radius: 50%; background: rgba(255,255,255,.15); cursor: pointer;
+}
+.lightbox-close svg { width: 24px; height: 24px; fill: none; stroke: #fff; stroke-width: 2.5; stroke-linecap: round; }

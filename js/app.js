@@ -16,6 +16,7 @@ const ICONS = {
   arrow:  '<path d="M12 20V5M6 11l6-6 6 6"/>',
   close:  '<path d="M6 6l12 12M18 6L6 18"/>',
   skier:  '<circle cx="14" cy="4" r="2"/><path d="M8 21l3-7 3 2 1 5M11 14l1-5 4 3 3-1M12 9l-4 1-2 3M3 21l18-3"/>',
+  camera: '<path d="M3 8a2 2 0 0 1 2-2h2l2-2h6l2 2h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="4"/>',
   bed:    '<path d="M3 19V6M3 15h18v4M21 15v-3a3 3 0 0 0-3-3h-7v6"/><circle cx="7" cy="11" r="2"/>',
 };
 const svg = (name, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[name]}</svg>`;
@@ -27,7 +28,7 @@ const SCREENS = [
   { path: 'map',     title: 'Trail Map',         sub: 'Zoom in and tap a trail',                              icon: 'map',    render: renderTrailMap },
   { path: 'menu',    title: 'Café Menu',         sub: "Today's soup, food & drinks",                          icon: 'soup',   render: renderMenu },
   { path: 'stay',    title: 'Lodge With Us',     sub: 'Our cottages, studios & farmhouse',                    icon: 'bed',    render: renderLodging },
-  { path: 'lodge',   title: 'Lodge & Café Map',  sub: 'Rentals, retail, food, restrooms',                     icon: 'lodge',  render: renderLodge },
+  { path: 'photos',  title: 'Guest Photos',      sub: "See today's snow & share your photos",                 icon: 'camera', render: renderPhotos },
 ];
 
 /* ---------- Helpers ---------- */
@@ -391,12 +392,56 @@ async function renderMenu(view) {
   }
 }
 
-function renderLodge(view) {
+// Guest photos, newest first. Photos only appear here after staff approve them.
+function photoDate(value) {
+  if (!value) return '';
+  const today = todayString();
+  const y = new Date(); y.setDate(y.getDate() - 1);
+  const yesterday = `${y.getFullYear()}-${String(y.getMonth() + 1).padStart(2, '0')}-${String(y.getDate()).padStart(2, '0')}`;
+  if (value === today) return 'Today';
+  if (value === yesterday) return 'Yesterday';
+  return formatDate(value);
+}
+
+async function renderPhotos(view) {
+  view.innerHTML = `<h1>Guest Photos</h1>${loading}`;
+  let data;
+  try { data = await loadContent('photos.json'); }
+  catch { view.innerHTML = `<h1>Guest Photos</h1>${errorCard('the photos')}`; return; }
+  const photos = data.photos || [];
+  const mail = `mailto:${esc(data.email)}?subject=${encodeURIComponent('My Lapland Lake photo')}`;
+  const caption = (ph) => [photoDate(ph.date), ph.by].filter(Boolean).map(esc).join(' · ');
   view.innerHTML = `
-    <h1>Lodge &amp; Café Map</h1>
-    <div class="placeholder">
-      <strong>Coming soon:</strong> a simple map of the main lodge showing rentals, food, and restrooms.
-    </div>`;
+    <h1>Guest Photos</h1>
+    <p>Fresh from our trails, shared by skiers like you.</p>
+    <a class="btn" href="${mail}">${svg('camera')} Share Your Photos</a>
+    <p class="meta share-note">Opens your email. Attach your photos and press send. We check every photo before it appears here. By sending, you allow Lapland Lake to share your photos.</p>
+    <div class="gallery">
+      ${photos.map((ph, i) => `
+        <button type="button" class="gallery-item${i === 0 ? ' first' : ''}" data-i="${i}">
+          <img src="${esc(ph.src)}" alt="Guest photo${ph.date ? ', ' + esc(photoDate(ph.date)) : ''}" loading="lazy">
+          ${caption(ph) ? `<span class="gallery-cap">${caption(ph)}</span>` : ''}
+        </button>`).join('')}
+    </div>
+    ${photos.length ? '' : '<p class="meta">No photos yet. Be the first!</p>'}`;
+
+  view.querySelector('.gallery').addEventListener('click', (e) => {
+    const item = e.target.closest('.gallery-item');
+    if (!item) return;
+    const ph = photos[item.dataset.i];
+    const box = document.createElement('div');
+    box.className = 'lightbox';
+    box.setAttribute('role', 'dialog');
+    box.setAttribute('aria-label', 'Photo');
+    box.innerHTML = `
+      <button type="button" class="lightbox-close" aria-label="Close photo">${svg('close')}</button>
+      <img src="${esc(ph.src)}" alt="">
+      ${caption(ph) ? `<p>${caption(ph)}</p>` : ''}`;
+    const close = () => { box.remove(); item.focus(); };
+    box.addEventListener('click', close);
+    document.body.append(box);
+    box.querySelector('.lightbox-close').focus();
+  });
 }
 
 /* ---------- Navigation ---------- */

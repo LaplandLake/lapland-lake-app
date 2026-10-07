@@ -1,0 +1,25 @@
+{
+  "email": "",
+  "photos": [
+    {
+      "src": "images/guest-photos/sample-3.webp",
+      "date": "2026-10-07",
+      "by": "Sample photo"
+    },
+    {
+      "src": "images/guest-photos/sample-2.webp",
+      "date": "2026-10-06",
+      "by": "Sample photo"
+    },
+    {
+      "src": "images/guest-photos/sample-4.webp",
+      "date": "2026-10-04",
+      "by": "Sample photo"
+    },
+    {
+      "src": "images/guest-photos/sample-1.webp",
+      "date": "2026-10-02",
+      "by": "Sample photo"
+    }
+  ]
+}
