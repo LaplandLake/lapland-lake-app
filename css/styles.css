@@ -473,3 +473,4 @@ button.trail-row { cursor: pointer; }
   0% { transform: translate(0, 0) rotate(0); opacity: 1; }
   100% { transform: translate(var(--drift), 260px) rotate(200deg); opacity: 0; }
 }
+.camera-shutter:disabled { opacity: .6; }

@@ -563,19 +563,38 @@ function openCamera() {
     // Phone's Back button: close the camera (and turn it off) instead of leaving it running
     const onLeave = () => finish(null);
     window.addEventListener('hashchange', onLeave);
-    cam.querySelector('.camera-shutter').addEventListener('click', () => {
-      // Capture straight at upload size (1600 on the long side), so there's nothing left to shrink
-      const scale = Math.min(1, 1600 / Math.max(video.videoWidth, video.videoHeight));
-      const canvas = document.createElement('canvas');
-      canvas.width = Math.round(video.videoWidth * scale);
-      canvas.height = Math.round(video.videoHeight * scale);
-      canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-      canvas.toBlob((blob) => {
-        photo = blob;
-        if (still.src) URL.revokeObjectURL(still.src);
-        still.src = URL.createObjectURL(blob);
-        showLive(false);
-      }, 'image/jpeg', 0.85);
+    const shutter = cam.querySelector('.camera-shutter');
+    shutter.addEventListener('click', async () => {
+      if (shutter.disabled) return;
+      shutter.disabled = true;
+      let blob = null;
+      // Best quality: ask the phone's camera for a real photo (sharper, better in low light).
+      // It comes back full size, so it's shrunk to upload size right away.
+      try {
+        if ('ImageCapture' in window) {
+          const track = stream.getVideoTracks()[0];
+          const full = await Promise.race([
+            new ImageCapture(track).takePhoto(),
+            new Promise((_, reject) => setTimeout(reject, 5000)),
+          ]);
+          blob = await toUploadSize(full);
+        }
+      } catch { blob = null; }
+      // Otherwise (iPhone, older phones): grab the frame on screen at upload size
+      if (!blob) {
+        const scale = Math.min(1, 1600 / Math.max(video.videoWidth, video.videoHeight));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(video.videoWidth * scale);
+        canvas.height = Math.round(video.videoHeight * scale);
+        canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+        blob = await new Promise((r) => canvas.toBlob(r, 'image/jpeg', 0.85));
+      }
+      shutter.disabled = false;
+      if (!blob) return;
+      photo = blob;
+      if (still.src) URL.revokeObjectURL(still.src);
+      still.src = URL.createObjectURL(blob);
+      showLive(false);
     });
     cam.querySelector('.camera-retake').addEventListener('click', () => showLive(true));
     cam.querySelector('.camera-use').addEventListener('click', () => finish(photo));
@@ -586,6 +605,13 @@ function openCamera() {
 // details like the phone's GPS location. Big camera photos (50+ megapixels on some
 // phones) are shrunk while they're opened, so the phone never has to hold the
 // full-size picture in memory, which can make the app close.
+// Shrinks a camera photo to upload size, as a picture file (used for the built-in camera).
+async function toUploadSize(file, max = 1600) {
+  const data = await shrinkPhoto(file, max);
+  const bytes = Uint8Array.from(atob(data), (c) => c.charCodeAt(0));
+  return new Blob([bytes], { type: 'image/jpeg' });
+}
+
 async function shrinkPhoto(file, max = 1600) {
   let img;
   try {
