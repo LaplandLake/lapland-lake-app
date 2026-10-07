@@ -16,6 +16,7 @@ const ICONS = {
   arrow:  '<path d="M12 20V5M6 11l6-6 6 6"/>',
   close:  '<path d="M6 6l12 12M18 6L6 18"/>',
   skier:  '<circle cx="14" cy="4" r="2"/><path d="M8 21l3-7 3 2 1 5M11 14l1-5 4 3 3-1M12 9l-4 1-2 3M3 21l18-3"/>',
+  camera: '<path d="M3 8a2 2 0 0 1 2-2h2l2-2h6l2 2h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="4"/>',
   bed:    '<path d="M3 19V6M3 15h18v4M21 15v-3a3 3 0 0 0-3-3h-7v6"/><circle cx="7" cy="11" r="2"/>',
 };
 const svg = (name, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[name]}</svg>`;
@@ -27,7 +28,7 @@ const SCREENS = [
   { path: 'map',     title: 'Trail Map',         sub: 'Zoom in and tap a trail',                              icon: 'map',    render: renderTrailMap },
   { path: 'menu',    title: 'Café Menu',         sub: "Today's soup, food & drinks",                          icon: 'soup',   render: renderMenu },
   { path: 'stay',    title: 'Lodge With Us',     sub: 'Our cottages, studios & farmhouse',                    icon: 'bed',    render: renderLodging },
-  { path: 'lodge',   title: 'Lodge & Café Map',  sub: 'Rentals, retail, food, restrooms',                     icon: 'lodge',  render: renderLodge },
+  { path: 'photos',  title: 'Guest Photos',      sub: 'Share your Lapland Lake adventures',                 icon: 'camera', render: renderPhotos },
 ];
 
 /* ---------- Helpers ---------- */
@@ -391,12 +392,131 @@ async function renderMenu(view) {
   }
 }
 
-function renderLodge(view) {
+// Guest photos, newest first. Photos only appear here after staff approve them.
+function photoDate(value) {
+  if (!value) return '';
+  const today = todayString();
+  const y = new Date(); y.setDate(y.getDate() - 1);
+  const yesterday = `${y.getFullYear()}-${String(y.getMonth() + 1).padStart(2, '0')}-${String(y.getDate()).padStart(2, '0')}`;
+  if (value === today) return 'Today';
+  if (value === yesterday) return 'Yesterday';
+  return formatDate(value);
+}
+
+// One-step photo sharing: tap the button, pick photos, and they're sent.
+// Photos go to the staff inbox (uploadUrl in content/photos.json) and only
+// appear in the gallery after staff approve them.
+const shareButton = () => `
+  <label class="btn share-btn">
+    ${svg('camera')} Share a Photo
+    <input type="file" accept="image/*" multiple class="visually-hidden">
+  </label>
+  <p class="meta share-note">We check every photo before it appears here. By sharing, you allow Lapland Lake to post your photos.</p>`;
+
+// Shrinks a photo before sending (faster on weak signal) and drops hidden
+// details like the phone's GPS location.
+async function shrinkPhoto(file, max = 2000) {
+  const img = await createImageBitmap(file);
+  const scale = Math.min(1, max / Math.max(img.width, img.height));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(img.width * scale);
+  canvas.height = Math.round(img.height * scale);
+  canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+}
+
+async function sendToInbox(uploadUrl, message) {
+  if (!uploadUrl) return new Promise((r) => setTimeout(r, 800)); // preview: pretend to send
+  const res = await fetch(uploadUrl, { method: 'POST', body: JSON.stringify(message) });
+  const reply = res.ok ? await res.json().catch(() => ({})) : {};
+  if (reply.status !== 'ok') throw new Error('Upload failed');
+}
+
+function setUpSharing(box, uploadUrl) {
+  box.querySelector('input').addEventListener('change', async (e) => {
+    const files = [...e.target.files];
+    if (!files.length) return;
+    const batch = Date.now().toString(36);
+    const plural = files.length > 1;
+    try {
+      for (const [i, file] of files.entries()) {
+        box.innerHTML = `<div class="share-status" role="status">Sending${plural ? ` ${i + 1} of ${files.length}` : ''}…</div>`;
+        await sendToInbox(uploadUrl, { batch, photo: await shrinkPhoto(file), type: 'photo' });
+      }
+    } catch {
+      box.innerHTML = `<div class="notice">Sorry, ${plural ? 'your photos' : 'your photo'} didn't send. Please check your connection and try again.</div>${shareButton()}`;
+      setUpSharing(box, uploadUrl);
+      return;
+    }
+    let saved = '';
+    try { saved = localStorage.getItem('photoCredit') || ''; } catch {}
+    box.innerHTML = `
+      <div class="share-done" role="status">
+        <strong>Thanks! We got your ${plural ? 'photos' : 'photo'}.</strong>
+        <p>Want credit when we post? <span class="meta">(optional)</span></p>
+        <form class="tag-form">
+          <label class="visually-hidden" for="credit">Your name or Instagram</label>
+          <input id="credit" type="text" autocapitalize="words" autocomplete="name" placeholder="Name or @Instagram" value="${esc(saved)}">
+          <button class="btn btn-secondary" type="submit">Credit Me</button>
+        </form>
+      </div>
+      <button type="button" class="link-btn share-again">Share another photo</button>`;
+    box.querySelector('.tag-form').addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const credit = box.querySelector('#credit').value.trim();
+      if (!credit) return;
+      try { localStorage.setItem('photoCredit', credit); } catch {}
+      const form = ev.target;
+      form.innerHTML = '<p class="meta">Saving…</p>';
+      try { await sendToInbox(uploadUrl, { batch, credit, type: 'credit' }); form.outerHTML = `<p>Got it! We'll credit you as <b>${esc(credit)}</b></p>`; }
+      catch { form.outerHTML = '<p class="meta">Sorry, that didn\'t save. Your photos still got through.</p>'; }
+    });
+    box.querySelector('.share-again').addEventListener('click', () => {
+      box.innerHTML = shareButton();
+      setUpSharing(box, uploadUrl);
+    });
+  });
+}
+
+async function renderPhotos(view) {
+  view.innerHTML = `<h1>Guest Photos</h1>${loading}`;
+  let data;
+  try { data = await loadContent('photos.json'); }
+  catch { view.innerHTML = `<h1>Guest Photos</h1>${errorCard('the photos')}`; return; }
+  const photos = data.photos || [];
+  const caption = (ph) => [photoDate(ph.date), ph.by].filter(Boolean).map(esc).join(' · ');
   view.innerHTML = `
-    <h1>Lodge &amp; Café Map</h1>
-    <div class="placeholder">
-      <strong>Coming soon:</strong> a simple map of the main lodge showing rentals, food, and restrooms.
-    </div>`;
+    <h1>Guest Photos</h1>
+    <p>Show us your Lapland Lake adventures! Skiing, snowshoeing, hiking, or just relaxing, in any season.</p>
+    <div id="share">${shareButton()}</div>
+    <div class="gallery">
+      ${photos.map((ph, i) => `
+        <button type="button" class="gallery-item${i === 0 ? ' first' : ''}" data-i="${i}">
+          <img src="${esc(ph.src)}" alt="Guest photo${ph.date ? ', ' + esc(photoDate(ph.date)) : ''}" loading="lazy">
+          ${caption(ph) ? `<span class="gallery-cap">${caption(ph)}</span>` : ''}
+        </button>`).join('')}
+    </div>
+    ${photos.length ? '' : '<p class="meta">No photos yet. Be the first!</p>'}`;
+
+  setUpSharing(view.querySelector('#share'), data.uploadUrl);
+
+  view.querySelector('.gallery').addEventListener('click', (e) => {
+    const item = e.target.closest('.gallery-item');
+    if (!item) return;
+    const ph = photos[item.dataset.i];
+    const box = document.createElement('div');
+    box.className = 'lightbox';
+    box.setAttribute('role', 'dialog');
+    box.setAttribute('aria-label', 'Photo');
+    box.innerHTML = `
+      <button type="button" class="lightbox-close" aria-label="Close photo">${svg('close')}</button>
+      <img src="${esc(ph.src)}" alt="">
+      ${caption(ph) ? `<p>${caption(ph)}</p>` : ''}`;
+    const close = () => { box.remove(); item.focus(); };
+    box.addEventListener('click', close);
+    document.body.append(box);
+    box.querySelector('.lightbox-close').focus();
+  });
 }
 
 /* ---------- Navigation ---------- */
