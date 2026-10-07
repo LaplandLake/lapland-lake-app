@@ -426,3 +426,17 @@ button.trail-row { cursor: pointer; }
 .grab-and-go .label { font-size: 18px; font-weight: 800; color: var(--ink); margin-bottom: 4px; }
 .grab-and-go p { margin: 0; color: var(--ink); }
 .grab-note { color: var(--brand); font-weight: 600; }
+
+/* "Add this app to your phone" */
+.install-btn {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  width: 100%; min-height: 56px; margin-top: 12px; padding: 10px 16px;
+  border: 2px dashed var(--brand); border-radius: var(--radius); background: transparent;
+  color: var(--brand); font: inherit; font-size: 18px; font-weight: 700; cursor: pointer;
+}
+.install-btn svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.install-help { margin-top: 10px; }
+.install-help strong { font-size: 19px; }
+.install-help ol { margin: 10px 0 8px; padding-left: 24px; font-size: 18px; }
+.install-help li { margin-bottom: 6px; }
+.install-help .key { display: inline-block; padding: 0 6px; border: 1px solid var(--line); border-radius: 6px; }
