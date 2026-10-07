@@ -16,6 +16,7 @@ const ICONS = {
   arrow:  '<path d="M12 20V5M6 11l6-6 6 6"/>',
   close:  '<path d="M6 6l12 12M18 6L6 18"/>',
   skier:  '<circle cx="14" cy="4" r="2"/><path d="M8 21l3-7 3 2 1 5M11 14l1-5 4 3 3-1M12 9l-4 1-2 3M3 21l18-3"/>',
+  photos: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/>',
   camera: '<path d="M3 8a2 2 0 0 1 2-2h2l2-2h6l2 2h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="4"/>',
   addapp: '<rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M10 18.5h4M12 7v6M9 10h6"/>',
   bed:    '<path d="M3 19V6M3 15h18v4M21 15v-3a3 3 0 0 0-3-3h-7v6"/><circle cx="7" cy="11" r="2"/>',
@@ -479,12 +480,81 @@ function photoDate(value) {
 // One-step photo sharing: tap the button, pick photos, and they're sent.
 // Photos go to the staff inbox (uploadUrl in content/photos.json) and only
 // appear in the gallery after staff approve them.
+// "Take a Photo" uses a camera built into the page. Opening the phone's own camera app
+// can make Android close the app, losing the photo; this way the app never leaves the screen.
+const canUseCamera = () => Boolean(navigator.mediaDevices?.getUserMedia);
 const shareButton = () => `
-  <label class="btn share-btn">
-    ${svg('camera')} Share a Photo
+  ${canUseCamera() ? `<button type="button" class="btn share-btn take-photo">${svg('camera')} Take a Photo</button>` : ''}
+  <label class="btn ${canUseCamera() ? 'btn-secondary gallery-btn' : 'share-btn'}">
+    ${svg('photos')} ${canUseCamera() ? 'Choose from Gallery' : 'Share a Photo'}
     <input type="file" accept="image/*" multiple class="visually-hidden">
   </label>
-  <p class="meta share-note"><b>Tip:</b> take your photo first, then share it from your gallery.<br>We check every photo before it appears here. By sharing, you allow Lapland Lake to post your photos.</p>`;
+  <p class="meta share-note">We check every photo before it appears here. By sharing, you allow Lapland Lake to post your photos.</p>`;
+
+// Full-screen camera: live view, a shutter button, then Retake or Use Photo.
+// Resolves with the photo, or null if the guest closes it.
+function openCamera() {
+  return new Promise(async (resolve) => {
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1440 } }, audio: false,
+      });
+    } catch {
+      alert('The camera is turned off for this app. You can tap "Choose from Gallery" instead, or allow the camera in your browser settings.');
+      resolve(null);
+      return;
+    }
+    const cam = document.createElement('div');
+    cam.className = 'camera';
+    cam.setAttribute('role', 'dialog');
+    cam.setAttribute('aria-label', 'Camera');
+    cam.innerHTML = `
+      <video autoplay playsinline muted></video>
+      <img class="camera-still" alt="Your photo" hidden>
+      <div class="camera-bar">
+        <button type="button" class="camera-close" aria-label="Close camera">${svg('close')}</button>
+        <button type="button" class="camera-shutter" aria-label="Take photo"></button>
+        <span class="camera-spacer"></span>
+      </div>
+      <div class="camera-bar camera-review" hidden>
+        <button type="button" class="btn btn-secondary camera-retake">Retake</button>
+        <button type="button" class="btn camera-use">Use Photo</button>
+      </div>`;
+    document.body.append(cam);
+    const video = cam.querySelector('video');
+    video.srcObject = stream;
+    const still = cam.querySelector('.camera-still');
+    let photo = null;
+    const finish = (result) => {
+      stream.getTracks().forEach((t) => t.stop());
+      if (still.src) URL.revokeObjectURL(still.src);
+      cam.remove();
+      resolve(result);
+    };
+    const showLive = (live) => {
+      video.hidden = !live;
+      still.hidden = live;
+      cam.querySelector('.camera-bar').hidden = !live;
+      cam.querySelector('.camera-review').hidden = live;
+    };
+    cam.querySelector('.camera-close').addEventListener('click', () => finish(null));
+    cam.querySelector('.camera-shutter').addEventListener('click', () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext('2d').drawImage(video, 0, 0);
+      canvas.toBlob((blob) => {
+        photo = blob;
+        if (still.src) URL.revokeObjectURL(still.src);
+        still.src = URL.createObjectURL(blob);
+        showLive(false);
+      }, 'image/jpeg', 0.92);
+    });
+    cam.querySelector('.camera-retake').addEventListener('click', () => showLive(true));
+    cam.querySelector('.camera-use').addEventListener('click', () => finish(photo));
+  });
+}
 
 // Shrinks a photo before sending (faster on weak signal) and drops hidden
 // details like the phone's GPS location. Big camera photos (50+ megapixels on some
@@ -519,8 +589,15 @@ let sharingPhoto = false;
 
 function setUpSharing(box, uploadUrl) {
   box.querySelector('input').addEventListener('click', () => { sharingPhoto = true; });
-  box.querySelector('input').addEventListener('change', async (e) => {
-    const files = [...e.target.files];
+  box.querySelector('input').addEventListener('change', (e) => sendPhotos(box, uploadUrl, [...e.target.files]));
+  box.querySelector('.take-photo')?.addEventListener('click', async () => {
+    sharingPhoto = true;
+    const photo = await openCamera();
+    if (photo) sendPhotos(box, uploadUrl, [photo]);
+  });
+}
+
+async function sendPhotos(box, uploadUrl, files) {
     if (!files.length) return;
     const batch = Date.now().toString(36);
     const plural = files.length > 1;
@@ -577,7 +654,6 @@ function setUpSharing(box, uploadUrl) {
       box.innerHTML = shareButton();
       setUpSharing(box, uploadUrl);
     });
-  });
 }
 
 // Approved guest photos come live from Todd's Drive ("Approved" folder) through the
