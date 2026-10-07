@@ -408,6 +408,11 @@ function photoDate(value) {
   const yesterday = `${y.getFullYear()}-${String(y.getMonth() + 1).padStart(2, '0')}-${String(y.getDate()).padStart(2, '0')}`;
   if (value === today) return 'Today';
   if (value === yesterday) return 'Yesterday';
+  // Photos older than about 3 months get the year too, so they don't look recent
+  const d = new Date(value + 'T12:00:00');
+  if (!isNaN(d) && Date.now() - d > 90 * 864e5) {
+    return d.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
+  }
   return formatDate(value);
 }
 
