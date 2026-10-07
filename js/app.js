@@ -110,7 +110,8 @@ function installButton() {
 
 function installSteps() {
   const ua = navigator.userAgent;
-  if (/iPhone|iPad|iPod/.test(ua)) {
+  const iPad = /Macintosh/.test(ua) && navigator.maxTouchPoints > 1;
+  if (/iPhone|iPad|iPod/.test(ua) || iPad) {
     if (/CriOS|FxiOS|EdgiOS/.test(ua)) {
       return `<p>On iPhone, apps are added from <b>Safari</b>. Copy this page's address, open it in Safari, then follow the steps there.</p>`;
     }
@@ -242,10 +243,7 @@ async function renderConditions(view) {
       <h1>Trail Conditions</h1>
       <p class="updated">Last updated <strong>${formatDateTime(report.updated)}</strong></p>
       ${stale ? '<div class="notice">This report may be out of date. We\'ll show the newest one as soon as it\'s posted.</div>' : ''}
-      <div class="card status">
-        ${report.status ? `<div class="status-line">${esc(report.status)}</div>` : ''}
-
-      </div>
+      ${report.status ? `<div class="card status"><div class="status-line">${esc(report.status)}</div></div>` : ''}
       ${report.stats?.length ? `
         <dl class="stats">
           ${report.stats.map((s) => `
@@ -549,6 +547,7 @@ function openCamera() {
     const still = cam.querySelector('.camera-still');
     let photo = null;
     const finish = (result) => {
+      window.removeEventListener('hashchange', onLeave);
       stream?.getTracks().forEach((t) => t.stop());
       if (still.src) URL.revokeObjectURL(still.src);
       cam.remove();
@@ -561,6 +560,9 @@ function openCamera() {
       cam.querySelector('.camera-review').hidden = live;
     };
     cam.querySelector('.camera-close').addEventListener('click', () => finish(null));
+    // Phone's Back button: close the camera (and turn it off) instead of leaving it running
+    const onLeave = () => finish(null);
+    window.addEventListener('hashchange', onLeave);
     cam.querySelector('.camera-shutter').addEventListener('click', () => {
       // Capture straight at upload size (1600 on the long side), so there's nothing left to shrink
       const scale = Math.min(1, 1600 / Math.max(video.videoWidth, video.videoHeight));
@@ -672,6 +674,7 @@ async function sendPhotos(box, uploadUrl, files) {
     </div>
     <button type="button" class="link-btn share-again">Share another photo</button>`;
   const line = box.querySelector('.upload-line');
+  const heading = box.querySelector('.share-done strong');
 
   // Upload: shrink one photo at a time (easy on memory), send up to 3 at once.
   let waiting = [...files];
@@ -715,11 +718,13 @@ async function sendPhotos(box, uploadUrl, files) {
       return false;
     }
     if (failed.length) {
+      heading.textContent = sentCount ? 'Almost there!' : `Oops, ${plural ? 'your photos haven\'t' : 'your photo hasn\'t'} sent yet.`;
       line.className = 'upload-line failed';
       line.innerHTML = `${plural ? `${failed.length} photo${failed.length > 1 ? 's' : ''}` : 'Your photo'} didn't send. <button type="button" class="link-btn retry">Try again</button>`;
       line.querySelector('.retry').addEventListener('click', () => { uploads = upload(); });
       return false;
     }
+    heading.textContent = `Thanks! We got your ${plural ? 'photos' : 'photo'}.`;
     line.className = 'upload-line sent';
     line.textContent = `✓ Sent`;
     if (unreadable.length) line.textContent += ` (${unreadable.length} couldn't be opened, so ${unreadable.length > 1 ? 'they weren\'t' : 'it wasn\'t'} sent)`;
@@ -815,7 +820,9 @@ async function renderPhotos(view) {
       <button type="button" class="lightbox-close" aria-label="Close photo">${svg('close')}</button>
       <img src="${esc(sized(ph.src, 1600))}" alt="">
       ${caption(ph) ? `<p>${caption(ph)}</p>` : ''}`;
-    const close = () => { box.remove(); item.focus(); };
+    const close = () => { box.remove(); item.focus(); document.removeEventListener('keydown', onKey); };
+    const onKey = (e) => { if (e.key === 'Escape') close(); };
+    document.addEventListener('keydown', onKey);
     box.addEventListener('click', close);
     document.body.append(box);
     box.querySelector('.lightbox-close').focus();
@@ -827,9 +834,15 @@ async function renderPhotos(view) {
 function route() {
   const path = location.hash.replace(/^#\/?/, '');
   const screen = SCREENS.find((s) => s.path === path);
-  const view = document.getElementById('view');
+  // Swap in a fresh page area, so a slow screen that finishes loading after the guest
+  // has already moved on can't draw over the screen they're on now
+  const old = document.getElementById('view');
+  const view = old.cloneNode(false);
+  old.replaceWith(view);
   document.getElementById('back').hidden = !screen;
   view.className = '';
+  // Close anything left open on top (a photo, the camera)
+  document.querySelectorAll('.lightbox').forEach((el) => el.remove());
   document.title = screen ? `${screen.title} · Lapland Lake` : 'Lapland Lake';
   (screen ? screen.render : renderHome)(view);
   window.scrollTo(0, 0);
@@ -844,10 +857,11 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   // When a new version of the app takes over, reload once so the phone shows it right away
   if (navigator.serviceWorker.controller) {
     // (but never while a guest is picking or sending a photo; then wait until they move on)
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (sharingPhoto) window.addEventListener('hashchange', () => location.reload(), { once: true });
+    const reloadWhenIdle = () => {
+      if (sharingPhoto) window.addEventListener('hashchange', reloadWhenIdle, { once: true });
       else location.reload();
-    }, { once: true });
+    };
+    navigator.serviceWorker.addEventListener('controllerchange', reloadWhenIdle, { once: true });
   }
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
