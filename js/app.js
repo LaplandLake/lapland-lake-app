@@ -28,7 +28,7 @@ const SCREENS = [
   { path: 'map',     title: 'Trail Map',         sub: 'Zoom in and tap a trail',                              icon: 'map',    render: renderTrailMap },
   { path: 'menu',    title: 'Café Menu',         sub: "Today's soup, food & drinks",                          icon: 'soup',   render: renderMenu },
   { path: 'stay',    title: 'Lodge With Us',     sub: 'Our cottages, studios & farmhouse',                    icon: 'bed',    render: renderLodging },
-  { path: 'photos',  title: 'Guest Photos',      sub: "See today's snow & share your photos",                 icon: 'camera', render: renderPhotos },
+  { path: 'photos',  title: 'Guest Photos',      sub: 'Share your Lapland Lake adventures',                 icon: 'camera', render: renderPhotos },
 ];
 
 /* ---------- Helpers ---------- */
@@ -413,7 +413,7 @@ async function renderPhotos(view) {
   const caption = (ph) => [photoDate(ph.date), ph.by].filter(Boolean).map(esc).join(' · ');
   view.innerHTML = `
     <h1>Guest Photos</h1>
-    <p>Fresh from our trails, shared by skiers like you.</p>
+    <p>Show us your Lapland Lake adventures! Skiing, snowshoeing, hiking, or just relaxing, in any season.</p>
     <a class="btn" href="${mail}">${svg('camera')} Share Your Photos</a>
     <p class="meta share-note">Opens your email. Attach your photos and press send. We check every photo before it appears here. By sending, you allow Lapland Lake to share your photos.</p>
     <div class="gallery">
