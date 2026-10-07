@@ -424,14 +424,14 @@ const shareButton = () => `
 
 // Shrinks a photo before sending (faster on weak signal) and drops hidden
 // details like the phone's GPS location.
-async function shrinkPhoto(file, max = 2000) {
+async function shrinkPhoto(file, max = 1600) {
   const img = await createImageBitmap(file);
   const scale = Math.min(1, max / Math.max(img.width, img.height));
   const canvas = document.createElement('canvas');
   canvas.width = Math.round(img.width * scale);
   canvas.height = Math.round(img.height * scale);
   canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-  return canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+  return canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
 }
 
 async function sendToInbox(uploadUrl, message) {
@@ -450,11 +450,23 @@ function setUpSharing(box, uploadUrl) {
     if (!files.length) return;
     const batch = Date.now().toString(36);
     const plural = files.length > 1;
-    try {
-      for (const [i, file] of files.entries()) {
-        box.innerHTML = `<div class="share-status" role="status">Sending${plural ? ` ${i + 1} of ${files.length}` : ''}…</div>`;
+    // Sends up to 3 photos at a time, so several photos don't wait in line.
+    let sentCount = 0;
+    const status = () => {
+      box.innerHTML = `<div class="share-status" role="status">Sending${plural ? ` ${Math.min(sentCount + 1, files.length)} of ${files.length}` : ''}…</div>`;
+    };
+    status();
+    const queue = [...files];
+    const worker = async () => {
+      while (queue.length) {
+        const file = queue.shift();
         await sendToInbox(uploadUrl, { batch, photo: await shrinkPhoto(file), type: 'photo' });
+        sentCount++;
+        status();
       }
+    };
+    try {
+      await Promise.all([worker(), worker(), worker()]);
     } catch {
       box.innerHTML = `<div class="notice">Sorry, ${plural ? 'your photos' : 'your photo'} didn't send. Please check your connection and try again.</div>${shareButton()}`;
       setUpSharing(box, uploadUrl);
