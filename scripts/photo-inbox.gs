@@ -18,7 +18,8 @@ function setup() {
   folder_(main, 'To Review');
   folder_(main, 'Approved');
   ScriptApp.getProjectTriggers().forEach((t) => ScriptApp.deleteTrigger(t));
-  ScriptApp.newTrigger('dailyEmail').timeBased().everyDays(1).atHour(19).create();
+  // About 4:30 pm (Google runs it within 15 minutes of that)
+  ScriptApp.newTrigger('dailyEmail').timeBased().everyDays(1).atHour(16).nearMinute(30).inTimezone('America/New_York').create();
   Logger.log('All set. Folders are in your Drive under "' + MAIN_FOLDER + '".');
 }
 
