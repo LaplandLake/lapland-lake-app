@@ -16,6 +16,7 @@ const ICONS = {
   arrow:  '<path d="M12 20V5M6 11l6-6 6 6"/>',
   close:  '<path d="M6 6l12 12M18 6L6 18"/>',
   skier:  '<circle cx="14" cy="4" r="2"/><path d="M8 21l3-7 3 2 1 5M11 14l1-5 4 3 3-1M12 9l-4 1-2 3M3 21l18-3"/>',
+  flip:   '<path d="M4 9a8 8 0 0 1 14.5-3.5L20 7M20 3v4h-4M20 15a8 8 0 0 1-14.5 3.5L4 17M4 21v-4h4"/>',
   photos: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/>',
   camera: '<path d="M3 8a2 2 0 0 1 2-2h2l2-2h6l2 2h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="4"/>',
   addapp: '<rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M10 18.5h4M12 7v6M9 10h6"/>',
@@ -496,10 +497,12 @@ const shareButton = () => `
 function openCamera() {
   return new Promise(async (resolve) => {
     let stream;
+    let facing = 'environment';
+    const start = (mode) => navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: mode }, width: { ideal: 1920 }, height: { ideal: 1440 } }, audio: false,
+    });
     try {
-      stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1440 } }, audio: false,
-      });
+      stream = await start(facing);
     } catch {
       alert('The camera is turned off for this app. You can tap "Choose from Gallery" instead, or allow the camera in your browser settings.');
       resolve(null);
@@ -515,7 +518,7 @@ function openCamera() {
       <div class="camera-bar">
         <button type="button" class="camera-close" aria-label="Close camera">${svg('close')}</button>
         <button type="button" class="camera-shutter" aria-label="Take photo"></button>
-        <span class="camera-spacer"></span>
+        <button type="button" class="camera-flip" aria-label="Switch to selfie camera" hidden>${svg('flip')}</button>
       </div>
       <div class="camera-bar camera-review" hidden>
         <button type="button" class="btn btn-secondary camera-retake">Retake</button>
@@ -524,10 +527,29 @@ function openCamera() {
     document.body.append(cam);
     const video = cam.querySelector('video');
     video.srcObject = stream;
+    // Selfie button, only on phones with a front and back camera
+    const flip = cam.querySelector('.camera-flip');
+    navigator.mediaDevices.enumerateDevices?.().then((devices) => {
+      flip.hidden = devices.filter((d) => d.kind === 'videoinput').length < 2;
+    }).catch(() => {});
+    flip.addEventListener('click', async () => {
+      const next = facing === 'environment' ? 'user' : 'environment';
+      stream.getTracks().forEach((t) => t.stop());
+      try {
+        stream = await start(next);
+        facing = next;
+      } catch {
+        stream = await start(facing).catch(() => null);
+        if (!stream) { finish(null); return; }
+      }
+      video.srcObject = stream;
+      video.classList.toggle('mirror', facing === 'user'); // selfie view acts like a mirror
+      flip.setAttribute('aria-label', facing === 'user' ? 'Switch to back camera' : 'Switch to selfie camera');
+    });
     const still = cam.querySelector('.camera-still');
     let photo = null;
     const finish = (result) => {
-      stream.getTracks().forEach((t) => t.stop());
+      stream?.getTracks().forEach((t) => t.stop());
       if (still.src) URL.revokeObjectURL(still.src);
       cam.remove();
       resolve(result);
@@ -611,6 +633,25 @@ function setUpSharing(box, uploadUrl) {
 
 // Shows "Thanks!" right away and sends the photos in the background, with a small
 // status line ("Uploading…" → "✓ Sent", or "Try again" if the signal drops).
+// A short, happy burst of snowflakes (skipped for anyone who has motion turned down).
+function snowBurst(target) {
+  if (!target || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const layer = document.createElement('div');
+  layer.className = 'snow-burst';
+  layer.setAttribute('aria-hidden', 'true');
+  for (let i = 0; i < 26; i++) {
+    const flake = document.createElement('span');
+    flake.textContent = '❄';
+    flake.style.left = `${Math.random() * 100}%`;
+    flake.style.fontSize = `${14 + Math.random() * 18}px`;
+    flake.style.animationDelay = `${Math.random() * 0.5}s`;
+    flake.style.setProperty('--drift', `${(Math.random() - 0.5) * 60}px`);
+    layer.append(flake);
+  }
+  target.append(layer);
+  setTimeout(() => layer.remove(), 2600);
+}
+
 async function sendPhotos(box, uploadUrl, files) {
   if (!files.length) return;
   const batch = Date.now().toString(36);
@@ -621,6 +662,7 @@ async function sendPhotos(box, uploadUrl, files) {
     <div class="share-done" role="status">
       <strong>Thanks! We got your ${plural ? 'photos' : 'photo'}.</strong>
       <p class="upload-line" aria-live="polite"></p>
+      <p class="share-next" hidden>We'll check ${plural ? 'them' : 'it'} soon — look for ${plural ? 'them' : 'it'} here in the gallery!</p>
       <p>Want credit when we post? <span class="meta">(optional)</span></p>
       <form class="tag-form">
         <label class="visually-hidden" for="credit">Your name or Instagram</label>
@@ -637,6 +679,7 @@ async function sendPhotos(box, uploadUrl, files) {
   const upload = async () => {
     const queue = [...waiting];
     const failed = [];
+    const unreadable = [];
     let shrinking = Promise.resolve();
     const show = () => {
       line.className = 'upload-line uploading';
@@ -646,10 +689,17 @@ async function sendPhotos(box, uploadUrl, files) {
     const worker = async () => {
       while (queue.length) {
         const file = queue.shift();
+        const shrunk = shrinking.then(() => shrinkPhoto(file));
+        shrinking = shrunk.catch(() => {});
+        let photo;
         try {
-          const shrunk = shrinking.then(() => shrinkPhoto(file));
-          shrinking = shrunk.catch(() => {});
-          await sendToInbox(uploadUrl, { batch, photo: await shrunk, type: 'photo' });
+          photo = await shrunk;
+        } catch {
+          unreadable.push(file); // the phone couldn't open it (usually Samsung's HEIF format)
+          continue;
+        }
+        try {
+          await sendToInbox(uploadUrl, { batch, photo, type: 'photo' });
           sentCount++;
           show();
         } catch {
@@ -659,6 +709,11 @@ async function sendPhotos(box, uploadUrl, files) {
     };
     await Promise.all([worker(), worker(), worker()]);
     waiting = failed;
+    if (unreadable.length && !failed.length && !sentCount) {
+      line.className = 'upload-line failed';
+      line.innerHTML = `This phone saves photos in a format we can't open (HEIF). Please use <b>Take a Photo</b> instead, or turn off <b>High efficiency pictures</b> in your camera's settings.`;
+      return false;
+    }
     if (failed.length) {
       line.className = 'upload-line failed';
       line.innerHTML = `${plural ? `${failed.length} photo${failed.length > 1 ? 's' : ''}` : 'Your photo'} didn't send. <button type="button" class="link-btn retry">Try again</button>`;
@@ -667,6 +722,9 @@ async function sendPhotos(box, uploadUrl, files) {
     }
     line.className = 'upload-line sent';
     line.textContent = `✓ Sent`;
+    if (unreadable.length) line.textContent += ` (${unreadable.length} couldn't be opened, so ${unreadable.length > 1 ? 'they weren\'t' : 'it wasn\'t'} sent)`;
+    box.querySelector('.share-next').hidden = false;
+    snowBurst(box.querySelector('.share-done'));
     sharingPhoto = false;
     return true;
   };
