@@ -29,6 +29,8 @@ Everything that changes day to day lives in the **`content/`** folder. Each file
 
 Write the date as year-month-day. You can leave the description empty (`""`).
 
+**Grab & Go days** (no one at the café counter): add `"grabAndGo": true` to `content/soup.json` along with today's date. The Café Menu then shows a Grab & Go notice (wording in `grabAndGoNotice` in `content/menu.json`), hides items marked `"cooked": true`, and shows each item's `grabAndGoNote` (e.g. "Heat it in the microwave"). It switches off by itself the next day.
+
 The soup's name only shows when its date is **today**, so guests never see an old soup; otherwise the Soup of the Day card shows a dash. While the café is closed (`titleNote` in `content/menu.json`), it always shows a dash.
 
 **Tip for AI assistants:** "Update `content/soup.json` with today's date and the soup [name]" is all the instruction an assistant needs.

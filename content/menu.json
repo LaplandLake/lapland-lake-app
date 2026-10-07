@@ -1,5 +1,6 @@
 {
   "titleNote": "Closed until Ski Season",
+  "grabAndGoNotice": "No one at the café counter today. Take what you'd like and pay at the register downstairs.",
   "sections": [
     {
       "name": "Hot Food",
@@ -8,22 +9,26 @@
         {
           "name": "Chili",
           "description": "",
-          "price": "Cup $5.50 · Bowl $7.00"
+          "price": "Cup $5.50 · Bowl $7.00",
+          "grabAndGoNote": "Heat it in the microwave"
         },
         {
           "name": "Mac and Cheese",
           "description": "",
-          "price": ""
+          "price": "",
+          "cooked": true
         },
         {
           "name": "Soup",
           "description": "See today's soups on the board",
-          "price": "Cup $5.50 · Bowl $7.00"
+          "price": "Cup $5.50 · Bowl $7.00",
+          "grabAndGoNote": "Heat it in the microwave"
         },
         {
           "name": "Hot Dog",
           "description": "",
-          "price": "$3.50"
+          "price": "$3.50",
+          "cooked": true
         }
       ]
     },

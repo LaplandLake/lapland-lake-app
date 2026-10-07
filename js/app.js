@@ -362,8 +362,16 @@ async function renderMenu(view) {
     const closed = Boolean(menu.titleNote);
     // Only show the soup's name when it was posted for today; otherwise the card shows a dash
     const showSoup = !closed && soup.soup && soup.date === todayString();
+    // "grabAndGo": true in soup.json (with today's date) = no one at the counter today:
+    // show the notice, hide cooked-to-order items, and say the soup is heat-it-yourself.
+    const grabAndGo = Boolean(soup.grabAndGo) && soup.date === todayString();
     view.innerHTML = `
       ${closed ? `<h1>Café Menu · <span class="title-note">${esc(menu.titleNote)}</span></h1>` : '<h1>Café Menu</h1>'}
+      ${grabAndGo ? `
+        <div class="card grab-and-go" role="note">
+          <div class="label">Grab &amp; Go Today</div>
+          <p>${esc(menu.grabAndGoNotice)}</p>
+        </div>` : ''}
       <div class="card soup">
         <div class="label">Soup of the Day</div>
         ${showSoup ? `
@@ -376,11 +384,12 @@ async function renderMenu(view) {
         <section class="menu-section">
           <h2>${esc(section.name)}${section.note ? ` <span class="section-note">${esc(section.note)}</span>` : ''}</h2>
           <div class="card">
-            ${section.items.map((item) => `
+            ${section.items.filter((item) => !(grabAndGo && item.cooked)).map((item) => `
               <div class="menu-item">
                 <div>
                   <div class="name">${esc(item.name)}</div>
                   ${item.description ? `<div class="desc">${esc(item.description)}</div>` : ''}
+                  ${grabAndGo && item.grabAndGoNote ? `<div class="desc grab-note">${esc(item.grabAndGoNote)}</div>` : ''}
                 </div>
                 ${item.price ? `<div class="price">${esc(item.price)}</div>` : ''}
               </div>`).join('')}
