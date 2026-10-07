@@ -14,6 +14,8 @@
    (Execute as: Me, Who has access: Anyone). */
 
 const REVIEW_EMAIL = 'todd@laplandlake.com';
+// The public web app address (Deploy > Manage deployments). The email buttons use it.
+const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzuX-wCmbF9GcdLH42ac4WHLF7LtGk8skMvVVeD-VzdUuKTvmB_8E2wLnViOGlMOb2Cgw/exec';
 const MAIN_FOLDER = 'Lapland Lake App Photos';
 const MAX_PHOTO_CHARS = 12 * 1024 * 1024; // the app sends photos well under this
 
@@ -98,7 +100,7 @@ function sendReviewEmail() {
   const waiting = waiting_();
   if (!waiting.length) return;
 
-  const url = ScriptApp.getService().getUrl();
+  const url = WEB_APP_URL;
   const link = (action, ids) => url + '?action=' + action + '&ids=' + ids.join(',') + '&key=' + key_();
   const button = (href, text, color) =>
     '<a href="' + href + '" style="display:inline-block;padding:10px 18px;margin:4px 8px 4px 0;border-radius:8px;' +
