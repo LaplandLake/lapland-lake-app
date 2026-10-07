@@ -487,15 +487,25 @@ const shareButton = () => `
   <p class="meta share-note"><b>Tip:</b> take your photo first, then share it from your gallery.<br>We check every photo before it appears here. By sharing, you allow Lapland Lake to post your photos.</p>`;
 
 // Shrinks a photo before sending (faster on weak signal) and drops hidden
-// details like the phone's GPS location.
+// details like the phone's GPS location. Big camera photos (50+ megapixels on some
+// phones) are shrunk while they're opened, so the phone never has to hold the
+// full-size picture in memory, which can make the app close.
 async function shrinkPhoto(file, max = 1600) {
-  const img = await createImageBitmap(file);
+  let img;
+  try {
+    img = await createImageBitmap(file, { resizeWidth: max, resizeQuality: 'high' });
+  } catch {
+    img = await createImageBitmap(file); // older phones without shrink-while-opening
+  }
   const scale = Math.min(1, max / Math.max(img.width, img.height));
   const canvas = document.createElement('canvas');
   canvas.width = Math.round(img.width * scale);
   canvas.height = Math.round(img.height * scale);
   canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-  return canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+  img.close?.();
+  const data = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+  canvas.width = canvas.height = 0; // free the memory right away
+  return data;
 }
 
 async function sendToInbox(uploadUrl, message) {
@@ -521,10 +531,14 @@ function setUpSharing(box, uploadUrl) {
     };
     status();
     const queue = [...files];
+    let shrinking = Promise.resolve();
     const worker = async () => {
       while (queue.length) {
         const file = queue.shift();
-        await sendToInbox(uploadUrl, { batch, photo: await shrinkPhoto(file), type: 'photo' });
+        // Shrink one photo at a time (easy on memory); sending can overlap
+        const shrunk = shrinking.then(() => shrinkPhoto(file));
+        shrinking = shrunk.catch(() => {});
+        await sendToInbox(uploadUrl, { batch, photo: await shrunk, type: 'photo' });
         sentCount++;
         status();
       }
