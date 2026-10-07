@@ -48,17 +48,20 @@ function doGet(e) {
   const photos = [];
   while (approved.hasNext()) {
     const f = approved.next();
-    if (!/^image\//.test(f.getMimeType())) continue;
+    if (/^image\//.test(f.getMimeType())) photos.push({ f, time: f.getDateCreated().getTime() });
+  }
+  // Newest 40 only; sharing is checked just for those, so the list stays quick even
+  // after hundreds of approved photos over the seasons
+  photos.sort((a, b) => b.time - a.time);
+  const newest = photos.slice(0, 40).map(({ f }) => {
     share_(f);
-    photos.push({
+    return {
       src: 'https://lh3.googleusercontent.com/d/' + f.getId() + '=w1200',
       date: Utilities.formatDate(f.getDateCreated(), 'America/New_York', 'yyyy-MM-dd'),
       by: (f.getDescription() || '').replace(/^Credit:\s*/, ''),
-      time: f.getDateCreated().getTime(),
-    });
-  }
-  photos.sort((a, b) => b.time - a.time);
-  const out = JSON.stringify({ photos: photos.slice(0, 40).map(({ src, date, by }) => ({ src, date, by })) });
+    };
+  });
+  const out = JSON.stringify({ photos: newest });
   cache.put('gallery', out, 600); // reuse for 10 minutes (cleared right away when a photo is approved)
   return ContentService.createTextOutput(out).setMimeType(ContentService.MimeType.JSON);
 }
@@ -264,7 +267,11 @@ function savedFolder_(prop, name) {
 
 function folder_(parent, name) {
   const found = parent.getFoldersByName(name);
-  return found.hasNext() ? found.next() : parent.createFolder(name);
+  while (found.hasNext()) {
+    const f = found.next();
+    if (!f.isTrashed()) return f; // skip a deleted folder with the same name
+  }
+  return parent.createFolder(name);
 }
 
 function reply_(status) {
