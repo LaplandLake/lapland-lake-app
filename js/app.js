@@ -432,7 +432,10 @@ async function sendToInbox(uploadUrl, message) {
   if (reply.status !== 'ok') throw new Error('Upload failed');
 }
 
+let sharingPhoto = false;
+
 function setUpSharing(box, uploadUrl) {
+  box.querySelector('input').addEventListener('click', () => { sharingPhoto = true; });
   box.querySelector('input').addEventListener('change', async (e) => {
     const files = [...e.target.files];
     if (!files.length) return;
@@ -540,7 +543,11 @@ route();
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   // When a new version of the app takes over, reload once so the phone shows it right away
   if (navigator.serviceWorker.controller) {
-    navigator.serviceWorker.addEventListener('controllerchange', () => location.reload(), { once: true });
+    // (but never while a guest is picking or sending a photo; then wait until they move on)
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (sharingPhoto) window.addEventListener('hashchange', () => location.reload(), { once: true });
+      else location.reload();
+    }, { once: true });
   }
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
