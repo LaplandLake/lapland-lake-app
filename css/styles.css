@@ -408,3 +408,14 @@ button.trail-row { cursor: pointer; }
   width: 48px; height: 48px; border: 0; border-radius: 50%; background: rgba(255,255,255,.15); cursor: pointer;
 }
 .lightbox-close svg { width: 24px; height: 24px; fill: none; stroke: #fff; stroke-width: 2.5; stroke-linecap: round; }
+.share-btn { cursor: pointer; }
+.share-status { padding: 20px; text-align: center; font-size: 20px; font-weight: 700; background: var(--card); border: 2px solid var(--line); border-radius: var(--radius); }
+.share-done { padding: 16px; background: var(--card); border: 2px solid var(--brand); border-radius: var(--radius); }
+.share-done strong { font-size: 20px; }
+.share-done p { margin: 8px 0; }
+.tag-form { display: flex; gap: 8px; }
+.tag-form input { flex: 1; min-width: 0; min-height: 56px; padding: 0 14px; font: inherit; font-size: 18px; border: 2px solid var(--line); border-radius: 12px; }
+.tag-form .btn { width: auto; padding: 0 18px; }
+.link-btn { display: block; margin: 12px auto 20px; padding: 12px; background: none; border: 0; color: var(--link); font: inherit; font-size: 17px; font-weight: 600; text-decoration: underline; cursor: pointer; }
+.share-btn:focus-within { outline: 3px solid var(--brand); outline-offset: 3px; }
+.visually-hidden { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

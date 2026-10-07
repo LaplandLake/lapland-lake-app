@@ -403,19 +403,91 @@ function photoDate(value) {
   return formatDate(value);
 }
 
+// One-step photo sharing: tap the button, pick photos, and they're sent.
+// Photos go to the staff inbox (uploadUrl in content/photos.json) and only
+// appear in the gallery after staff approve them.
+const shareButton = () => `
+  <label class="btn share-btn">
+    ${svg('camera')} Share a Photo
+    <input type="file" accept="image/*" multiple class="visually-hidden">
+  </label>
+  <p class="meta share-note">We check every photo before it appears here. By sharing, you allow Lapland Lake to post your photos.</p>`;
+
+// Shrinks a photo before sending (faster on weak signal) and drops hidden
+// details like the phone's GPS location.
+async function shrinkPhoto(file, max = 2000) {
+  const img = await createImageBitmap(file);
+  const scale = Math.min(1, max / Math.max(img.width, img.height));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(img.width * scale);
+  canvas.height = Math.round(img.height * scale);
+  canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+}
+
+async function sendToInbox(uploadUrl, message) {
+  if (!uploadUrl) return new Promise((r) => setTimeout(r, 800)); // preview: pretend to send
+  const res = await fetch(uploadUrl, { method: 'POST', body: JSON.stringify(message) });
+  if (!res.ok) throw new Error('Upload failed');
+}
+
+function setUpSharing(box, uploadUrl) {
+  box.querySelector('input').addEventListener('change', async (e) => {
+    const files = [...e.target.files];
+    if (!files.length) return;
+    const batch = Date.now().toString(36);
+    const plural = files.length > 1;
+    try {
+      for (const [i, file] of files.entries()) {
+        box.innerHTML = `<div class="share-status" role="status">Sending${plural ? ` ${i + 1} of ${files.length}` : ''}…</div>`;
+        await sendToInbox(uploadUrl, { batch, photo: await shrinkPhoto(file), type: 'photo' });
+      }
+    } catch {
+      box.innerHTML = `<div class="notice">Sorry, ${plural ? 'your photos' : 'your photo'} didn't send. Please check your connection and try again.</div>${shareButton()}`;
+      setUpSharing(box, uploadUrl);
+      return;
+    }
+    let saved = '';
+    try { saved = localStorage.getItem('instagram') || ''; } catch {}
+    box.innerHTML = `
+      <div class="share-done" role="status">
+        <strong>Thanks! We got your ${plural ? 'photos' : 'photo'}.</strong>
+        <p>Want us to tag you when we post? <span class="meta">(optional)</span></p>
+        <form class="tag-form">
+          <label class="visually-hidden" for="ig">Your Instagram</label>
+          <input id="ig" type="text" inputmode="email" autocapitalize="off" autocomplete="off" placeholder="@yourname" value="${esc(saved)}">
+          <button class="btn btn-secondary" type="submit">Tag Me</button>
+        </form>
+      </div>
+      <button type="button" class="link-btn share-again">Share another photo</button>`;
+    box.querySelector('.tag-form').addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const instagram = box.querySelector('#ig').value.trim();
+      if (!instagram) return;
+      try { localStorage.setItem('instagram', instagram); } catch {}
+      const form = ev.target;
+      form.innerHTML = '<p class="meta">Saving…</p>';
+      try { await sendToInbox(uploadUrl, { batch, instagram, type: 'tag' }); form.outerHTML = `<p>Got it! We'll tag <b>${esc(instagram)}</b>.</p>`; }
+      catch { form.outerHTML = '<p class="meta">Sorry, that didn\'t save. Your photos still got through.</p>'; }
+    });
+    box.querySelector('.share-again').addEventListener('click', () => {
+      box.innerHTML = shareButton();
+      setUpSharing(box, uploadUrl);
+    });
+  });
+}
+
 async function renderPhotos(view) {
   view.innerHTML = `<h1>Guest Photos</h1>${loading}`;
   let data;
   try { data = await loadContent('photos.json'); }
   catch { view.innerHTML = `<h1>Guest Photos</h1>${errorCard('the photos')}`; return; }
   const photos = data.photos || [];
-  const mail = `mailto:${esc(data.email)}?subject=${encodeURIComponent('My Lapland Lake photo')}`;
   const caption = (ph) => [photoDate(ph.date), ph.by].filter(Boolean).map(esc).join(' · ');
   view.innerHTML = `
     <h1>Guest Photos</h1>
     <p>Show us your Lapland Lake adventures! Skiing, snowshoeing, hiking, or just relaxing, in any season.</p>
-    <a class="btn" href="${mail}">${svg('camera')} Share Your Photos</a>
-    <p class="meta share-note">Opens your email. Attach your photos and press send. We check every photo before it appears here. By sending, you allow Lapland Lake to share your photos.</p>
+    <div id="share">${shareButton()}</div>
     <div class="gallery">
       ${photos.map((ph, i) => `
         <button type="button" class="gallery-item${i === 0 ? ' first' : ''}" data-i="${i}">
@@ -424,6 +496,8 @@ async function renderPhotos(view) {
         </button>`).join('')}
     </div>
     ${photos.length ? '' : '<p class="meta">No photos yet. Be the first!</p>'}`;
+
+  setUpSharing(view.querySelector('#share'), data.uploadUrl);
 
   view.querySelector('.gallery').addEventListener('click', (e) => {
     const item = e.target.closest('.gallery-item');
