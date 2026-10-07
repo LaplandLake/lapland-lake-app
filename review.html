@@ -84,7 +84,8 @@
         const act = async (card, action) => {
           card.classList.add('busy');
           try {
-            await ask({ action, ids: card.dataset.id });
+            const reply = await ask({ action, ids: card.dataset.id });
+            if (!/Approved|Deleted|Moved|Already|Nothing/.test(reply.message || '')) throw new Error(reply.message);
             setState(card, action === 'approve' ? 'approved' : action === 'delete' ? 'deleted' : '');
           } catch { alert('That didn’t go through. Check your connection and try again.'); }
           card.classList.remove('busy');
