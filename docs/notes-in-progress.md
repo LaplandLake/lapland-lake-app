@@ -6,6 +6,7 @@ Last updated: 2026-10-05. These are notes from working with the owner's team, so
 - We're in "tweaking mode": the team gives notes, Claude says what it will change, shows a phone-size preview screenshot, and only publishes when told "publish".
 - Drafts go on a separate branch; publishing = merging into `main` (every push to `main` republishes the site).
 - Ask before making visible changes. Don't fill placeholders or add features without checking first.
+- Todd has final say on anything design-related (looks, wording, images, layout, share previews, QR styles). Describe it, show a preview, and wait for a yes. Behind-the-scenes fixes (speed, reliability, safety) can go ahead; tell him afterward.
 - Live app: https://laplandlake.github.io/lapland-lake-app/ (GitHub user renamed from Tssngs75 to LaplandLake on 2026-10-05; old address no longer works).
 
 ## Lodge Map (not built yet)
