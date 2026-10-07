@@ -459,3 +459,17 @@ button.trail-row { cursor: pointer; }
 .upload-line.sent { color: var(--brand); }
 .upload-line.failed { color: #9b2c2c; }
 .upload-line .link-btn { display: inline; margin: 0; padding: 0 4px; font-size: inherit; }
+
+/* Selfie camera, gallery invite, snowflake burst */
+.camera-flip { width: 56px; height: 56px; border: 0; border-radius: 50%; background: rgba(255,255,255,.15); display: grid; place-items: center; cursor: pointer; }
+.camera-flip[hidden] { visibility: hidden; display: grid; }
+.camera-flip svg { width: 28px; height: 28px; fill: none; stroke: #fff; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.camera video.mirror { transform: scaleX(-1); }
+.share-next { margin: 0 0 12px; color: var(--ink); }
+.share-done { position: relative; overflow: hidden; }
+.snow-burst { position: absolute; inset: 0; pointer-events: none; }
+.snow-burst span { position: absolute; top: -30px; color: var(--lake); animation: snowfall 1.9s ease-in forwards; }
+@keyframes snowfall {
+  0% { transform: translate(0, 0) rotate(0); opacity: 1; }
+  100% { transform: translate(var(--drift), 260px) rotate(200deg); opacity: 0; }
+}
