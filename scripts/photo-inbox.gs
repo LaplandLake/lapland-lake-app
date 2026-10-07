@@ -2,9 +2,11 @@
    Runs in Todd's Google account (todd@laplandlake.com). It:
    - receives photos guests send from the app's Guest Photos screen,
    - saves them in Google Drive: "Lapland Lake App Photos" > "To Review",
-   - emails Todd once a day with that day's new photos.
+   - emails Todd once a day with every photo waiting for review, each with
+     an Approve and a Delete button (one tap, no Drive needed),
    - shows the photos in the "Approved" folder in the app's gallery, newest first.
-   Good photos: move them into the "Approved" folder. Nothing appears in the app until then.
+   Nothing appears in the app until it's approved. (Dragging a photo into the
+   "Approved" folder in Drive works too.)
 
    One-time setup: paste this whole file into a new project at script.google.com,
    run "setup" once, then Deploy > New deployment > Web app
@@ -27,6 +29,7 @@ function setup() {
 // The app asks for the approved photos (newest first) to show in its gallery.
 // Approved photos are shared "anyone with the link" so phones can load them.
 function doGet(e) {
+  if (e && e.parameter.action) return review_(e.parameter);
   if (!e || !e.parameter.list) return reply_('ok');
   const approved = folder_(folder_(DriveApp, MAIN_FOLDER), 'Approved').getFiles();
   const photos = [];
@@ -77,35 +80,80 @@ function doPost(e) {
   }
 }
 
-// Once a day: one email with the new photos, so reviewing takes a minute.
+// Once a day: one email with every photo waiting for review, each with
+// Approve and Delete buttons. Nothing is sent when nothing is waiting.
 function dailyEmail() {
-  const main = folder_(DriveApp, MAIN_FOLDER);
-  const review = folder_(main, 'To Review');
-  const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const review = folder_(folder_(DriveApp, MAIN_FOLDER), 'To Review');
   const files = review.getFiles();
-  const fresh = [];
-  while (files.hasNext()) {
-    const f = files.next();
-    if (f.getDateCreated() > since) fresh.push(f);
-  }
-  if (!fresh.length) return;
+  const waiting = [];
+  while (files.hasNext()) waiting.push(files.next());
+  if (!waiting.length) return;
+  waiting.sort((a, b) => a.getDateCreated() - b.getDateCreated());
 
-  const shown = fresh.slice(0, 20);
+  const url = ScriptApp.getService().getUrl();
+  const link = (action, ids) => url + '?action=' + action + '&ids=' + ids.join(',') + '&key=' + key_();
+  const button = (href, text, color) =>
+    '<a href="' + href + '" style="display:inline-block;padding:10px 18px;margin:4px 8px 4px 0;border-radius:8px;' +
+    'background:' + color + ';color:#fff;font-weight:bold;text-decoration:none;font-size:16px">' + text + '</a>';
+
+  const shown = waiting.slice(0, 20);
   const images = {};
   const html = shown.map((f, i) => {
     images['p' + i] = f.getBlob();
-    const credit = f.getDescription() ? '<br>' + f.getDescription() : '';
-    return '<p><img src="cid:p' + i + '" width="300"><br><small>' + f.getName() + credit + '</small></p>';
+    const sent = Utilities.formatDate(f.getDateCreated(), 'America/New_York', 'EEE MMM d, h:mm a');
+    const credit = f.getDescription() ? ' · ' + f.getDescription() : '';
+    return '<div style="margin:0 0 28px"><img src="cid:p' + i + '" width="320" style="border-radius:8px"><br>' +
+      '<small>' + sent + credit + '</small><br>' +
+      button(link('approve', [f.getId()]), '✓ Approve', '#0b6e76') +
+      button(link('delete', [f.getId()]), '✗ Delete', '#9b2c2c') + '</div>';
   }).join('');
-  const more = fresh.length > shown.length ? '<p>…and ' + (fresh.length - shown.length) + ' more in the folder.</p>' : '';
+  const all = shown.length > 1
+    ? '<p>' + button(link('approve', shown.map((f) => f.getId())), '✓ Approve all ' + shown.length, '#0b6e76') + '</p>' : '';
+  const more = waiting.length > shown.length
+    ? '<p>…and ' + (waiting.length - shown.length) + ' more. They\'ll be in tomorrow\'s email.</p>' : '';
 
   MailApp.sendEmail({
     to: REVIEW_EMAIL,
-    subject: 'Lapland Lake app: ' + fresh.length + ' new guest photo' + (fresh.length > 1 ? 's' : ''),
-    htmlBody: '<p>New guest photos today. To approve one, move it from "To Review" into "Approved":<br>' +
-      '<a href="' + review.getUrl() + '">Open the To Review folder</a></p>' + html + more,
+    subject: 'Lapland Lake app: ' + waiting.length + ' guest photo' + (waiting.length > 1 ? 's' : '') + ' to review',
+    htmlBody: '<p>Tap <b>Approve</b> to put a photo in the app, or <b>Delete</b> to get rid of it.</p>' +
+      all + html + more,
     inlineImages: images,
   });
+}
+
+// The Approve / Delete buttons in the email land here.
+function review_(p) {
+  if (p.key !== key_()) return page_('Sorry, that link didn\'t work.');
+  const main = folder_(DriveApp, MAIN_FOLDER);
+  const review = folder_(main, 'To Review');
+  const approved = folder_(main, 'Approved');
+  let done = 0;
+  String(p.ids || '').split(',').filter(Boolean).forEach((id) => {
+    try {
+      const f = DriveApp.getFileById(id);
+      if (!f.getParents().hasNext()) return;
+      if (p.action === 'approve') { f.moveTo(approved); done++; }
+      if (p.action === 'delete') { f.setTrashed(true); done++; }
+    } catch (err) {} // already handled or gone
+  });
+  const plural = done === 1 ? 'photo' : 'photos';
+  if (p.action === 'approve') return page_(done ? '✓ Approved ' + done + ' ' + plural + '. ' + (done === 1 ? 'It\'s' : 'They\'re') + ' in the app now.' : 'Already approved.');
+  return page_(done ? '✗ Deleted ' + done + ' ' + plural + '.' : 'Already deleted.');
+}
+
+function page_(message) {
+  return HtmlService.createHtmlOutput(
+    '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+    '<div style="font-family:sans-serif;font-size:22px;text-align:center;padding:60px 20px">' + message +
+    '<p style="font-size:16px;color:#555">You can close this page.</p></div>');
+}
+
+// A private key so only the links in Todd's email can approve or delete photos.
+function key_() {
+  const props = PropertiesService.getScriptProperties();
+  let key = props.getProperty('KEY');
+  if (!key) { key = Utilities.getUuid().replace(/-/g, ''); props.setProperty('KEY', key); }
+  return key;
 }
 
 function folder_(parent, name) {
