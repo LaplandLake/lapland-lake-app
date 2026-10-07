@@ -2,9 +2,10 @@
    Runs in Todd's Google account (todd@laplandlake.com). It:
    - receives photos guests send from the app's Guest Photos screen,
    - saves them in Google Drive: "Lapland Lake App Photos" > "To Review",
-   - checks every hour; when new photos came in, emails Todd every photo waiting
-     for review, each with an Approve and a Delete button (one tap, no Drive needed),
-     and deletes the previous photo email so only the latest one is in the inbox,
+   - checks every hour; when new photos came in, emails Todd a preview of the photos
+     waiting and one "Review photos" button, which opens a review page where each photo
+     gets an Approve or Delete tap (with Undo). The previous photo email is deleted, so
+     only the latest one is in the inbox,
    - shows the photos in the "Approved" folder in the app's gallery, newest first.
    Nothing appears in the app until it's approved. (Dragging a photo into the
    "Approved" folder in Drive works too.)
@@ -22,7 +23,7 @@ const REVIEW_EMAIL = 'todd@laplandlake.com';
 const REVIEW_PAGE = 'https://laplandlake.github.io/lapland-lake-app/review.html';
 const MAIN_FOLDER = 'Lapland Lake App Photos';
 const MAX_PHOTO_CHARS = 12 * 1024 * 1024; // the app sends photos well under this
-const EMAIL_PHOTO_BYTES = 15 * 1024 * 1024; // keeps each email under Gmail's size limit
+const EMAIL_PHOTO_BYTES = 1500000; // bigger photos without a Drive preview are left out of the email
 
 function setup() {
   const main = folder_(DriveApp, MAIN_FOLDER);
@@ -37,6 +38,8 @@ function setup() {
 // Approved photos are shared "anyone with the link" so phones can load them.
 function doGet(e) {
   if (e && e.parameter.action) return review_(e.parameter);
+  if (e && e.parameter.waiting) return waitingList_(e.parameter);
+  if (e && e.parameter.photo) return photo_(e.parameter);
   if (!e || !e.parameter.list) return reply_('ok');
   const cache = CacheService.getScriptCache();
   const cached = cache.get('gallery');
@@ -114,43 +117,60 @@ function hourlyCheck() {
 function sendReviewEmail() {
   const waiting = waiting_();
   if (!waiting.length) return;
-
-  const url = REVIEW_PAGE;
-  const link = (action, ids) => url + '?action=' + action + '&ids=' + ids.join(',') + '&key=' + key_();
-  const button = (href, text, color) =>
-    '<a href="' + href + '" style="display:inline-block;padding:10px 18px;margin:4px 8px 4px 0;border-radius:8px;' +
-    'background:' + color + ';color:#fff;font-weight:bold;text-decoration:none;font-size:16px">' + text + '</a>';
-
-  // Up to 20 photos, and no more than Gmail can carry; the rest go in the next email.
-  const shown = [];
-  let bytes = 0;
-  for (const f of waiting) {
-    if (shown.length >= 20 || (shown.length && bytes + f.getSize() > EMAIL_PHOTO_BYTES)) break;
-    shown.push(f);
-    bytes += f.getSize();
-  }
+  const reviewLink = REVIEW_PAGE + '?key=' + key_();
+  const shown = waiting.slice(0, 12);
   const images = {};
-  const html = shown.map((f, i) => {
-    images['p' + i] = f.getBlob();
-    const sent = Utilities.formatDate(f.getDateCreated(), 'America/New_York', 'EEE MMM d, h:mm a');
-    const credit = f.getDescription() ? ' · ' + escape_(f.getDescription()) : '';
-    return '<div style="margin:0 0 28px"><img src="cid:p' + i + '" width="320" style="border-radius:8px"><br>' +
-      '<small>' + sent + credit + '</small><br>' +
-      button(link('approve', [f.getId()]), '✓ Approve', '#0b6e76') +
-      button(link('delete', [f.getId()]), '✗ Delete', '#9b2c2c') + '</div>';
+  const previews = shown.map((f, i) => {
+    // Small previews keep the email light; skip any big photo Drive has no preview for yet
+    const thumb = f.getThumbnail() || (f.getSize() < EMAIL_PHOTO_BYTES ? f.getBlob() : null);
+    if (!thumb) return '';
+    images['p' + i] = thumb;
+    return '<img src="cid:p' + i + '" width="140" height="105" style="object-fit:cover;border-radius:6px;margin:0 6px 6px 0">';
   }).join('');
-  const all = shown.length > 1
-    ? '<p>' + button(link('approve', shown.map((f) => f.getId())), '✓ Approve all ' + shown.length, '#0b6e76') + '</p>' : '';
-  const more = waiting.length > shown.length
-    ? '<p>…and ' + (waiting.length - shown.length) + ' more. They\'ll be in the next email.</p>' : '';
+  const count = waiting.length + ' guest photo' + (waiting.length > 1 ? 's' : '');
 
   clearOldEmails_();
-  GmailApp.sendEmail(REVIEW_EMAIL, EMAIL_SUBJECT, waiting.length + ' guest photo(s) to review.', {
-    htmlBody: '<p><b>' + waiting.length + ' guest photo' + (waiting.length > 1 ? 's' : '') + ' waiting.</b> ' +
-      'Tap <b>Approve</b> to put a photo in the app, or <b>Delete</b> to get rid of it.</p>' + all + html + more,
+  GmailApp.sendEmail(REVIEW_EMAIL, EMAIL_SUBJECT, count + ' to review: ' + reviewLink, {
+    htmlBody: '<p style="font-size:16px"><b>' + count + ' waiting.</b></p>' +
+      '<p><a href="' + reviewLink + '" style="display:inline-block;padding:14px 26px;border-radius:10px;' +
+      'background:#0b6e76;color:#fff;font-weight:bold;text-decoration:none;font-size:18px">Review photos</a></p>' +
+      '<p>' + previews + '</p>' +
+      (waiting.length > shown.length ? '<p>…and ' + (waiting.length - shown.length) + ' more.</p>' : ''),
     inlineImages: images,
   });
   PropertiesService.getScriptProperties().setProperty('LAST_SENT', String(Date.now()));
+}
+
+// The review page asks for the list of waiting photos, then loads each photo on its own.
+function waitingList_(p) {
+  if (p.key !== key_()) return reply_('bad key');
+  const photos = waiting_().map((f) => ({
+    id: f.getId(),
+    sent: Utilities.formatDate(f.getDateCreated(), 'America/New_York', 'EEE MMM d, h:mm a'),
+    credit: (f.getDescription() || '').replace(/^Credit:\s*/, ''),
+  }));
+  return ContentService.createTextOutput(JSON.stringify({ photos })).setMimeType(ContentService.MimeType.JSON);
+}
+
+function photo_(p) {
+  if (p.key !== key_()) return reply_('bad key');
+  try {
+    const f = DriveApp.getFileById(p.photo);
+    const main = folder_(DriveApp, MAIN_FOLDER);
+    if (!inFolder_(f, folder_(main, 'To Review')) && !inFolder_(f, folder_(main, 'Approved'))) return reply_('not found');
+    // Big camera originals get Drive's small preview instead, so the page stays quick
+    const blob = f.getSize() > 1500000 ? (f.getThumbnail() || f.getBlob()) : f.getBlob();
+    const img = 'data:' + blob.getContentType() + ';base64,' + Utilities.base64Encode(blob.getBytes());
+    return ContentService.createTextOutput(JSON.stringify({ img })).setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return reply_('not found');
+  }
+}
+
+function inFolder_(f, folder) {
+  const parents = f.getParents();
+  while (parents.hasNext()) if (parents.next().getId() === folder.getId()) return true;
+  return false;
 }
 
 // Photos waiting in "To Review", oldest first.
@@ -176,15 +196,18 @@ function review_(p) {
   const main = folder_(DriveApp, MAIN_FOLDER);
   const review = folder_(main, 'To Review');
   const approved = folder_(main, 'Approved');
-  const inFolder = (f, folder) => {
-    const parents = f.getParents();
-    while (parents.hasNext()) if (parents.next().getId() === folder.getId()) return true;
-    return false;
-  };
+  const inFolder = inFolder_;
   let done = 0;
   String(p.ids || '').split(',').filter(Boolean).forEach((id) => {
     try {
       const f = DriveApp.getFileById(id);
+      // Undo on the review page: put the photo back in "To Review"
+      if (p.action === 'restore' && (inFolder(f, review) || inFolder(f, approved))) {
+        if (f.isTrashed()) f.setTrashed(false);
+        f.moveTo(review);
+        try { f.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE); } catch (err) {}
+        done++; return;
+      }
       if (f.isTrashed()) return;
       // Only ever touches guest photos: waiting ones, or (for Delete) approved ones.
       if (p.action === 'approve' && inFolder(f, review)) { f.moveTo(approved); share_(f); done++; }
@@ -194,6 +217,7 @@ function review_(p) {
   if (done) CacheService.getScriptCache().remove('gallery');
   const plural = done === 1 ? 'photo' : 'photos';
   if (p.action === 'approve') return page(done ? '✓ Approved ' + done + ' ' + plural + '. ' + (done === 1 ? 'It\'s' : 'They\'re') + ' in the app now.' : 'Already approved.');
+  if (p.action === 'restore') return page(done ? 'Moved back to review.' : 'Nothing to undo.');
   return page(done ? '✗ Deleted ' + done + ' ' + plural + '.' : 'Already deleted.');
 }
 

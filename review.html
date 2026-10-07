@@ -6,10 +6,29 @@
   <meta name="robots" content="noindex">
   <title>Photo Review · Lapland Lake</title>
   <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .review-list { display: grid; gap: 16px; }
+    .review-card { padding: 0; overflow: hidden; transition: opacity .2s; }
+    .review-card .pic { position: relative; background: var(--line); aspect-ratio: 4 / 3; }
+    .review-card img { display: block; width: 100%; height: 100%; object-fit: contain; background: #000; }
+    .review-card .stamp { position: absolute; inset: 0; display: none; place-items: center; font-size: 30px; font-weight: 800; color: #fff; }
+    .review-card.approved .stamp { display: grid; background: rgba(11,110,118,.75); }
+    .review-card.deleted .stamp { display: grid; background: rgba(60,60,60,.8); }
+    .review-card .info { padding: 10px 14px 14px; }
+    .review-card .meta { margin: 0 0 10px; }
+    .review-card .actions { display: flex; gap: 10px; }
+    .review-card .actions button { flex: 1; min-height: 52px; border: 0; border-radius: 12px; font: inherit; font-size: 18px; font-weight: 700; color: #fff; cursor: pointer; }
+    .approve { background: var(--brand); }
+    .delete { background: #9b2c2c; }
+    .undo { background: #fff !important; color: var(--ink) !important; border: 2px solid var(--line) !important; }
+    .review-card.busy { opacity: .6; pointer-events: none; }
+    .review-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+    .review-top .btn { width: auto; min-height: 48px; font-size: 16px; padding: 8px 16px; }
+  </style>
 </head>
 <body>
-  <!-- Staff only: the Approve / Delete buttons in the guest photo email open this page,
-       which passes the click on to the photo inbox (scripts/photo-inbox.gs). -->
+  <!-- Staff only. Opened from the guest photo email (scripts/photo-inbox.gs).
+       Approve / Delete happen right here; each photo just gets marked, with Undo. -->
   <header class="topbar">
     <a href="./" class="brand" aria-label="Lapland Lake home">
       <img class="logo-wide" src="images/logo-wide.svg" alt="Lapland Lake" width="220" height="45">
@@ -17,22 +36,79 @@
   </header>
   <main id="view">
     <h1>Photo Review</h1>
-    <div class="card" id="result" role="status"><p>Working on it…</p></div>
+    <div id="result"><p class="meta">Loading photos…</p></div>
   </main>
   <script>
+    const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const query = new URLSearchParams(location.search);
+    const key = query.get('key');
+    const box = document.getElementById('result');
+    let inbox = '';
+    const ask = async (params) => (await fetch(`${inbox}?${new URLSearchParams({ key, json: '1', ...params })}`)).json();
+
     (async () => {
-      const box = document.getElementById('result');
-      const show = (text, note) => { box.innerHTML = '<p style="font-size:22px;font-weight:700;margin:0"></p><p class="meta"></p>';
-        box.children[0].textContent = text; box.children[1].textContent = note || 'You can close this page.'; };
       try {
-        const query = new URLSearchParams(location.search);
-        if (!query.get('action')) return show('Nothing to do here.');
-        const settings = await (await fetch('content/photos.json', { cache: 'no-cache' })).json();
-        query.set('json', '1');
-        const reply = await (await fetch(`${settings.uploadUrl}?${query}`)).json();
-        show(reply.message || 'Done.');
+        inbox = (await (await fetch('content/photos.json', { cache: 'no-cache' })).json()).uploadUrl;
+        // Older emails link straight to one action; keep those working
+        if (query.get('action')) {
+          const reply = await ask({ action: query.get('action'), ids: query.get('ids') || '' });
+          box.innerHTML = `<div class="card"><p style="font-size:22px;font-weight:700;margin:0">${esc(reply.message || 'Done.')}</p></div>`;
+          return;
+        }
+        const { photos } = await ask({ waiting: '1' });
+        if (!photos) throw new Error('bad key');
+        if (!photos.length) { box.innerHTML = '<div class="card"><p style="font-size:20px;margin:0">✓ All caught up. No photos waiting.</p></div>'; return; }
+        box.innerHTML = `
+          <div class="review-top"><p class="meta" style="margin:0" id="left"></p>
+            <button type="button" class="btn btn-secondary" id="approve-rest">Approve all the rest</button></div>
+          <div class="review-list">${photos.map((ph) => `
+            <div class="card review-card" data-id="${esc(ph.id)}">
+              <div class="pic"><img alt="Guest photo" hidden><div class="stamp"></div></div>
+              <div class="info">
+                <p class="meta">${esc(ph.sent)}${ph.credit ? ' · ' + esc(ph.credit) : ''}</p>
+                <div class="actions"></div>
+              </div>
+            </div>`).join('')}</div>`;
+        const cards = [...box.querySelectorAll('.review-card')];
+        const setState = (card, state) => {
+          card.classList.remove('approved', 'deleted');
+          if (state) card.classList.add(state);
+          card.querySelector('.stamp').textContent = state === 'approved' ? '✓ Approved' : state === 'deleted' ? 'Deleted' : '';
+          card.querySelector('.actions').innerHTML = state
+            ? '<button type="button" class="undo" data-do="restore">Undo</button>'
+            : '<button type="button" class="approve" data-do="approve">✓ Approve</button><button type="button" class="delete" data-do="delete">✗ Delete</button>';
+          const left = cards.filter((c) => !c.classList.contains('approved') && !c.classList.contains('deleted')).length;
+          document.getElementById('left').textContent = left ? `${left} left to review` : '✓ All done! You can close this page.';
+          document.getElementById('approve-rest').hidden = !left;
+        };
+        const act = async (card, action) => {
+          card.classList.add('busy');
+          try {
+            await ask({ action, ids: card.dataset.id });
+            setState(card, action === 'approve' ? 'approved' : action === 'delete' ? 'deleted' : '');
+          } catch { alert('That didn’t go through. Check your connection and try again.'); }
+          card.classList.remove('busy');
+        };
+        cards.forEach((card) => {
+          setState(card, '');
+          card.addEventListener('click', (e) => { const b = e.target.closest('button[data-do]'); if (b) act(card, b.dataset.do); });
+        });
+        document.getElementById('approve-rest').addEventListener('click', async () => {
+          const rest = cards.filter((c) => !c.classList.contains('approved') && !c.classList.contains('deleted'));
+          rest.forEach((c) => c.classList.add('busy'));
+          try {
+            await ask({ action: 'approve', ids: rest.map((c) => c.dataset.id).join(',') });
+            rest.forEach((c) => setState(c, 'approved'));
+          } catch { alert('That didn’t go through. Check your connection and try again.'); }
+          rest.forEach((c) => c.classList.remove('busy'));
+        });
+        // Load the photos a few at a time
+        const queue = [...cards];
+        const load = async () => { while (queue.length) { const card = queue.shift();
+          try { const { img } = await ask({ photo: card.dataset.id }); if (img) { const el = card.querySelector('img'); el.src = img; el.hidden = false; } } catch {} } };
+        load(); load(); load();
       } catch {
-        show('Sorry, that didn’t go through.', 'Check your connection and tap the button in the email again.');
+        box.innerHTML = '<div class="notice">Sorry, the photos didn’t load. Open this page from the newest photo email, and check your connection.</div>';
       }
     })();
   </script>
