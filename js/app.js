@@ -76,12 +76,12 @@ function renderHome(view) {
           ${svg('chev', 'chev')}
         </a>`).join('')}
     </nav>
-    ${installButton()}
     <footer class="home-footer">
       <a href="https://laplandlake.com/" target="_blank" rel="noopener">laplandlake.com</a>
       <span aria-hidden="true">·</span>
       <a href="tel:+15188634974">518-863-4974</a>
     </footer>
+    ${installButton()}
     ${samsungTip()}`;
   view.querySelector('.tip-close')?.addEventListener('click', (e) => {
     try { localStorage.setItem('hideSamsungTip', '1'); } catch {}
