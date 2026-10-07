@@ -428,7 +428,8 @@ async function shrinkPhoto(file, max = 2000) {
 async function sendToInbox(uploadUrl, message) {
   if (!uploadUrl) return new Promise((r) => setTimeout(r, 800)); // preview: pretend to send
   const res = await fetch(uploadUrl, { method: 'POST', body: JSON.stringify(message) });
-  if (!res.ok) throw new Error('Upload failed');
+  const reply = res.ok ? await res.json().catch(() => ({})) : {};
+  if (reply.status !== 'ok') throw new Error('Upload failed');
 }
 
 function setUpSharing(box, uploadUrl) {
