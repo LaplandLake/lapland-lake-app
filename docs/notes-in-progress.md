@@ -153,6 +153,6 @@ Readable prices (last season; owner said menu prices may change):
 ## Guest Photos (draft on branch `photo-gallery`, not published)
 - Replaces the Lodge & Café Map button. Year-round wording: "Share your Lapland Lake adventures."
 - Must be ONE step to send: tap Share a Photo, pick from camera roll, done. Lands in Todd's AI Gmail Drive; one daily email to review. Nothing shows until approved.
-- Optional box: guest's Instagram, so we can tag/collab when posting.
+- Optional box after sending: "Want credit when we post?" (name or @Instagram). Facebook pages often can't tag people, so credit by name.
 - Motivations: name on photo, featured on social, family memories, helping others. Prize (Photo of the Week) — Paul OK, Kathy maybe not; start without it.
 - Idea with potential (not decided): interactive Photo Challenges so guests can be creative — own hashtags, guest-started challenges (like last year's chair one), scavenger hunt, per-season challenges.

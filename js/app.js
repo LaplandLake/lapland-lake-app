@@ -448,26 +448,26 @@ function setUpSharing(box, uploadUrl) {
       return;
     }
     let saved = '';
-    try { saved = localStorage.getItem('instagram') || ''; } catch {}
+    try { saved = localStorage.getItem('photoCredit') || ''; } catch {}
     box.innerHTML = `
       <div class="share-done" role="status">
         <strong>Thanks! We got your ${plural ? 'photos' : 'photo'}.</strong>
-        <p>Want us to tag you when we post? <span class="meta">(optional)</span></p>
+        <p>Want credit when we post? <span class="meta">(optional)</span></p>
         <form class="tag-form">
-          <label class="visually-hidden" for="ig">Your Instagram</label>
-          <input id="ig" type="text" inputmode="email" autocapitalize="off" autocomplete="off" placeholder="@yourname" value="${esc(saved)}">
-          <button class="btn btn-secondary" type="submit">Tag Me</button>
+          <label class="visually-hidden" for="credit">Your name or Instagram</label>
+          <input id="credit" type="text" autocapitalize="words" autocomplete="name" placeholder="Your name or @Instagram" value="${esc(saved)}">
+          <button class="btn btn-secondary" type="submit">Credit Me</button>
         </form>
       </div>
       <button type="button" class="link-btn share-again">Share another photo</button>`;
     box.querySelector('.tag-form').addEventListener('submit', async (ev) => {
       ev.preventDefault();
-      const instagram = box.querySelector('#ig').value.trim();
-      if (!instagram) return;
-      try { localStorage.setItem('instagram', instagram); } catch {}
+      const credit = box.querySelector('#credit').value.trim();
+      if (!credit) return;
+      try { localStorage.setItem('photoCredit', credit); } catch {}
       const form = ev.target;
       form.innerHTML = '<p class="meta">Saving…</p>';
-      try { await sendToInbox(uploadUrl, { batch, instagram, type: 'tag' }); form.outerHTML = `<p>Got it! We'll tag <b>${esc(instagram)}</b>.</p>`; }
+      try { await sendToInbox(uploadUrl, { batch, credit, type: 'credit' }); form.outerHTML = `<p>Got it! We'll credit <b>${esc(credit)}</b>.</p>`; }
       catch { form.outerHTML = '<p class="meta">Sorry, that didn\'t save. Your photos still got through.</p>'; }
     });
     box.querySelector('.share-again').addEventListener('click', () => {
