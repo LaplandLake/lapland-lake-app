@@ -159,3 +159,7 @@ Readable prices (last season; owner said menu prices may change):
 - Idea with potential (not decided): interactive Photo Challenges so guests can be creative — own hashtags, guest-started challenges (like last year's chair one), scavenger hunt, per-season challenges.
 - LIVE (Oct 7): Guest Photos published. Photos go to todd@laplandlake.com Drive > Lapland Lake App Photos > To Review (Apps Script "photo-inbox.gs", deployed as web app; URL in content/photos.json). Hourly check: new photos -> one email with Approve/Delete buttons for everything waiting; previous email auto-deleted. Drag into Approved also works = shows in app automatically. To update the script: paste new code, Deploy > Manage deployments > pencil > New version.
 - Samsung: choosing Camera from the picker can make Android restart the app (photo lost). Tip on the page says to take the photo first and share from gallery.
+
+## Ideas saved for later
+- **When ski season starts:** live info on the home buttons (e.g. Trail Conditions: "Open · 18 km groomed"; Café Menu: "Today: Butternut Squash"). Todd wants to revisit this then.
+- Declined: newest guest photo as a thumbnail on the Guest Photos button. Also declined: camera flash effect, "Take another" button.
