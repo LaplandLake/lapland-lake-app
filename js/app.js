@@ -669,7 +669,9 @@ async function sendPhotos(box, uploadUrl, files) {
     form.innerHTML = '<p class="meta">Saving…</p>';
     // The credit is attached to the photos, so wait until they've arrived
     while (!(await uploads)) await new Promise((r) => setTimeout(r, 1000));
-    try { await sendToInbox(uploadUrl, { batch, credit, type: 'credit' }); form.outerHTML = `<p>Got it! We'll credit you as <b>${esc(credit)}</b></p>`; }
+    const sendCredit = () => sendToInbox(uploadUrl, { batch, credit, type: 'credit' });
+    // Google sometimes answers slowly or drops one reply; try once more before giving up
+    try { await sendCredit().catch(() => new Promise((r) => setTimeout(r, 2000)).then(sendCredit)); form.outerHTML = `<p>Got it! We'll credit you as <b>${esc(credit)}</b></p>`; }
     catch { form.outerHTML = '<p class="meta">Sorry, that didn\'t save. Your photos still got through.</p>'; }
   });
   box.querySelector('.share-again').addEventListener('click', () => {

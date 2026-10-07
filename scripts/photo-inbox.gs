@@ -44,7 +44,7 @@ function doGet(e) {
   const cache = CacheService.getScriptCache();
   const cached = cache.get('gallery');
   if (cached) return ContentService.createTextOutput(cached).setMimeType(ContentService.MimeType.JSON);
-  const approved = folder_(folder_(DriveApp, MAIN_FOLDER), 'Approved').getFiles();
+  const approved = approvedFolder_().getFiles();
   const photos = [];
   while (approved.hasNext()) {
     const f = approved.next();
@@ -77,7 +77,7 @@ function doPost(e) {
   try {
     const msg = JSON.parse(e.postData.contents);
     const batch = String(msg.batch || '').replace(/[^a-z0-9]/gi, '').slice(0, 20);
-    const review = folder_(folder_(DriveApp, MAIN_FOLDER), 'To Review');
+    const review = reviewFolder_();
 
     if (msg.type === 'photo') {
       if (typeof msg.photo !== 'string' || msg.photo.length > MAX_PHOTO_CHARS) return reply_('too big');
@@ -156,8 +156,7 @@ function photo_(p) {
   if (p.key !== key_()) return reply_('bad key');
   try {
     const f = DriveApp.getFileById(p.photo);
-    const main = folder_(DriveApp, MAIN_FOLDER);
-    if (!inFolder_(f, folder_(main, 'To Review')) && !inFolder_(f, folder_(main, 'Approved'))) return reply_('not found');
+    if (!inFolder_(f, reviewFolder_()) && !inFolder_(f, approvedFolder_())) return reply_('not found');
     // Big camera originals get Drive's small preview instead, so the page stays quick
     const blob = f.getSize() > 1500000 ? (f.getThumbnail() || f.getBlob()) : f.getBlob();
     const img = 'data:' + blob.getContentType() + ';base64,' + Utilities.base64Encode(blob.getBytes());
@@ -175,7 +174,7 @@ function inFolder_(f, folder) {
 
 // Photos waiting in "To Review", oldest first.
 function waiting_() {
-  const files = folder_(folder_(DriveApp, MAIN_FOLDER), 'To Review').getFiles();
+  const files = reviewFolder_().getFiles();
   const list = [];
   while (files.hasNext()) list.push(files.next());
   return list.sort((a, b) => a.getDateCreated() - b.getDateCreated());
@@ -193,9 +192,8 @@ function review_(p) {
   const page = p.json ? (m) => ContentService.createTextOutput(JSON.stringify({ message: m }))
     .setMimeType(ContentService.MimeType.JSON) : page_;
   if (p.key !== key_()) return page('Sorry, that link didn\'t work.');
-  const main = folder_(DriveApp, MAIN_FOLDER);
-  const review = folder_(main, 'To Review');
-  const approved = folder_(main, 'Approved');
+  const review = reviewFolder_();
+  const approved = approvedFolder_();
   const inFolder = inFolder_;
   let done = 0;
   String(p.ids || '').split(',').filter(Boolean).forEach((id) => {
@@ -238,6 +236,24 @@ function key_() {
 
 function escape_(text) {
   return String(text).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// The two folders, remembered by ID: looking them up by name searches the whole Drive,
+// which gets slow in a big Drive and made every photo upload wait.
+function reviewFolder_() { return savedFolder_('REVIEW_FOLDER', 'To Review'); }
+function approvedFolder_() { return savedFolder_('APPROVED_FOLDER', 'Approved'); }
+function savedFolder_(prop, name) {
+  const props = PropertiesService.getScriptProperties();
+  const id = props.getProperty(prop);
+  if (id) {
+    try {
+      const f = DriveApp.getFolderById(id);
+      if (!f.isTrashed()) return f;
+    } catch (err) {} // folder was removed; find or make it again below
+  }
+  const f = folder_(folder_(DriveApp, MAIN_FOLDER), name);
+  props.setProperty(prop, f.getId());
+  return f;
 }
 
 function folder_(parent, name) {
