@@ -17,6 +17,7 @@ const ICONS = {
   close:  '<path d="M6 6l12 12M18 6L6 18"/>',
   skier:  '<circle cx="14" cy="4" r="2"/><path d="M8 21l3-7 3 2 1 5M11 14l1-5 4 3 3-1M12 9l-4 1-2 3M3 21l18-3"/>',
   camera: '<path d="M3 8a2 2 0 0 1 2-2h2l2-2h6l2 2h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="4"/>',
+  addapp: '<rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M10 18.5h4M12 7v6M9 10h6"/>',
   bed:    '<path d="M3 19V6M3 15h18v4M21 15v-3a3 3 0 0 0-3-3h-7v6"/><circle cx="7" cy="11" r="2"/>',
 };
 const svg = (name, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[name]}</svg>`;
@@ -80,10 +81,69 @@ function renderHome(view) {
       <span aria-hidden="true">·</span>
       <a href="tel:+15188634974">518-863-4974</a>
     </footer>
+    ${installButton()}
     ${samsungTip()}`;
   view.querySelector('.tip-close')?.addEventListener('click', (e) => {
     try { localStorage.setItem('hideSamsungTip', '1'); } catch {}
     e.target.closest('.tip').remove();
+  });
+  setUpInstall(view);
+}
+
+/* ---------- "Add this app to your phone" ---------- */
+
+// Chrome on Android can install the app with one tap; it hands us the install prompt here.
+let installPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installPrompt = e; });
+
+const isInstalled = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+
+// Only on phones and tablets, and only until the app is on the home screen.
+function installButton() {
+  if (isInstalled() || !matchMedia('(pointer: coarse)').matches) return '';
+  return `
+    <button type="button" class="install-btn">${svg('addapp')} Add this app to your phone</button>
+    <div class="card install-help" hidden></div>`;
+}
+
+function installSteps() {
+  const ua = navigator.userAgent;
+  if (/iPhone|iPad|iPod/.test(ua)) {
+    if (/CriOS|FxiOS|EdgiOS/.test(ua)) {
+      return `<p>On iPhone, apps are added from <b>Safari</b>. Copy this page's address, open it in Safari, then follow the steps there.</p>`;
+    }
+    return `<ol>
+      <li>Tap the <b>Share</b> button <span class="key">⬆︎</span> at the bottom of the screen.</li>
+      <li>Scroll down and tap <b>Add to Home Screen</b>.</li>
+      <li>Tap <b>Add</b>.</li></ol>`;
+  }
+  if (/SamsungBrowser/.test(ua)) {
+    return `<p>On Samsung phones, please add the app from the <b>Chrome</b> browser. Samsung Internet can show a false security warning.</p>
+      <ol><li>Open this page in <b>Chrome</b>.</li>
+      <li>Tap the <b>⋮</b> menu at the top right.</li>
+      <li>Tap <b>Add to home screen</b>, then <b>Install</b>.</li></ol>`;
+  }
+  return `<ol>
+    <li>Tap the <b>⋮</b> menu at the top right.</li>
+    <li>Tap <b>Add to home screen</b> or <b>Install app</b>.</li>
+    <li>Tap <b>Install</b>.</li></ol>`;
+}
+
+function setUpInstall(view) {
+  const button = view.querySelector('.install-btn');
+  const help = view.querySelector('.install-help');
+  if (!button) return;
+  button.addEventListener('click', async () => {
+    if (installPrompt) {
+      installPrompt.prompt();
+      const { outcome } = await installPrompt.userChoice;
+      installPrompt = null;
+      if (outcome === 'accepted') { button.remove(); help.remove(); return; }
+    }
+    help.innerHTML = `<strong>Add Lapland Lake to your home screen</strong>${installSteps()}
+      <p class="meta">Then open it from the Lapland Lake icon, just like any other app.</p>`;
+    help.hidden = !help.hidden;
+    if (!help.hidden) help.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   });
 }
 
