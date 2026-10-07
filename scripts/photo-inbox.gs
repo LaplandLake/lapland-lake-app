@@ -14,8 +14,10 @@
    (Execute as: Me, Who has access: Anyone). */
 
 const REVIEW_EMAIL = 'todd@laplandlake.com';
-// The public web app address (Deploy > Manage deployments). The email buttons use it.
-const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzuX-wCmbF9GcdLH42ac4WHLF7LtGk8skMvVVeD-VzdUuKTvmB_8E2wLnViOGlMOb2Cgw/exec';
+// The email buttons open this page on the app's website, which passes the click on to
+// this program. (Opening this program directly breaks in browsers signed in to
+// several Google accounts at once.)
+const REVIEW_PAGE = 'https://laplandlake.github.io/lapland-lake-app/review.html';
 const MAIN_FOLDER = 'Lapland Lake App Photos';
 const MAX_PHOTO_CHARS = 12 * 1024 * 1024; // the app sends photos well under this
 
@@ -100,7 +102,7 @@ function sendReviewEmail() {
   const waiting = waiting_();
   if (!waiting.length) return;
 
-  const url = WEB_APP_URL;
+  const url = REVIEW_PAGE;
   const link = (action, ids) => url + '?action=' + action + '&ids=' + ids.join(',') + '&key=' + key_();
   const button = (href, text, color) =>
     '<a href="' + href + '" style="display:inline-block;padding:10px 18px;margin:4px 8px 4px 0;border-radius:8px;' +
@@ -148,7 +150,9 @@ function clearOldEmails_() {
 
 // The Approve / Delete buttons in the email land here.
 function review_(p) {
-  if (p.key !== key_()) return page_('Sorry, that link didn\'t work.');
+  const page = p.json ? (m) => ContentService.createTextOutput(JSON.stringify({ message: m }))
+    .setMimeType(ContentService.MimeType.JSON) : page_;
+  if (p.key !== key_()) return page('Sorry, that link didn\'t work.');
   const main = folder_(DriveApp, MAIN_FOLDER);
   const review = folder_(main, 'To Review');
   const approved = folder_(main, 'Approved');
@@ -162,8 +166,8 @@ function review_(p) {
     } catch (err) {} // already handled or gone
   });
   const plural = done === 1 ? 'photo' : 'photos';
-  if (p.action === 'approve') return page_(done ? '✓ Approved ' + done + ' ' + plural + '. ' + (done === 1 ? 'It\'s' : 'They\'re') + ' in the app now.' : 'Already approved.');
-  return page_(done ? '✗ Deleted ' + done + ' ' + plural + '.' : 'Already deleted.');
+  if (p.action === 'approve') return page(done ? '✓ Approved ' + done + ' ' + plural + '. ' + (done === 1 ? 'It\'s' : 'They\'re') + ' in the app now.' : 'Already approved.');
+  return page(done ? '✗ Deleted ' + done + ' ' + plural + '.' : 'Already deleted.');
 }
 
 function page_(message) {

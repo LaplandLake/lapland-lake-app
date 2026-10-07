@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Photo Review · Lapland Lake</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <!-- Staff only: the Approve / Delete buttons in the guest photo email open this page,
+       which passes the click on to the photo inbox (scripts/photo-inbox.gs). -->
+  <header class="topbar">
+    <a href="./" class="brand" aria-label="Lapland Lake home">
+      <img class="logo-wide" src="images/logo-wide.svg" alt="Lapland Lake" width="220" height="45">
+    </a>
+  </header>
+  <main id="view">
+    <h1>Photo Review</h1>
+    <div class="card" id="result" role="status"><p>Working on it…</p></div>
+  </main>
+  <script>
+    (async () => {
+      const box = document.getElementById('result');
+      const show = (text, note) => { box.innerHTML = '<p style="font-size:22px;font-weight:700;margin:0"></p><p class="meta"></p>';
+        box.children[0].textContent = text; box.children[1].textContent = note || 'You can close this page.'; };
+      try {
+        const query = new URLSearchParams(location.search);
+        if (!query.get('action')) return show('Nothing to do here.');
+        const settings = await (await fetch('content/photos.json', { cache: 'no-cache' })).json();
+        query.set('json', '1');
+        const reply = await (await fetch(`${settings.uploadUrl}?${query}`)).json();
+        show(reply.message || 'Done.');
+      } catch {
+        show('Sorry, that didn’t go through.', 'Check your connection and tap the button in the email again.');
+      }
+    })();
+  </script>
+</body>
+</html>
