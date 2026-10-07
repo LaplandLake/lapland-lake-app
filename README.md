@@ -13,6 +13,7 @@ Everything that changes day to day lives in the **`content/`** folder. Each file
 | `content/soup.json` | Soup of the day | Every day |
 | `content/menu.json` | Café menu, and the "Closed until Ski Season" note (`titleNote`; delete it when the café opens) | When the menu changes |
 | `content/trails.json` | Trail map: trail names, difficulty, lengths, and where each symbol sits | When trails change |
+| `content/photos.json` | Guest Photos gallery: approved photos, newest first (`src`, `date`, `by`), and the photo inbox link (`uploadUrl`) | When photos are approved |
 | `content/settings.json` | Booking links: tickets and lessons (FareHarbor), lodging (RezStream) | Rarely |
 | `content/trail-report.json` | Trail conditions | Automatic. Don't edit by hand. |
 
@@ -38,6 +39,10 @@ The map picture is `images/trail-map.webp`, cut from the trail map PDF on the we
 
 - `difficulty` is `easiest`, `more-difficult` or `most-difficult` (green circle, blue square, black diamond).
 - `spots` says where the symbol goes on the map picture, counted in pixels from the top-left corner (the picture is 2134 wide and 1822 tall). A trail can have several spots, or none (`[]`) to appear only in the list.
+
+## Guest photos
+
+Guests tap **Share a Photo** in the app. Photos go to Todd's Google Drive (**Lapland Lake App Photos → To Review**) through the small Google program in `scripts/photo-inbox.gs`, and Todd gets one email a day around 4:30 pm. Nothing appears in the app until a photo is approved and added to `content/photos.json`.
 
 ## How the trail report updates itself
 
