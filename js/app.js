@@ -455,7 +455,7 @@ function setUpSharing(box, uploadUrl) {
         <p>Want credit when we post? <span class="meta">(optional)</span></p>
         <form class="tag-form">
           <label class="visually-hidden" for="credit">Your name or Instagram</label>
-          <input id="credit" type="text" autocapitalize="words" autocomplete="name" placeholder="Your name or @Instagram" value="${esc(saved)}">
+          <input id="credit" type="text" autocapitalize="words" autocomplete="name" placeholder="Name or @Instagram" value="${esc(saved)}">
           <button class="btn btn-secondary" type="submit">Credit Me</button>
         </form>
       </div>
@@ -467,7 +467,7 @@ function setUpSharing(box, uploadUrl) {
       try { localStorage.setItem('photoCredit', credit); } catch {}
       const form = ev.target;
       form.innerHTML = '<p class="meta">Saving…</p>';
-      try { await sendToInbox(uploadUrl, { batch, credit, type: 'credit' }); form.outerHTML = `<p>Got it! We'll credit <b>${esc(credit)}</b>.</p>`; }
+      try { await sendToInbox(uploadUrl, { batch, credit, type: 'credit' }); form.outerHTML = `<p>Got it! We'll credit you as <b>${esc(credit)}</b></p>`; }
       catch { form.outerHTML = '<p class="meta">Sorry, that didn\'t save. Your photos still got through.</p>'; }
     });
     box.querySelector('.share-again').addEventListener('click', () => {
