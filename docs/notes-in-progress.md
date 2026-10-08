@@ -163,3 +163,8 @@ Readable prices (last season; owner said menu prices may change):
 ## Ideas saved for later
 - **When ski season starts:** live info on the home buttons (e.g. Trail Conditions: "Open · 18 km groomed"; Café Menu: "Today: Butternut Squash"). Todd wants to revisit this then.
 - Declined: newest guest photo as a thumbnail on the Guest Photos button. Also declined: camera flash effect, "Take another" button.
+
+## Launch plan (decided Oct 8)
+- The app launches **after the new laplandlake.com website is done** (someone else is building it).
+- When the new site is live: point the trail report reader (`scripts/update-trail-report.mjs`, `trailReportUrl` in `content/settings.json`) at the new Trails and Current Conditions page and test it; set up app.laplandlake.com (CNAME to laplandlake.github.io + GitHub Pages custom domain); ask for a "Get the App" button on the site.
+- Then: beta test with 5-10 people, then launch.
