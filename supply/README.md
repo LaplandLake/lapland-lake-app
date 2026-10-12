@@ -73,7 +73,9 @@ Deploy** (the address stays the same).
 3. **Active catalog**: Admin > Catalog. For each item staff should count, set the department
    (Housekeeping or Cafe), confirm the **counting unit** ("Count in full cases only", or "Cases + loose
    packs" when the case pack makes that sensible), set the **desired stock** in cases, and tick
-   **Active**. The server refuses to activate an item without these.
+   **Active**. The server refuses to activate an item without these. Items you'll never use can be
+   **removed** (one at a time, or tick several in the "Inactive" view). Removing hides them and keeps their
+   history; "Removed items" > **Restore** brings them back.
 4. **Beverage products**: Admin > Beverages. Add each exact beer, cider, wine and craft-soda flavor,
    enter bottles/cans per case, tick **I confirm this case size**, then **Active**.
 5. **Drink Cooler list and regular supplies**: Admin > Requests > Supply & drink lists. Assign each

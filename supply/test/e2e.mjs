@@ -296,6 +296,29 @@ try {
     await noHScroll(admin, 'report');
     await admin.screenshot({ path: path.join(SHOTS, 'admin-report-390.png'), fullPage: true });
   });
+  await check('Catalog: remove several unused items, find them under Removed items, restore one', async () => {
+    await admin.goto(APP + '#/admin/catalog');
+    await admin.waitForSelector('.card select');
+    await admin.locator('.card select').first().selectOption('candidates');
+    await admin.waitForSelector('text=Select all shown');
+    const before = await admin.locator('.list-item').count();
+    await admin.locator('.list-item input[type=checkbox]').nth(0).check();
+    await admin.locator('.list-item input[type=checkbox]').nth(1).check();
+    await admin.click('button:has-text("Remove selected (2)")');
+    await admin.waitForSelector('.modal');
+    expect(/Nothing is deleted/.test(await admin.textContent('.modal-msg')), 'reassurance text');
+    await admin.click('.modal button:has-text("Remove")');
+    await admin.waitForFunction((n) => document.querySelectorAll('.list-item').length === n - 2, before);
+    await admin.locator('.card select').first().selectOption('removed');
+    await admin.waitForFunction(() => document.querySelectorAll('.list-item').length === 2);
+    await admin.screenshot({ path: path.join(SHOTS, 'admin-catalog-removed-390.png'), fullPage: true });
+    await admin.locator('.list-item input[type=checkbox]').nth(0).check();
+    await admin.click('button:has-text("Restore selected (1)")');
+    await admin.click('.modal button:has-text("Restore")');
+    await admin.waitForFunction(() => document.querySelectorAll('.list-item').length === 1);
+    await admin.locator('.card select').first().selectOption('active');
+    await noHScroll(admin, 'catalog remove');
+  });
   for (const [hash, label] of [['#/admin/catalog', 'catalog'], ['#/admin/beverages', 'beverages'], ['#/admin/import', 'import'], ['#/admin/settings', 'settings'], ['#/admin/counts', 'counts']]) {
     await check('Admin ' + label + ' page loads without sideways scroll at 360px', async () => {
       await admin.setViewportSize({ width: 360, height: 800 });
