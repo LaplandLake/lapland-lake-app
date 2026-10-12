@@ -153,9 +153,11 @@ try {
     expect(/20 sleeves \(50 cups each\) per case/.test(await cups.textContent()), 'pack text: ' + await cups.textContent());
     await cups.locator('button', { hasText: 'Out' }).click();
     await cups.locator('.save-state', { hasText: /^Saved/ }).waitFor({ timeout: 8000 });
-    let dialogText = '';
-    page.once('dialog', (d) => { dialogText = d.message(); });
     await page.click('text=Finish count');
+    await page.waitForSelector('.modal');
+    const dialogText = await page.textContent('.modal-msg');
+    await page.screenshot({ path: path.join(SHOTS, 'count-incomplete-warning-390.png') });
+    await page.click('.modal button:has-text("OK")');
     await page.waitForSelector('.notice.ok');
     expect(/not been counted/.test(dialogText), 'warning dialog: ' + dialogText);
     expect(/2 items were left uncounted/.test(await page.textContent('.notice.ok')), 'finish message');
@@ -220,6 +222,7 @@ try {
     await rb.locator('input').nth(0).fill('1');
     await rb.locator('.save-state', { hasText: /^Saved/ }).waitFor({ timeout: 8000 });
     await page.click('text=Finish count');
+    await page.click('.modal button:has-text("OK")');
     await page.waitForSelector('.notice.ok');
   });
   await check('Anonymous API calls cannot reach Admin data', async () => {
@@ -272,11 +275,10 @@ try {
     expect(/below the 20-case minimum/.test(await admin.textContent('body')), 'minimum warning');
     expect(/#90001/.test(await admin.textContent('pre.export')), 'export has item numbers');
     await admin.screenshot({ path: path.join(SHOTS, 'admin-order-draft-390.png'), fullPage: true });
-    let alerted = '';
-    admin.once('dialog', (d) => { alerted = d.message(); });
     await admin.click('button:has-text("Mark as submitted")');
-    await admin.waitForTimeout(300);
-    expect(/confirm you sent/.test(alerted), 'should require the checkbox');
+    await admin.waitForSelector('.modal');
+    expect(/confirm you sent/.test(await admin.textContent('.modal-msg')), 'should require the checkbox');
+    await admin.click('.modal button:has-text("OK")');
     expect(/Draft order/.test(await admin.textContent('body')), 'still a draft');
     await admin.check('text=I have sent this order to Ginsberg’s myself');
     await admin.click('button:has-text("Mark as submitted")');

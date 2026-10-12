@@ -39,6 +39,27 @@
     });
     return el;
   }
+  // In-page dialogs (browser alert/confirm are blocked in some app and embedded views).
+  function ask(message, opts) {
+    opts = opts || {};
+    return new Promise((resolve) => {
+      const prev = document.activeElement;
+      const close = (v) => { wrap.remove(); document.removeEventListener('keydown', onKey); if (prev && prev.focus) prev.focus(); resolve(v); };
+      const onKey = (e) => { if (e.key === 'Escape') close(false); };
+      const okBtn = h('button', { class: 'btn' + (opts.danger ? ' danger' : ''), type: 'button', onclick: () => close(true) }, opts.ok || 'OK');
+      const wrap = h('div', { class: 'modal', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'modal-msg' },
+        h('div', { class: 'modal-card' },
+          h('p', { id: 'modal-msg', class: 'modal-msg' }, message),
+          h('div', { class: 'row', style: 'justify-content:flex-end' },
+            opts.cancel === null ? null : h('button', { class: 'btn secondary', type: 'button', onclick: () => close(false) }, opts.cancel || 'Cancel'),
+            okBtn)));
+      document.addEventListener('keydown', onKey);
+      document.body.appendChild(wrap);
+      okBtn.focus();
+    });
+  }
+  function tell(message) { return ask(message, { cancel: null }); }
+
   function mount(...nodes) {
     const app = document.getElementById('app');
     app.innerHTML = '';
@@ -53,6 +74,12 @@
   async function api(action, body, opts) {
     if (!API_URL) throw new ApiError('The app is not connected to its data yet. Todd needs to finish setup (see the README).', 'setup');
     const payload = Object.assign({ action }, body || {});
+    // Preview build only (dev/build-demo.mjs): the backend runs inside the page.
+    if (window.SUPPLY_LOCAL_API) {
+      const data = await window.SUPPLY_LOCAL_API(payload);
+      if (!data.ok) throw new ApiError(data.error.message, data.error.code);
+      return data.data;
+    }
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), (opts && opts.timeout) || 45000);
     let res;
@@ -351,15 +378,15 @@
       if (state.finishing) return;
       const pend = pendingCount();
       if (pend) {
-        alert(plural(pend, 'entry is', 'entries are') + ' not saved yet. Wait for "Saved", or tap Retry on the items marked in red.');
+        tell(plural(pend, 'entry is', 'entries are') + ' not saved yet. Wait for "Saved", or tap Retry on the items marked in red.');
         return;
       }
       const missing = state.items.filter((it) => !isCounted(state.rows[it.id]));
-      if (!state.session) { alert('Nothing has been counted yet.'); return; }
+      if (!state.session) { tell('Nothing has been counted yet.'); return; }
       if (missing.length) {
         const names = missing.slice(0, 8).map((m) => '• ' + m.name).join('\n') + (missing.length > 8 ? '\n…and ' + (missing.length - 8) + ' more' : '');
-        if (!confirm(plural(missing.length, 'item has', 'items have') + ' not been counted:\n' + names + '\n\nFinish the count anyway?')) return;
-      } else if (!confirm('Finish the ' + KIND_HEADING[kind] + ' count?')) return;
+        if (!await ask(plural(missing.length, 'item has', 'items have') + ' not been counted:\n' + names + '\n\nFinish the count anyway?')) return;
+      } else if (!await ask('Finish the ' + KIND_HEADING[kind] + ' count?')) return;
       state.finishing = true;
       finishBtn.disabled = true;
       finishBtn.textContent = 'Finishing…';
@@ -375,7 +402,7 @@
         state.finishing = false;
         finishBtn.disabled = false;
         finishBtn.textContent = 'Finish count';
-        alert('The count was not finished: ' + err.message);
+        tell('The count was not finished: ' + err.message);
       }
     }
     load();
@@ -625,5 +652,5 @@
   window.addEventListener('hashchange', route);
   window.addEventListener('DOMContentLoaded', route);
 
-  window.SM = { h, mount, api, apiUpload, ApiError, store, fmtTime, fmtDateTime, plural, topbar, API_URL, KIND_HEADING };
+  window.SM = { h, mount, ask, tell, api, apiUpload, ApiError, store, fmtTime, fmtDateTime, plural, topbar, API_URL, KIND_HEADING };
 })();

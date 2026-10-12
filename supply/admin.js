@@ -2,7 +2,7 @@
    Every action here is checked again on the server; hiding a button is never the only guard. */
 (function () {
   'use strict';
-  const { h, mount, api, store, fmtDateTime, plural, topbar, KIND_HEADING } = window.SM;
+  const { h, mount, ask, tell, api, store, fmtDateTime, plural, topbar, KIND_HEADING } = window.SM;
   const C = window.SMCharts;
   const TOKEN_KEY = 'sm-admin-token';
 
@@ -48,7 +48,10 @@
   // On phones, tables become stacked rows; each cell gets its column name as a label.
   function labelize(table) {
     const heads = Array.from(table.querySelectorAll('thead th')).map((t) => t.textContent);
-    table.querySelectorAll('tbody tr').forEach((tr) => Array.from(tr.children).forEach((td, i) => td.setAttribute('data-label', heads[i] || '')));
+    table.querySelectorAll('tbody tr').forEach((tr) => Array.from(tr.children).forEach((td, i) => {
+      td.setAttribute('data-label', heads[i] || '');
+      if (td.childNodes.length > 1) { const box = document.createElement('div'); while (td.firstChild) box.appendChild(td.firstChild); td.appendChild(box); }
+    }));
     table.classList.add('resp');
     if (table.parentElement && table.parentElement.classList.contains('table-wrap')) table.parentElement.classList.add('resp');
   }
@@ -85,7 +88,12 @@
   }
   async function copyText(text, btn) {
     try { await navigator.clipboard.writeText(text); btn.textContent = 'Copied ✓'; }
-    catch (e) { prompt('Copy this text:', text); }
+    catch (e) {
+      // Clipboard refused: select the text so it can be copied by hand.
+      const pre = document.querySelector('pre.export');
+      if (pre) { const r = document.createRange(); r.selectNodeContents(pre); const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r); }
+      btn.textContent = 'Selected: copy it now';
+    }
     setTimeout(() => { btn.textContent = 'Copy'; }, 2500);
   }
   function busy(btn, fn) {
@@ -260,7 +268,7 @@
         outLines.map((l) => {
           const v = inp(l.desiredStock, { inputmode: 'decimal', class: 'line-input' });
           const b = h('button', { class: 'btn small secondary', type: 'button' }, 'Approve');
-          b.onclick = busy(b, async () => { try { await aapi('adminSetDesiredStock', { itemId: l.itemId, desiredStock: v.value }); b.textContent = 'Saved ✓'; } catch (err) { alert(err.message); } });
+          b.onclick = busy(b, async () => { try { await aapi('adminSetDesiredStock', { itemId: l.itemId, desiredStock: v.value }); b.textContent = 'Saved ✓'; } catch (err) { tell(err.message); } });
           return h('div', { class: 'row', style: 'margin:6px 0' }, h('span', { class: 'grow' }, l.description), v, b);
         })) : null;
       const note = h('textarea', { maxlength: 2000 }, o.note || '');
@@ -278,12 +286,12 @@
       const method = selectEl('text', [['text', 'Text message'], ['email', 'Email'], ['phone', 'Phone call'], ['in person', 'In person / circled guide'], ['other', 'Other']]);
       const subBtn = h('button', { class: 'btn warn', type: 'button' }, 'Mark as submitted');
       subBtn.onclick = busy(subBtn, async () => {
-        if (!sent.box.checked) { alert('Tick the box to confirm you sent the order yourself.'); return; }
+        if (!sent.box.checked) { tell('Tick the box to confirm you sent the order yourself.'); return; }
         try { d = await aapi('adminSubmitOrder', { orderId: o.id, confirm: 'I-SENT-IT', method: method.value }); draw(); } catch (err) { replace(msg, errBox(err)); }
       });
       const discardBtn = h('button', { class: 'btn danger', type: 'button' }, 'Discard draft');
       discardBtn.onclick = busy(discardBtn, async () => {
-        if (!confirm('Discard this draft? It stays in history as discarded.')) return;
+        if (!await ask('Discard this draft? It stays in history as discarded.')) return;
         try { await aapi('adminCancelOrder', { orderId: o.id }); location.hash = '#/admin/orders'; } catch (err) { replace(msg, errBox(err)); }
       });
       replace(box,
@@ -341,7 +349,7 @@
       });
       const del = h('button', { class: 'btn small danger', type: 'button' }, 'Delete');
       del.onclick = busy(del, async () => {
-        if (!confirm('Delete this request and its photos? This cannot be undone.')) return;
+        if (!await ask('Delete this request and its photos? This cannot be undone.')) return;
         try { await aapi('adminDeleteRequest', { requestId: r.id, confirm: 'DELETE' }); card.remove(); } catch (err) { replace(msg, errBox(err)); }
       });
       const n = (r.photoIds || []).length;
@@ -397,7 +405,7 @@
           d = await aapi(kind === 'drink' ? 'adminSaveDrink' : 'adminSaveSupply', Object.assign({ id: rec ? rec.id : '', name: name.value, active: active.box.checked },
             kind === 'drink' ? { routing: extra.value, beverageProductId: bev.value } : { defaultUnit: extra.value }));
           draw();
-        } catch (err) { alert(err.message); }
+        } catch (err) { tell(err.message); }
       });
       return h('div', { class: 'list-item' }, h('div', { class: 'row' }, h('div', { class: 'grow' }, name), h('div', { class: 'grow' }, extra)), bev, h('div', { class: 'row' }, active.el, b));
     }
@@ -534,11 +542,11 @@
     act.onclick = busy(act, async () => {
       try {
         if (s.status === 'open') {
-          if (d.notCounted.length && !confirm(d.notCounted.length + ' item(s) not counted. Finish anyway?')) return;
+          if (d.notCounted.length && !await ask(d.notCounted.length + ' item(s) not counted. Finish anyway?')) return;
           const r = await aapi('adminCompleteCount', { kind: s.kind, sessionId: s.id });
-          if (r.email) alert('Weekly email: ' + r.email.status + (r.email.error ? ' - ' + r.email.error : ''));
+          if (r.email) tell('Weekly email: ' + r.email.status + (r.email.error ? ' - ' + r.email.error : ''));
         } else {
-          if (!confirm('Reopen this count? Staff will be able to change it from the count screen until it is finished again. Finishing again creates a new report version.')) return;
+          if (!await ask('Reopen this count? Staff will be able to change it from the count screen until it is finished again. Finishing again creates a new report version.')) return;
           await aapi('adminReopenCount', { sessionId: s.id });
         }
         renderCounts(id);
@@ -634,7 +642,7 @@
       })();
       const delBtn = (table, id) => {
         const b = h('button', { class: 'btn small danger', type: 'button' }, 'Delete');
-        b.onclick = busy(b, async () => { if (!confirm('Delete this record?')) return; try { d = await aapi('adminDeleteRecord', { table, id }); draw(); } catch (err) { alert(err.message); } });
+        b.onclick = busy(b, async () => { if (!await ask('Delete this record?')) return; try { d = await aapi('adminDeleteRecord', { table, id }); draw(); } catch (err) { tell(err.message); } });
         return b;
       };
       const pname = (id) => (byId[id] ? byId[id].name : '(removed product)');
@@ -696,7 +704,7 @@
     retry.onclick = busy(retry, async () => {
       try {
         let res2 = await aapi('adminSendReportEmail', { sessionId: r.sessionId });
-        if (res2.result.status === 'duplicate' && confirm('This report version was already emailed. Send it again?')) res2 = await aapi('adminSendReportEmail', { sessionId: r.sessionId, resend: 'RESEND' });
+        if (res2.result.status === 'duplicate' && await ask('This report version was already emailed. Send it again?')) res2 = await aapi('adminSendReportEmail', { sessionId: r.sessionId, resend: 'RESEND' });
         replace(emailMsg, res2.result.status === 'sent' ? okBox('Email sent to ' + res2.result.recipient + '.') : errBox(new Error('Email ' + res2.result.status + ': ' + (res2.result.error || ''))));
       } catch (err) { replace(emailMsg, errBox(err)); }
     });
@@ -879,7 +887,7 @@
 
     const bk = h('button', { class: 'btn secondary', type: 'button' }, 'Download full backup (JSON)');
     bk.onclick = busy(bk, async () => {
-      try { const d = await aapi('adminBackup'); download('supply-backup-' + new Date().toISOString().slice(0, 10) + '.json', JSON.stringify(d, null, 1), 'application/json'); } catch (err) { alert(err.message); }
+      try { const d = await aapi('adminBackup'); download('supply-backup-' + new Date().toISOString().slice(0, 10) + '.json', JSON.stringify(d, null, 1), 'application/json'); } catch (err) { tell(err.message); }
     });
     const bkCsv = h('button', { class: 'btn secondary', type: 'button' }, 'Download catalog (CSV)');
     bkCsv.onclick = busy(bkCsv, async () => {
@@ -888,7 +896,7 @@
         const its = d.tables.items;
         const cols = ['id', 'name', 'department', 'active', 'supplierItemNumber', 'description', 'brand', 'casePackRaw', 'countingUnit', 'countingUnitConfirmed', 'unitsPerCase', 'unitsPerCaseConfirmed', 'looseUnitLabel', 'desiredStock', 'supplierStatus', 'price', 'priceDate', 'replacementNote', 'origin'];
         download('supply-catalog-' + new Date().toISOString().slice(0, 10) + '.csv', csv([cols].concat(its.map((it) => cols.map((c) => it[c])))), 'text/csv');
-      } catch (err) { alert(err.message); }
+      } catch (err) { tell(err.message); }
     });
 
     let settings = null;
@@ -929,14 +937,14 @@
     });
     const test = h('button', { class: 'btn secondary', type: 'button' }, 'Send a test email');
     test.onclick = busy(test, async () => {
-      if (!confirm('Send one test email to ' + (s.email.recipient || '(no recipient saved)') + ' now?')) return;
+      if (!await ask('Send one test email to ' + (s.email.recipient || '(no recipient saved)') + ' now?')) return;
       try { const r = await aapi('adminSendTestEmail', { confirm: 'SEND-TEST' }); drawLog(r.emailLog); } catch (err) { replace(emMsg, errBox(err)); }
     });
     const logEl = h('div');
     function drawLog(log) {
       replace(logEl, log.length ? log.map((m) => {
         const btn = m.sessionId && m.status !== 'sent' ? h('button', { class: 'btn small secondary', type: 'button' }, 'Retry') : null;
-        if (btn) btn.onclick = busy(btn, async () => { try { const r = await aapi('adminSendReportEmail', { sessionId: m.sessionId }); drawLog(r.emailLog); } catch (err) { alert(err.message); } });
+        if (btn) btn.onclick = busy(btn, async () => { try { const r = await aapi('adminSendReportEmail', { sessionId: m.sessionId }); drawLog(r.emailLog); } catch (err) { tell(err.message); } });
         return h('div', { class: 'list-item row' }, h('div', { class: 'grow' }, h('b', null, m.status), ' · ' + fmtDateTime(m.at) + ' · ' + (m.trigger || ''),
           h('div', { class: 'small muted' }, (m.reportKey === 'test' ? 'Test email' : 'Report ' + m.reportKey) + (m.recipient ? ' → ' + m.recipient : '') + (m.error ? ' · ' + m.error : ''))), btn);
       }) : h('p', { class: 'muted' }, 'No emails yet.'));

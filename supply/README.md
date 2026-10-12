@@ -167,5 +167,8 @@ npm test             # backend tests (Node)
 npm run test:e2e     # phone-width browser tests (360/390/430 px)
 ```
 
+`node dev/build-demo.mjs out.html` builds a single-file clickable preview with TEST data (the backend
+runs inside the page; nothing is sent anywhere).
+
 The local preview runs the real `backend/Code.gs` against an in-memory stand-in for Google Sheets,
 Drive and Gmail, with disposable TEST data. It never contacts Google or sends email.
