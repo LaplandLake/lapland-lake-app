@@ -4,6 +4,8 @@ A phone web app for guests at Lapland Lake Nordic Vacation Center. Guests can sa
 
 **Live at:** https://laplandlake.github.io/lapland-lake-app/
 
+**Staff supply app:** the Lapland Lake Supply Manager (counts, supply requests, Ginsberg's ordering, beverage reports) lives in [`supply/`](supply/README.md) and is published at `/supply/` alongside this app.
+
 ## Daily updates (no coding needed)
 
 Everything that changes day to day lives in the **`content/`** folder. Each file is plain text. Change the words between the quote marks, keep the quote marks and commas where they are, and save.
