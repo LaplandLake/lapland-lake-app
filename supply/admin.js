@@ -419,7 +419,7 @@
     const saved = store.get('sm-cat-filter') || {};
     const show = selectEl(saved.show || 'active', [['active', 'Active items'], ['candidates', 'Inactive / review candidates'], ['all', 'Active + inactive'], ['removed', 'Removed items']]);
     const dept = selectEl(saved.dept || '', [['', 'All departments'], ['housekeeping', 'Housekeeping'], ['cafe', 'Cafe'], ['none', 'No department yet']]);
-    const q = inp(saved.q || '', { placeholder: 'Search name, item #, description' });
+    const q = inp(saved.q || '', { placeholder: 'Search name, item #, description, status (e.g. Guide only)' });
     const list = h('div');
     const picked = new Set();
     const draw = () => {
@@ -428,7 +428,7 @@
       const v = show.value;
       const rows = items.filter((it) => (v === 'removed' ? it.archived : !it.archived && (v === 'all' || (v === 'active' ? it.active : !it.active))) &&
         (!dept.value || (dept.value === 'none' ? !it.department : it.department === dept.value)) &&
-        (!term || [it.name, it.supplierItemNumber, it.description, it.category].join(' ').toLowerCase().indexOf(term) >= 0));
+        (!term || [it.name, it.supplierItemNumber, it.description, it.category, it.supplierStatus, it.brand].join(' ').toLowerCase().indexOf(term) >= 0));
       Array.from(picked).forEach((id) => { if (!rows.some((r) => r.id === id)) picked.delete(id); });
       const selectable = v === 'candidates' || v === 'removed';
       const bulkBtn = h('button', { class: 'btn small ' + (v === 'removed' ? '' : 'danger'), type: 'button' });
