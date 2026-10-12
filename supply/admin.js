@@ -189,7 +189,6 @@
               tick(c.beverageProducts, 'Beverage products with confirmed case sizes', '#/admin/beverages'),
               tick(c.emailRecipient, 'Weekly email recipient', '#/admin/settings'),
               tick(c.supplierInfo, 'Supplier customer number and contacts', '#/admin/settings'),
-              tick(c.base44Imported, 'Old Base44 data imported (if you have an export)', '#/admin/import'),
               tick(c.driveBackup, 'Optional weekly Drive backup', '#/admin/import')))),
         h('div', { class: 'card' }, h('h2', null, 'Catalog'),
           h('p', null, d.catalog.active + ' active items, ' + d.catalog.candidates + ' inactive review candidates. Beverages: ' + d.beverages.active + ' active, ' + d.beverages.needsReview + ' need a confirmed case size.')),
@@ -418,26 +417,55 @@
     let items;
     try { items = (await aapi('adminItems')).items; } catch (err) { replace(box, errBox(err)); return; }
     const saved = store.get('sm-cat-filter') || {};
-    const show = selectEl(saved.show || 'active', [['active', 'Active items'], ['candidates', 'Inactive / review candidates'], ['all', 'Everything']]);
+    const show = selectEl(saved.show || 'active', [['active', 'Active items'], ['candidates', 'Inactive / review candidates'], ['all', 'Active + inactive'], ['removed', 'Removed items']]);
     const dept = selectEl(saved.dept || '', [['', 'All departments'], ['housekeeping', 'Housekeeping'], ['cafe', 'Cafe'], ['none', 'No department yet']]);
     const q = inp(saved.q || '', { placeholder: 'Search name, item #, description' });
     const list = h('div');
+    const picked = new Set();
     const draw = () => {
       store.set('sm-cat-filter', { show: show.value, dept: dept.value, q: q.value });
       const term = q.value.trim().toLowerCase();
-      const rows = items.filter((it) => (show.value === 'all' || (show.value === 'active' ? it.active : !it.active)) &&
+      const v = show.value;
+      const rows = items.filter((it) => (v === 'removed' ? it.archived : !it.archived && (v === 'all' || (v === 'active' ? it.active : !it.active))) &&
         (!dept.value || (dept.value === 'none' ? !it.department : it.department === dept.value)) &&
         (!term || [it.name, it.supplierItemNumber, it.description, it.category].join(' ').toLowerCase().indexOf(term) >= 0));
-      replace(list, h('p', { class: 'small muted' }, plural(rows.length, 'item', 'items')),
-        rows.slice(0, 400).map((it) => h('a', { href: '#/admin/item/' + it.id, class: 'list-item', style: 'display:block;text-decoration:none;color:inherit' },
-          h('div', { class: 'row' }, h('b', { class: 'grow' }, it.name),
-            it.active ? h('span', { class: 'chip ordered' }, 'Active · ' + (KIND_HEADING[it.department] || '?')) : h('span', { class: 'chip gray' }, 'Inactive')),
-          h('div', { class: 'small muted' }, [it.supplierItemNumber ? '#' + it.supplierItemNumber : 'no item #', it.casePackRaw, it.supplierStatus, it.desiredStock !== null ? 'desired ' + it.desiredStock : ''].filter(Boolean).join(' · ')))));
+      Array.from(picked).forEach((id) => { if (!rows.some((r) => r.id === id)) picked.delete(id); });
+      const selectable = v === 'candidates' || v === 'removed';
+      const bulkBtn = h('button', { class: 'btn small ' + (v === 'removed' ? '' : 'danger'), type: 'button' });
+      const syncBtn = () => { bulkBtn.textContent = (v === 'removed' ? 'Restore selected' : 'Remove selected') + ' (' + picked.size + ')'; bulkBtn.disabled = !picked.size; };
+      bulkBtn.onclick = busy(bulkBtn, async () => {
+        const n = picked.size;
+        const restore = v === 'removed';
+        const ok = await ask(restore
+          ? 'Restore ' + plural(n, 'item', 'items') + ' to the catalog? They come back inactive.'
+          : 'Remove ' + plural(n, 'item', 'items') + ' from the catalog?\n\nNothing is deleted: past counts and orders stay, and you can restore them any time from "Removed items".', { ok: restore ? 'Restore' : 'Remove' });
+        if (!ok) return;
+        try { items = (await aapi('adminRemoveItems', { ids: Array.from(picked), restore })).items; picked.clear(); draw(); }
+        catch (err) { list.prepend(errBox(err)); }
+      });
+      const allBox = h('input', { type: 'checkbox', style: 'width:24px;height:24px;margin-right:10px', onchange: () => {
+        rows.slice(0, 400).forEach((r) => { if (allBox.checked) picked.add(r.id); else picked.delete(r.id); });
+        draw();
+      } });
+      allBox.checked = rows.length > 0 && rows.slice(0, 400).every((r) => picked.has(r.id));
+      replace(list, h('p', { class: 'small muted' }, plural(rows.length, 'item', 'items') + (v === 'removed' ? ' removed. Restored items come back inactive.' : '')),
+        selectable && rows.length ? h('div', { class: 'row', style: 'margin-bottom:8px' },
+          h('label', { style: 'font-weight:600;display:flex;align-items:center;min-height:44px;margin:0' }, allBox, 'Select all shown'), bulkBtn) : null,
+        rows.slice(0, 400).map((it) => {
+          const link = h('a', { href: '#/admin/item/' + it.id, class: 'grow', style: 'display:block;text-decoration:none;color:inherit;min-width:0' },
+            h('div', { class: 'row' }, h('b', { class: 'grow' }, it.name),
+              it.archived ? h('span', { class: 'chip gray' }, 'Removed') : it.active ? h('span', { class: 'chip ordered' }, 'Active · ' + (KIND_HEADING[it.department] || '?')) : h('span', { class: 'chip gray' }, 'Inactive')),
+            h('div', { class: 'small muted' }, [it.supplierItemNumber ? '#' + it.supplierItemNumber : 'no item #', it.casePackRaw, it.supplierStatus, it.desiredStock !== null ? 'desired ' + it.desiredStock : ''].filter(Boolean).join(' · ')));
+          if (!selectable) return h('div', { class: 'list-item' }, link);
+          const cb = h('input', { type: 'checkbox', checked: picked.has(it.id), 'aria-label': 'Select ' + it.name, style: 'width:26px;height:26px;flex:0 0 26px', onchange: () => { if (cb.checked) picked.add(it.id); else picked.delete(it.id); syncBtn(); } });
+          return h('div', { class: 'list-item row', style: 'align-items:flex-start;flex-wrap:nowrap' }, cb, link);
+        }));
+      syncBtn();
     };
     [show, dept].forEach((s) => s.addEventListener('change', draw));
     q.addEventListener('input', draw);
     replace(box, h('div', { class: 'card' }, h('h2', null, 'Housekeeping & Cafe catalog'),
-      h('p', { class: 'small muted' }, 'Imported items start inactive. An item shows on a staff count only when you give it a department, confirm how it is counted, set a desired stock, and make it active.'),
+      h('p', { class: 'small muted' }, 'Imported items start inactive. An item shows on a staff count only when you give it a department, confirm how it is counted, set a desired stock, and make it active. Items you will never use can be removed (and restored later) from the "Inactive" view.'),
       h('div', { class: 'grid2 stack' }, show, dept), h('div', { style: 'margin-top:10px' }, q),
       h('p', null, h('a', { class: 'btn small secondary', href: '#/admin/item/new' }, 'Add an item'))), h('div', { class: 'card' }, list));
     draw();
@@ -475,6 +503,12 @@
       f.countingUnit.value = 'case'; f.unitsPerCase.value = String(it.packsPerCase); f.looseUnitLabel.value = 'packs (' + it.packSize + ' each)'; cu.box.checked = true; upc.box.checked = true;
     } }, 'Cases + loose packs (' + it.packsPerCase + ' per case)') : null;
     const saveBtn = h('button', { class: 'btn', type: 'button' }, 'Save item');
+    const removeBtn = id === 'new' ? null : h('button', { class: 'btn ' + (it.archived ? 'secondary' : 'danger'), type: 'button' }, it.archived ? 'Restore to catalog' : 'Remove from catalog');
+    if (removeBtn) removeBtn.onclick = busy(removeBtn, async () => {
+      const restore = !!it.archived;
+      if (!restore && !(await ask('Remove "' + it.name + '" from the catalog?\n\nIt comes off any staff list. Nothing is deleted: its past counts and orders stay, and you can restore it from Catalog > "Removed items".', { ok: 'Remove' }))) return;
+      try { await aapi('adminRemoveItems', { ids: [id], restore }); renderItem(id); } catch (err) { replace(msg, errBox(err)); }
+    });
     saveBtn.onclick = busy(saveBtn, async () => {
       try {
         const r = await aapi('adminSaveItem', { id: id === 'new' ? '' : id, item: {
@@ -491,6 +525,7 @@
     });
     const ph = it.purchaseHistory || {};
     replace(box, h('div', { class: 'card' }, h('h2', null, id === 'new' ? 'New item' : it.name),
+      it.archived ? h('div', { class: 'notice info' }, 'This item is removed from the catalog. Its history is kept. Restore it to use it again; it comes back inactive.') : null,
       it.supplierNumberStatus === 'unverified' ? h('div', { class: 'notice warn' }, 'The item number came from an old/legacy record and is unverified. Check it against the current Ginsberg’s guide before ordering.') : null,
       h('div', { class: 'grid2 stack' }, field('Name staff see', f.name), field('Department', f.department)),
       h('div', { class: 'grid2 stack' }, field('Supplier item #', f.supplierItemNumber, 'Kept as text, so leading zeros stay.'), field('Brand', f.brand)),
@@ -513,7 +548,7 @@
         h('dt', null, 'Sources'), h('dd', null, (it.sourceRefs || []).join('; ') || '—'),
         h('dt', null, 'Origin'), h('dd', null, it.origin || '—')),
       it.replacementNote ? repl.el : null,
-      field('Notes', f.notes), msg, h('div', { class: 'row', style: 'margin-top:10px' }, saveBtn)));
+      field('Notes', f.notes), msg, h('div', { class: 'row', style: 'margin-top:10px' }, saveBtn, removeBtn)));
   }
   function fmtN(v) { return v === null || v === undefined ? 'no record' : String(v); }
 
@@ -824,6 +859,7 @@
         replace(gOut, h('div', { class: 'card' }, h('h3', null, 'Preview (nothing saved yet)'),
           h('p', null, 'Read: ' + p.sources.join('; ')),
           h('p', null, h('b', null, p.newCount + ' new items with supplier numbers'), ', ' + p.extraCount + ' order-form lines without a number (kept for review), ' + p.duplicateCount + ' already in the catalog (' + (p.refreshExisting ? 'supplier info will be refreshed' : 'skipped') + ').'),
+          p.removedDuplicateCount ? h('p', { class: 'small' }, p.removedDuplicateCount + ' of those were removed earlier. To bring one back, use Catalog > "Removed items" > Restore.') : null,
           p.supplierInfo ? h('p', null, 'Supplier info found: customer #' + (p.supplierInfo.customerNumber || '?') + ', contacts: ' + (p.supplierInfo.contactsText ? 'yes' : 'no') + '. It is only filled in where Settings is still blank.') : null,
           p.problems.concat(p.notes).map((x) => h('div', { class: 'notice warn small' }, x)),
           h('div', { class: 'table-wrap' }, h('table', { class: 'data' }, h('thead', null, h('tr', null, ['Item #', 'Name', 'Description', 'Case pack', 'Status', 'Price', 'Replacement note'].map((x) => h('th', null, x)))),
@@ -835,15 +871,14 @@
       } catch (err) { replace(gOut, errBox(err)); }
     });
 
-    // Generic file import (Base44 exports or any CSV/JSON)
+    // Generic file import (any CSV/JSON spreadsheet export)
     const type = selectEl('items', [['items', 'Catalog items (with desired stock)'], ['counts', 'Historical counts'], ['requests', 'Supply requests'], ['orders', 'Order history (one row per line)'], ['bevProducts', 'Beverage products']]);
     const file = h('input', { type: 'file', accept: '.csv,.json,text/csv,application/json' });
-    const isB44 = check(true, 'This file is an export from the old Base44 app');
     const fOut = h('div');
     let parsed = null, sourceName = '';
     const fPrev = h('button', { class: 'btn secondary', type: 'button' }, 'Preview file');
     async function preview(mapping) {
-      const p = await aapi('adminImportRowsPreview', { type: type.value, headers: parsed.headers, rows: parsed.rows, sourceName, isBase44: isB44.box.checked, mapping });
+      const p = await aapi('adminImportRowsPreview', { type: type.value, headers: parsed.headers, rows: parsed.rows, sourceName, mapping });
       const spec = Object.keys(p.mapping);
       const mapSel = {};
       const fieldsTable = h('div', { class: 'table-wrap' }, h('table', { class: 'data' }, h('thead', null, h('tr', null, h('th', null, 'App field'), h('th', null, 'Column in your file'))),
@@ -859,7 +894,7 @@
       });
       const commit = h('button', { class: 'btn', type: 'button', disabled: !p.valid || p.missingRequired.length > 0 }, 'Import ' + p.valid + ' rows');
       commit.onclick = busy(commit, async () => {
-        try { const r = await aapi('adminImportRowsCommit', { type: type.value, headers: parsed.headers, rows: parsed.rows, sourceName, isBase44: isB44.box.checked, mapping: p.mapping }); replace(fOut, okBox('Imported ' + r.imported + ' rows from ' + sourceName + '. Imported catalog items and beverage products start inactive for your review.')); }
+        try { const r = await aapi('adminImportRowsCommit', { type: type.value, headers: parsed.headers, rows: parsed.rows, sourceName, mapping: p.mapping }); replace(fOut, okBox('Imported ' + r.imported + ' rows from ' + sourceName + '. Imported catalog items and beverage products start inactive for your review.')); }
         catch (err) { fOut.prepend(errBox(err)); }
       });
       replace(fOut, h('div', { class: 'card' }, h('h3', null, 'Preview of ' + sourceName + ' (nothing saved yet)'),
@@ -878,7 +913,7 @@
       if (!f) { replace(fOut, errBox(new Error('Choose a file first.'))); return; }
       try {
         const text = await f.text();
-        sourceName = (isB44.box.checked ? 'Base44 export ' : '') + f.name;
+        sourceName = f.name;
         if (/\.json$/i.test(f.name) || /^\s*[[{]/.test(text)) parsed = tableFromJson(JSON.parse(text));
         else { const rows = parseCsvText(text); parsed = { headers: rows[0] || [], rows: rows.slice(1) }; }
         await preview();
@@ -903,17 +938,15 @@
     try { settings = (await aapi('adminSettings')).settings; } catch (e) { /* shown elsewhere */ }
     const mig = settings ? settings.migration : null;
     replace(box,
-      h('div', { class: 'card' }, h('h2', null, 'Migration status'),
+      h('div', { class: 'card' }, h('h2', null, 'Import status'),
         h('dl', { class: 'kv' },
-          h('dt', null, 'Old Base44 app'), h('dd', null, mig ? (mig.base44 === 'not-imported' ? 'Not imported. No Base44 export file was available. Export each table as CSV/JSON from Base44 and import it below.' : mig.base44) : '?'),
-          h('dt', null, 'Ginsberg’s files'), h('dd', null, mig ? (mig.ginsberg === 'not-imported' ? 'Not imported yet.' : mig.ginsberg) : '?')),
-        mig && mig.base44Log ? h('ul', { class: 'small' }, mig.base44Log.map((x) => h('li', null, x.at.slice(0, 10) + ': ' + x.rows + ' ' + x.type + ' from ' + x.source))) : null),
+          h('dt', null, 'Ginsberg’s files'), h('dd', null, mig ? (mig.ginsberg === 'not-imported' ? 'Not imported yet.' : mig.ginsberg) : '?'))),
       h('div', { class: 'card' }, h('h2', null, 'Import Ginsberg’s source files from your Drive'),
         h('p', { class: 'small muted' }, 'Paste the Google Drive links (open the file, Share > Copy link, or copy the address bar). The files stay where they are; the app only reads them. To include brands, replacement candidates and Kathy’s order-form lines, first open "Ginsbergs Ordering Master" in Drive and choose File > Save as Google Sheets, then paste that link.'),
         Object.keys(links).map((k) => h('div', { style: 'margin:6px 0' }, links[k])), refresh.el, gPrev, gOut),
-      h('div', { class: 'card' }, h('h2', null, 'Import a file (old Base44 app or other)'),
+      h('div', { class: 'card' }, h('h2', null, 'Import a spreadsheet file (optional)'),
         h('p', { class: 'small muted' }, 'CSV or JSON. You get a preview with checks and duplicate detection before anything is saved. Original IDs are kept, and imported history keeps the package sizes from the file, not today’s catalog.'),
-        field('What is in the file?', type), h('div', { style: 'margin:10px 0' }, file), isB44.el, fPrev, fOut),
+        field('What is in the file?', type), h('div', { style: 'margin:10px 0' }, file), fPrev, fOut),
       h('div', { class: 'card' }, h('h2', null, 'Backup'),
         h('p', { class: 'small muted' }, 'All data already lives in your Google Sheet "Lapland Lake Supply Manager Data" in your Drive. Download a copy any time:'),
         h('div', { class: 'row' }, bk, bkCsv),

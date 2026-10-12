@@ -73,7 +73,7 @@ test('every admin action refuses anonymous and forged tokens', () => {
   const adminActions = ['adminLogout', 'adminChangePassword', 'adminDashboard', 'adminItems', 'adminSaveItem', 'adminCounts', 'adminCountDetail',
     'adminSaveCount', 'adminCompleteCount', 'adminReopenCount', 'adminOrders', 'adminOrder', 'adminCreateDraft', 'adminSaveOrder', 'adminSubmitOrder',
     'adminCancelOrder', 'adminSetDesiredStock', 'adminRequests', 'adminPhoto', 'adminUpdateRequest', 'adminDeleteRequest', 'adminLists', 'adminSaveSupply',
-    'adminSaveDrink', 'adminBev', 'adminSaveBevProduct', 'adminSaveDelivery', 'adminDeleteRecord', 'adminSaveSale', 'adminSaveAdjustment', 'adminBevReport',
+    'adminRemoveItems', 'adminSaveDrink', 'adminBev', 'adminSaveBevProduct', 'adminSaveDelivery', 'adminDeleteRecord', 'adminSaveSale', 'adminSaveAdjustment', 'adminBevReport',
     'adminBevHistory', 'adminSettings', 'adminSaveSettings', 'adminSendReportEmail', 'adminSendTestEmail', 'adminImportGinsbergPreview',
     'adminImportGinsbergCommit', 'adminImportRowsPreview', 'adminImportRowsCommit', 'adminBackup', 'adminSupplierHistory', 'adminAudit'];
   for (const a of adminActions) {
@@ -492,4 +492,43 @@ test('backup contains every table', () => {
   for (const t of ['items', 'sessions', 'entries', 'orders', 'orderLines', 'requests', 'photos', 'supplies', 'drinks', 'bevProducts', 'deliveries', 'sales', 'adjustments', 'emailLog', 'settings', 'audit']) {
     assert.ok(Array.isArray(b.tables[t]), t);
   }
+});
+
+test('remove and restore catalog items: hidden, history kept, never on a staff list, re-import skips them', () => {
+  const app = freshApp();
+  const links = { weeklySheet: driveLink(WEEKLY_ID) };
+  ok(app.admin('adminImportGinsbergCommit', links));
+  let items = ok(app.admin('adminItems')).items;
+  const a = items.filter((i) => i.supplierItemNumber === '90001')[0];
+  const b = items.filter((i) => i.supplierItemNumber === '90005')[0];
+  ok(app.admin('adminSaveItem', { id: a.id, item: { department: 'housekeeping', countingUnit: 'case', countingUnitConfirmed: true, desiredStock: 2, active: true } }));
+  ok(app.call('saveCount', { kind: 'housekeeping', itemId: a.id, fullCases: 1 }));
+  ok(app.call('completeCount', { kind: 'housekeeping' }));
+  bad(app.admin('adminRemoveItems', { ids: [] }), /at least one/);
+  const r = ok(app.admin('adminRemoveItems', { ids: [a.id, b.id] }));
+  assert.equal(r.changed, 2);
+  items = ok(app.admin('adminItems')).items;
+  const A = items.filter((i) => i.id === a.id)[0];
+  assert.equal(A.archived, true);
+  assert.equal(A.active, false); // removing also switches it off
+  assert.equal(ok(app.call('countSheet', { kind: 'housekeeping' })).items.length, 0);
+  bad(app.admin('adminSaveItem', { id: a.id, item: { active: true } }), /Restore this item/);
+  // History is untouched.
+  const sess = ok(app.admin('adminCounts')).sessions[0];
+  assert.equal(ok(app.admin('adminCountDetail', { sessionId: sess.id })).entries.length, 1);
+  // Re-import does not duplicate removed items, and says so.
+  const prev = ok(app.admin('adminImportGinsbergPreview', links));
+  assert.equal(prev.newCount, 0);
+  assert.equal(prev.removedDuplicateCount, 2);
+  assert.equal(ok(app.admin('adminDashboard')).catalog.removed, 2);
+  // Restore brings it back inactive; Todd can activate it again.
+  ok(app.admin('adminRemoveItems', { ids: [a.id], restore: true }));
+  const back = ok(app.admin('adminItems')).items.filter((i) => i.id === a.id)[0];
+  assert.equal(back.archived, false);
+  assert.equal(back.active, false);
+  assert.equal(back.desiredStock, 2); // settings kept
+  ok(app.admin('adminSaveItem', { id: a.id, item: { active: true } }));
+  assert.equal(ok(app.call('countSheet', { kind: 'housekeeping' })).items.length, 1);
+  // Staff cannot remove items.
+  bad(app.call('adminRemoveItems', { ids: [a.id] }), /sign in/);
 });

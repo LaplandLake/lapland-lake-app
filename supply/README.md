@@ -73,7 +73,9 @@ Deploy** (the address stays the same).
 3. **Active catalog**: Admin > Catalog. For each item staff should count, set the department
    (Housekeeping or Cafe), confirm the **counting unit** ("Count in full cases only", or "Cases + loose
    packs" when the case pack makes that sensible), set the **desired stock** in cases, and tick
-   **Active**. The server refuses to activate an item without these.
+   **Active**. The server refuses to activate an item without these. Items you'll never use can be
+   **removed** (one at a time, or tick several in the "Inactive" view). Removing hides them and keeps their
+   history; "Removed items" > **Restore** brings them back.
 4. **Beverage products**: Admin > Beverages. Add each exact beer, cider, wine and craft-soda flavor,
    enter bottles/cans per case, tick **I confirm this case size**, then **Active**.
 5. **Drink Cooler list and regular supplies**: Admin > Requests > Supply & drink lists. Assign each
@@ -82,8 +84,7 @@ Deploy** (the address stays the same).
    **Send a test email** only when you want one.
 7. **Supplier info**: Admin > Settings. The import fills in the customer number and contacts from the
    reference file if they're blank; check them.
-8. **Old Base44 data** (if you can export it): Admin > Import & backup > Import a file.
-9. **Optional weekly Drive backup**: in the Apps Script editor, run **installWeeklyDriveBackup** once.
+8. **Optional weekly Drive backup**: in the Apps Script editor, run **installWeeklyDriveBackup** once.
 
 ## What staff can and can't do
 
@@ -143,12 +144,8 @@ Deploy** (the address stays the same).
 
 ## Migration status (as of 2026-10-12)
 
-* **Base44 app data: not imported.** No Base44 export was found in the repository or in the Ginsberg's
-  Drive folder. Base44 passwords can't be exported, so Todd sets a new password (step 7). To bring old
-  items, desired stock, counts, requests, orders or beverage products across, export each table from
-  Base44 as CSV or JSON and use Admin > Import & backup > Import a file. It shows a preview with
-  validation and duplicate detection, keeps original IDs, imports catalog items as inactive with any item
-  numbers marked **unverified**, and keeps historical counts with the package sizes from the file.
+* **Old Base44 app:** no data was carried over (no export existed, and Todd doesn't need it). Admin > Import & backup
+  > Import a spreadsheet file can still bring in any CSV/JSON list later, with a preview first.
 * **Ginsberg's files:** read for this build (the weekly ordering sheet and its purchase and price tabs,
   the ordering master, deleted items, graph data, the reference text, and the order entry worksheet).
   They're imported by the backend from Todd's Drive when he presses Import, so no prices, contacts or

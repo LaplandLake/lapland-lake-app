@@ -44,7 +44,7 @@ const TABLES = {
     supplierItemNumber: 's', supplierNumberStatus: 's', description: 's', brand: 's',
     casePackRaw: 's', packsPerCase: 'n', packSize: 's',
     countingUnit: 's', countingUnitConfirmed: 'b', unitsPerCase: 'n', unitsPerCaseConfirmed: 'b', looseUnitLabel: 's',
-    desiredStock: 'n', supplierStatus: 's', replacementNote: 's', replacementCandidate: 's',
+    desiredStock: 'n', archived: 'b', supplierStatus: 's', replacementNote: 's', replacementCandidate: 's',
     replacementApproved: 'b', price: 'n', priceDate: 's', priceSource: 's',
     priceHistory: 'j', purchaseHistory: 'j', sourceRefs: 'j', notes: 's',
     origin: 's', legacyId: 's', legacy: 'j', sortOrder: 'n', createdAt: 's', updatedAt: 's',
@@ -155,6 +155,7 @@ const ACTIONS = {
   adminDashboard: { role: 'admin', fn: () => adminDashboard_() },
   adminItems: { role: 'admin', fn: () => ({ items: sortItems_(db_().all('items')) }) },
   adminSaveItem: { role: 'admin', write: true, fn: (b) => adminSaveItem_(b) },
+  adminRemoveItems: { role: 'admin', write: true, fn: (b) => adminRemoveItems_(b) },
   adminCounts: { role: 'admin', fn: (b) => adminCounts_(b) },
   adminCountDetail: { role: 'admin', fn: (b) => adminCountDetail_(b) },
   adminSaveCount: { role: 'admin', write: true, fn: (b) => saveCount_(b, 'admin') },
@@ -570,7 +571,7 @@ function activeCountables_(kind) {
     return db_().all('bevProducts').filter((p) => p.active && p.packageConfirmed && p.unitsPerCase > 0)
       .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0) || a.name.localeCompare(b.name));
   }
-  return sortItems_(db_().all('items').filter((it) => it.active && it.department === kind));
+  return sortItems_(db_().all('items').filter((it) => it.active && !it.archived && it.department === kind));
 }
 
 /* ---------------------------------------------------------------- counts */
@@ -1136,11 +1137,12 @@ function adminSaveItem_(b) {
   if (next.unitsPerCase !== null && next.unitsPerCase !== undefined && Math.floor(next.unitsPerCase) !== next.unitsPerCase) {
     fail_('Units per case must be a whole number.');
   }
-  ['countingUnitConfirmed', 'unitsPerCaseConfirmed', 'replacementApproved', 'active'].forEach((k) => {
+  ['countingUnitConfirmed', 'unitsPerCaseConfirmed', 'replacementApproved', 'active', 'archived'].forEach((k) => {
     if (f[k] !== undefined) next[k] = !!f[k];
   });
   if (!next.name) fail_('Item name is required.');
   if (next.unitsPerCaseConfirmed && !(next.unitsPerCase > 0)) fail_('Enter units per case before confirming it.');
+  if (next.archived && next.active) fail_('Restore this item before making it active.');
   if (next.active) {
     const missing = [];
     if (!next.department) missing.push('department');
@@ -1159,6 +1161,26 @@ function adminSaveItem_(b) {
   }
   audit_('admin', 'item-saved', { id: next.id || id, name: next.name, active: !!next.active });
   return { item: db_().get('items', next.id || id) };
+}
+
+// "Remove" hides items from the catalog without deleting them, so their history stays
+// and they can be restored later. Removed items are never on a staff count.
+function adminRemoveItems_(b) {
+  const ids = Array.isArray(b.ids) ? b.ids.map((x) => str_(x, 60)) : [];
+  if (!ids.length) fail_('Choose at least one item.');
+  if (ids.length > 1000) fail_('Too many items at once.');
+  const restore = !!b.restore;
+  const now = nowIso_();
+  let changed = 0;
+  ids.forEach((id) => {
+    const it = db_().get('items', id);
+    if (!it) return;
+    if (restore ? !it.archived : it.archived) return;
+    db_().update('items', id, restore ? { archived: false, updatedAt: now } : { archived: true, active: false, updatedAt: now });
+    changed++;
+  });
+  audit_('admin', restore ? 'items-restored' : 'items-removed', { count: changed, ids: ids.slice(0, 50) });
+  return { changed, items: sortItems_(db_().all('items')) };
 }
 
 /* ---------------------------------------------------------------- beverages */
@@ -1513,7 +1535,8 @@ function adminDashboard_() {
     counts: open,
     catalog: {
       active: items.filter((i) => i.active).length,
-      candidates: items.filter((i) => !i.active).length,
+      candidates: items.filter((i) => !i.active && !i.archived).length,
+      removed: items.filter((i) => i.archived).length,
       activeHousekeeping: items.filter((i) => i.active && i.department === 'housekeeping').length,
       activeCafe: items.filter((i) => i.active && i.department === 'cafe').length,
     },
@@ -1875,7 +1898,8 @@ function importGinsberg_(b, commit) {
       casePackRaw: c.casePackRaw, supplierStatus: c.supplierStatus, price: c.price, priceDate: c.priceDate,
       replacementNote: c.replacementNote,
     })),
-    duplicates: dupes.slice(0, 40).map((d) => ({ supplierItemNumber: d.c.supplierItemNumber, existingName: d.existing.name })),
+    duplicates: dupes.slice(0, 40).map((d) => ({ supplierItemNumber: d.c.supplierItemNumber, existingName: d.existing.name, removed: !!d.existing.archived })),
+    removedDuplicateCount: dupes.filter((d) => d.existing.archived).length,
     extras: extraNew.slice(0, 60),
     refreshExisting: !!b.refreshExisting,
   };
