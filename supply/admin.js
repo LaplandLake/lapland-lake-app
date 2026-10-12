@@ -189,7 +189,6 @@
               tick(c.beverageProducts, 'Beverage products with confirmed case sizes', '#/admin/beverages'),
               tick(c.emailRecipient, 'Weekly email recipient', '#/admin/settings'),
               tick(c.supplierInfo, 'Supplier customer number and contacts', '#/admin/settings'),
-              tick(c.base44Imported, 'Old Base44 data imported (if you have an export)', '#/admin/import'),
               tick(c.driveBackup, 'Optional weekly Drive backup', '#/admin/import')))),
         h('div', { class: 'card' }, h('h2', null, 'Catalog'),
           h('p', null, d.catalog.active + ' active items, ' + d.catalog.candidates + ' inactive review candidates. Beverages: ' + d.beverages.active + ' active, ' + d.beverages.needsReview + ' need a confirmed case size.')),
@@ -835,15 +834,14 @@
       } catch (err) { replace(gOut, errBox(err)); }
     });
 
-    // Generic file import (Base44 exports or any CSV/JSON)
+    // Generic file import (any CSV/JSON spreadsheet export)
     const type = selectEl('items', [['items', 'Catalog items (with desired stock)'], ['counts', 'Historical counts'], ['requests', 'Supply requests'], ['orders', 'Order history (one row per line)'], ['bevProducts', 'Beverage products']]);
     const file = h('input', { type: 'file', accept: '.csv,.json,text/csv,application/json' });
-    const isB44 = check(true, 'This file is an export from the old Base44 app');
     const fOut = h('div');
     let parsed = null, sourceName = '';
     const fPrev = h('button', { class: 'btn secondary', type: 'button' }, 'Preview file');
     async function preview(mapping) {
-      const p = await aapi('adminImportRowsPreview', { type: type.value, headers: parsed.headers, rows: parsed.rows, sourceName, isBase44: isB44.box.checked, mapping });
+      const p = await aapi('adminImportRowsPreview', { type: type.value, headers: parsed.headers, rows: parsed.rows, sourceName, mapping });
       const spec = Object.keys(p.mapping);
       const mapSel = {};
       const fieldsTable = h('div', { class: 'table-wrap' }, h('table', { class: 'data' }, h('thead', null, h('tr', null, h('th', null, 'App field'), h('th', null, 'Column in your file'))),
@@ -859,7 +857,7 @@
       });
       const commit = h('button', { class: 'btn', type: 'button', disabled: !p.valid || p.missingRequired.length > 0 }, 'Import ' + p.valid + ' rows');
       commit.onclick = busy(commit, async () => {
-        try { const r = await aapi('adminImportRowsCommit', { type: type.value, headers: parsed.headers, rows: parsed.rows, sourceName, isBase44: isB44.box.checked, mapping: p.mapping }); replace(fOut, okBox('Imported ' + r.imported + ' rows from ' + sourceName + '. Imported catalog items and beverage products start inactive for your review.')); }
+        try { const r = await aapi('adminImportRowsCommit', { type: type.value, headers: parsed.headers, rows: parsed.rows, sourceName, mapping: p.mapping }); replace(fOut, okBox('Imported ' + r.imported + ' rows from ' + sourceName + '. Imported catalog items and beverage products start inactive for your review.')); }
         catch (err) { fOut.prepend(errBox(err)); }
       });
       replace(fOut, h('div', { class: 'card' }, h('h3', null, 'Preview of ' + sourceName + ' (nothing saved yet)'),
@@ -878,7 +876,7 @@
       if (!f) { replace(fOut, errBox(new Error('Choose a file first.'))); return; }
       try {
         const text = await f.text();
-        sourceName = (isB44.box.checked ? 'Base44 export ' : '') + f.name;
+        sourceName = f.name;
         if (/\.json$/i.test(f.name) || /^\s*[[{]/.test(text)) parsed = tableFromJson(JSON.parse(text));
         else { const rows = parseCsvText(text); parsed = { headers: rows[0] || [], rows: rows.slice(1) }; }
         await preview();
@@ -903,17 +901,15 @@
     try { settings = (await aapi('adminSettings')).settings; } catch (e) { /* shown elsewhere */ }
     const mig = settings ? settings.migration : null;
     replace(box,
-      h('div', { class: 'card' }, h('h2', null, 'Migration status'),
+      h('div', { class: 'card' }, h('h2', null, 'Import status'),
         h('dl', { class: 'kv' },
-          h('dt', null, 'Old Base44 app'), h('dd', null, mig ? (mig.base44 === 'not-imported' ? 'Not imported. No Base44 export file was available. Export each table as CSV/JSON from Base44 and import it below.' : mig.base44) : '?'),
-          h('dt', null, 'Ginsberg’s files'), h('dd', null, mig ? (mig.ginsberg === 'not-imported' ? 'Not imported yet.' : mig.ginsberg) : '?')),
-        mig && mig.base44Log ? h('ul', { class: 'small' }, mig.base44Log.map((x) => h('li', null, x.at.slice(0, 10) + ': ' + x.rows + ' ' + x.type + ' from ' + x.source))) : null),
+          h('dt', null, 'Ginsberg’s files'), h('dd', null, mig ? (mig.ginsberg === 'not-imported' ? 'Not imported yet.' : mig.ginsberg) : '?'))),
       h('div', { class: 'card' }, h('h2', null, 'Import Ginsberg’s source files from your Drive'),
         h('p', { class: 'small muted' }, 'Paste the Google Drive links (open the file, Share > Copy link, or copy the address bar). The files stay where they are; the app only reads them. To include brands, replacement candidates and Kathy’s order-form lines, first open "Ginsbergs Ordering Master" in Drive and choose File > Save as Google Sheets, then paste that link.'),
         Object.keys(links).map((k) => h('div', { style: 'margin:6px 0' }, links[k])), refresh.el, gPrev, gOut),
-      h('div', { class: 'card' }, h('h2', null, 'Import a file (old Base44 app or other)'),
+      h('div', { class: 'card' }, h('h2', null, 'Import a spreadsheet file (optional)'),
         h('p', { class: 'small muted' }, 'CSV or JSON. You get a preview with checks and duplicate detection before anything is saved. Original IDs are kept, and imported history keeps the package sizes from the file, not today’s catalog.'),
-        field('What is in the file?', type), h('div', { style: 'margin:10px 0' }, file), isB44.el, fPrev, fOut),
+        field('What is in the file?', type), h('div', { style: 'margin:10px 0' }, file), fPrev, fOut),
       h('div', { class: 'card' }, h('h2', null, 'Backup'),
         h('p', { class: 'small muted' }, 'All data already lives in your Google Sheet "Lapland Lake Supply Manager Data" in your Drive. Download a copy any time:'),
         h('div', { class: 'row' }, bk, bkCsv),
