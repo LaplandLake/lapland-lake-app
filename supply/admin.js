@@ -33,6 +33,8 @@
     }
   }
 
+  // Count-screen sections, in walk-through order (matches AREAS in app.js).
+  const STORAGE_AREAS = ['Frozen', 'Refrigerated', 'Produce', 'Dry & shelf-stable', 'Kitchen supplies', 'Cups, to-go & utensils', 'Paper products', 'Trash & cleaning'];
   const TABS = [
     ['home', 'Overview'], ['orders', 'Ginsberg orders'], ['requests', 'Requests'], ['catalog', 'Catalog'],
     ['counts', 'Counts'], ['beverages', 'Beverages'], ['reports', 'Reports'], ['import', 'Import & backup'], ['settings', 'Settings'],
@@ -650,6 +652,8 @@
     const f = {
       name: inp(it.name, { maxlength: 120 }),
       department: selectEl(it.department || '', [['', 'Not assigned'], ['housekeeping', 'Housekeeping'], ['cafe', 'Cafe']]),
+      category: selectEl(it.category || '', [['', 'Not set (shows last)']].concat(STORAGE_AREAS.map((x) => [x, x]),
+        it.category && STORAGE_AREAS.indexOf(it.category) < 0 ? [[it.category, it.category + ' (from import)']] : [])),
       supplierItemNumber: inp(it.supplierItemNumber, { maxlength: 30, inputmode: 'text' }),
       description: inp(it.description, { maxlength: 200 }),
       brand: inp(it.brand, { maxlength: 200 }),
@@ -683,7 +687,7 @@
         const r = await aapi('adminSaveItem', { id: id === 'new' ? '' : id, item: {
           name: f.name.value, department: f.department.value, supplierItemNumber: f.supplierItemNumber.value, description: f.description.value,
           brand: f.brand.value, casePackRaw: f.casePackRaw.value, countingUnit: f.countingUnit.value, unitsPerCase: f.unitsPerCase.value,
-          looseUnitLabel: f.looseUnitLabel.value, desiredStock: f.desiredStock.value, minimumStock: f.minimumStock.value, notes: f.notes.value,
+          looseUnitLabel: f.looseUnitLabel.value, category: f.category.value, desiredStock: f.desiredStock.value, minimumStock: f.minimumStock.value, notes: f.notes.value,
           countingUnitConfirmed: cu.box.checked, unitsPerCaseConfirmed: upc.box.checked, active: act.box.checked, replacementApproved: repl.box.checked,
           supplierNumberStatus: id === 'new' && f.supplierItemNumber.value ? 'entered-by-todd' : undefined,
         } });
@@ -697,6 +701,7 @@
       it.archived ? h('div', { class: 'notice info' }, 'This item is removed from the catalog. Its history is kept. Restore it to use it again; it comes back inactive.') : null,
       it.supplierNumberStatus === 'unverified' ? h('div', { class: 'notice warn' }, 'The item number came from an old/legacy record and is unverified. Check it against the current Ginsberg’s guide before ordering.') : null,
       h('div', { class: 'grid2 stack' }, field('Name staff see', f.name), field('Department', f.department)),
+      field('Storage area (where it shows on the count)', f.category, 'Cafe: Frozen through Cups, to-go & utensils. Housekeeping: Paper products, Trash & cleaning.'),
       h('div', { class: 'grid2 stack' }, field('Supplier item #', f.supplierItemNumber, 'Kept as text, so leading zeros stay.'), field('Brand', f.brand)),
       field('Supplier description', f.description),
       field('Case pack (as the supplier writes it)', f.casePackRaw, pack),
