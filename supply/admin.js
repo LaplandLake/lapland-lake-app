@@ -2,7 +2,8 @@
    Every action here is checked again on the server; hiding a button is never the only guard. */
 (function () {
   'use strict';
-  const { h, mount, ask, tell, api, store, fmtDateTime, plural, topbar, KIND_HEADING } = window.SM;
+  const SM = window.SM;
+  const { h, mount, ask, tell, fmtDay, fmtWhen, api, store, fmtDateTime, plural, topbar, KIND_HEADING } = window.SM;
   const C = window.SMCharts;
   const TOKEN_KEY = 'sm-admin-token';
 
@@ -42,6 +43,25 @@
         h('nav', { class: 'tabs', 'aria-label': 'Admin sections' }, TABS.map((t) => h('a', { href: '#/admin/' + t[0], 'aria-current': t[0] === tab ? 'page' : null }, t[1]))),
         ...content));
   }
+  function iconEl(name) {
+    // Small inline icons for storage areas (same drawings as the staff count screens).
+    const paths = {
+      snow: '<path d="M12 2v20M4.5 6.5l15 11M19.5 6.5l-15 11M9 3.5l3 2.5 3-2.5M9 20.5l3-2.5 3 2.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+      thermo: '<path d="M10 4a2 2 0 0 1 4 0v10.3a4 4 0 1 1-4 0V4z M12 9v8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+      leaf: '<path d="M5 19c0-8 5-14 15-15-1 10-7 15-15 15zM5 19l7-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+      box: '<path d="M3 7l9-4 9 4v10l-9 4-9-4V7zM3 7l9 4 9-4M12 11v10" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>',
+      whisk: '<path d="M12 21v-7M9 14h6M12 14c-4-3-5-8-3-10 1.5-1.5 3.5-1 3 2 0-3 2-3.5 3-2 2 2 1 7-3 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+      cup: '<path d="M4 8h13v5a6 6 0 0 1-6 6h-1a6 6 0 0 1-6-6V8zM17 10h2a2 2 0 0 1 0 4h-2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+      roll: '<ellipse cx="8" cy="8" rx="4" ry="5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 3h9c2.2 0 4 2.2 4 5v11H8M8 13v6" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>',
+      spray: '<path d="M8 8h6v13H8zM9 8V5h4l3 2M16 4h2M16 7h3M16 10h2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+    };
+    const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    s.setAttribute('viewBox', '0 0 24 24');
+    s.setAttribute('class', 'ico');
+    s.setAttribute('aria-hidden', 'true');
+    s.innerHTML = paths[name] || paths.box;
+    return s;
+  }
   function loading() { return h('p', { class: 'muted' }, 'Loading…'); }
   function errBox(err) { return h('div', { class: 'notice err', role: 'alert' }, err.message || String(err)); }
   function okBox(text) { return h('div', { class: 'notice ok', role: 'status' }, text); }
@@ -60,10 +80,29 @@
     kids.flat().forEach((k) => k && el.appendChild(k));
     el.querySelectorAll('table.data').forEach(labelize);
   }
+  // Password boxes show what's typed by default (Todd is the only user); "Hide" switches to dots.
+  // The choice is remembered on this device and applies to every password box.
+  function pwShown() { const v = store.get('sm-show-pw'); return v === null ? true : !!v; }
+  function pwInput(autocomplete, id) {
+    return h('input', { type: pwShown() ? 'text' : 'password', autocomplete, id: id || null, 'data-pw': '1', autocapitalize: 'none', autocorrect: 'off', spellcheck: 'false' });
+  }
+  function pwToggle(input) {
+    const b = h('button', { class: 'btn small secondary pw-toggle', type: 'button' });
+    const sync = () => { b.textContent = input.type === 'password' ? 'Show' : 'Hide'; b.setAttribute('aria-label', (input.type === 'password' ? 'Show' : 'Hide') + ' password'); };
+    b.onclick = () => {
+      const show = input.type === 'password';
+      store.set('sm-show-pw', show);
+      document.querySelectorAll('input[data-pw]').forEach((el) => { el.type = show ? 'text' : 'password'; });
+      document.querySelectorAll('.pw-toggle').forEach((t) => { t.textContent = show ? 'Hide' : 'Show'; t.setAttribute('aria-label', (show ? 'Hide' : 'Show') + ' password'); });
+    };
+    sync();
+    return b;
+  }
   function field(label, input, hint) {
     const id = input.id || ('f' + Math.random().toString(36).slice(2, 9));
     input.id = id;
-    return h('div', null, h('label', { for: id }, label), input, hint ? h('div', { class: 'small muted' }, hint) : null);
+    const control = input.getAttribute && input.getAttribute('data-pw') ? h('div', { class: 'pw-row' }, input, pwToggle(input)) : input;
+    return h('div', null, h('label', { for: id }, label), control, hint ? h('div', { class: 'small muted' }, hint) : null);
   }
   function inp(value, attrs) { return h('input', Object.assign({ type: 'text', value: value === null || value === undefined ? '' : String(value), autocomplete: 'off' }, attrs || {})); }
   function check(checked, label, attrs) {
@@ -119,7 +158,7 @@
     let configured = true;
     try { configured = (await api('adminSetupStatus')).configured; } catch (err) { replace(box, errBox(err)); return; }
     if (!configured) return renderSetup(box);
-    const pw = h('input', { type: 'password', autocomplete: 'current-password', id: 'pw' });
+    const pw = pwInput('current-password', 'pw');
     const remember = check(false, 'Keep me signed in on this device (12 hours)');
     const msg = h('div', null, message ? h('div', { class: 'notice warn' }, message) : null);
     const btn = h('button', { class: 'btn block', type: 'submit' }, 'Sign in');
@@ -139,8 +178,8 @@
 
   function renderSetup(box) {
     const code = inp('', { autocapitalize: 'characters' });
-    const p1 = h('input', { type: 'password', autocomplete: 'new-password' });
-    const p2 = h('input', { type: 'password', autocomplete: 'new-password' });
+    const p1 = pwInput('new-password');
+    const p2 = pwInput('new-password');
     const msg = h('div');
     const btn = h('button', { class: 'btn block', type: 'submit' }, 'Save password and sign in');
     replace(box, h('form', { class: 'card', onsubmit: (e) => busy(btn, async () => {
@@ -170,6 +209,8 @@
       const c = d.checklist;
       const tick = (ok, text, href) => h('li', null, ok ? '✅ ' : '⬜ ', href ? h('a', { href }, text) : text);
       replace(box,
+        d.latestDraft ? h('div', { class: 'notice info' }, h('b', null, 'Draft order for ' + fmtDay(d.latestDraft.deliveryDate) + '. '),
+          d.latestDraft.autoFrom ? d.latestDraft.autoFrom + '. ' : '', h('a', { href: '#/admin/order/' + d.latestDraft.id }, 'Review the draft')) : null,
         h('div', { class: 'grid2 stack' },
           h('div', { class: 'card' }, h('h2', null, 'Right now'),
             h('dl', { class: 'kv' },
@@ -179,7 +220,7 @@
               h('dt', null, 'Shopping list'), h('dd', null, h('a', { href: '#/admin/requests' }, plural(d.requests.shopping, 'request', 'requests'))),
               h('dt', null, 'Drinks to route'), h('dd', null, d.requests.unassignedDrinks ? h('a', { href: '#/admin/requests' }, d.requests.unassignedDrinks + ' need a list') : 'None'),
               h('dt', null, 'Draft orders'), h('dd', null, h('a', { href: '#/admin/orders' }, String(d.drafts))),
-              h('dt', null, 'Next delivery'), h('dd', null, d.nextDelivery ? 'Thu ' + d.nextDelivery.deliveryDate + ' · order by ' + fmtDateTime(d.nextDelivery.deadline) : '—'))),
+              h('dt', null, 'Next delivery'), h('dd', null, d.nextDelivery ? fmtDay(d.nextDelivery.deliveryDate) + ' · order by ' + fmtWhen(d.nextDelivery.deadline) : '—'))),
           h('div', { class: 'card' }, h('h2', null, 'Setup checklist'),
             h('ul', { class: 'checklist', style: 'list-style:none;padding:0' },
               tick(c.password, 'Admin password set'),
@@ -202,21 +243,23 @@
     'reported-low': 'Reported low', 'reported-out': 'Reported out', 'counting-unit-unconfirmed': 'Counting unit not confirmed',
     'no-desired-stock': 'No desired stock set', 'supplier-status': 'Supplier status needs checking',
     'item-number-unverified': 'Item # missing/unverified', 'count-not-finished': 'Count not finished', imported: 'Imported',
+    'no-minimum': 'No minimum set (ordered because below desired stock)',
   };
   async function renderOrders() {
     const box = h('div', null, loading());
-    const newBtn = h('button', { class: 'btn' }, 'Start a draft from the latest counts');
+    const newBtn = h('button', { class: 'btn' }, 'Start a new draft from the latest counts');
     newBtn.onclick = busy(newBtn, async () => {
       try { const r = await aapi('adminCreateDraft'); location.hash = '#/admin/order/' + r.order.id; } catch (err) { box.prepend(errBox(err)); }
     });
     shell('orders', h('div', { class: 'card' }, h('h2', null, 'Ginsberg’s order'),
-      h('p', null, 'Combines the Housekeeping and Cafe counts into one draft. Nothing is ever sent from the app: you send the order yourself (text, email or call), then mark it submitted here.'),
+      h('p', null, 'A draft is built automatically each time a Housekeeping or Cafe count is finished: anything at or below its minimum is ordered back up to its desired stock. Nothing is ever sent from the app: you review it, send it yourself (text, email or call), then mark it submitted here.'),
       newBtn), box);
     try {
       const d = await aapi('adminOrders');
       const rows = d.orders.map((o) => h('div', { class: 'list-item row' },
         h('div', { class: 'grow' }, h('a', { href: '#/admin/order/' + o.id }, h('b', null, (o.status === 'draft' ? 'Draft' : o.status === 'submitted' ? 'Submitted' : o.status === 'discarded' ? 'Discarded' : o.status) + ' · ' + plural(o.totalCases, 'case', 'cases'))),
-          h('div', { class: 'small muted' }, 'Created ' + fmtDateTime(o.createdAt) + (o.deliveryDate ? ' · for Thu ' + o.deliveryDate : '') + (o.submittedAt ? ' · submitted ' + fmtDateTime(o.submittedAt) : '') + (o.origin && o.origin !== 'app' ? ' · ' + o.origin : ''))),
+          o.autoFrom ? h('div', { class: 'small' }, o.autoFrom) : null,
+          h('div', { class: 'small muted' }, 'Created ' + fmtDateTime(o.createdAt) + (o.deliveryDate ? ' · for ' + fmtDay(o.deliveryDate) : '') + (o.submittedAt ? ' · submitted ' + fmtDateTime(o.submittedAt) : '') + (o.origin && o.origin !== 'app' ? ' · ' + o.origin : ''))),
         h('span', { class: 'chip ' + (o.status === 'submitted' ? 'ordered' : o.status === 'draft' ? 'shopping' : 'gray') }, o.status)));
       replace(box, h('div', { class: 'card' }, h('h2', null, 'Order history'), d.nextDelivery ? h('p', { class: 'small muted' }, 'Next delivery Thursday ' + d.nextDelivery.deliveryDate + '. Latest order ' + fmtDateTime(d.nextDelivery.deadline) + '. Earlier in the week preferred.') : null,
         rows.length ? rows : h('p', { class: 'muted' }, 'No orders yet.')));
@@ -231,35 +274,88 @@
     draw();
     function draw() {
       const o = d.order;
+      const sm = d.summary;
       const draft = o.status === 'draft';
       const inputs = {};
+      const lineTotalEls = {};
       const msg = h('div');
-      const totalEl = h('b');
+      const money = (v) => '$' + Number(v).toFixed(2);
+      const qtyOf = (l) => {
+        if (!inputs[l.id]) return l.finalCases;
+        const v = inputs[l.id].value.trim();
+        return /^\d+$/.test(v) ? Number(v) : 0;
+      };
+      // Summary: cases toward the 20-case minimum, dollars, and the Wednesday deadline.
+      const casesEl = h('div', { class: 'big' });
+      const casesNote = h('div', { class: 'small' });
+      const barFill = h('div');
+      const bar = h('div', { class: 'min-bar', role: 'progressbar', 'aria-label': 'Cases toward the ' + sm.minimumCases + '-case minimum', 'aria-valuemin': '0', 'aria-valuemax': String(sm.minimumCases) }, barFill);
+      const dollarsEl = h('div', { class: 'big' });
+      const dollarsNote = h('div', { class: 'small muted' });
       const recalc = () => {
-        let t = 0;
-        d.lines.forEach((l) => { const v = inputs[l.id] ? Number(inputs[l.id].value) : l.finalCases; if (isFinite(v)) t += v; });
-        totalEl.textContent = plural(t, 'case', 'cases');
-        totalEl.style.color = t < d.supplier.minimumCases ? 'var(--err)' : '';
+        let cases = 0, dollars = 0, unpriced = 0;
+        d.lines.forEach((l) => {
+          const q = qtyOf(l);
+          cases += q;
+          if (q > 0 && (l.price === null || l.price === undefined)) unpriced++;
+          if (l.price !== null && l.price !== undefined) dollars += q * l.price;
+          if (lineTotalEls[l.id]) lineTotalEls[l.id].textContent = l.price === null || l.price === undefined ? '—' : money(q * l.price);
+        });
+        casesEl.textContent = plural(cases, 'case', 'cases');
+        const short = sm.minimumCases - cases;
+        casesNote.textContent = short > 0 ? short + ' short of the ' + sm.minimumCases + '-case minimum. You can still send it.' : 'Meets the ' + sm.minimumCases + '-case minimum.';
+        casesNote.style.color = short > 0 ? 'var(--warn-ink)' : 'var(--ok)';
+        barFill.style.width = Math.min(100, Math.round(100 * cases / Math.max(1, sm.minimumCases))) + '%';
+        bar.classList.toggle('met', short <= 0);
+        bar.setAttribute('aria-valuenow', String(cases));
+        dollarsEl.textContent = money(dollars);
+        dollarsNote.textContent = 'Estimate from last known case prices' + (unpriced ? '; ' + plural(unpriced, 'ordered item has', 'ordered items have') + ' no price' : '') + '. Confirm against the current guide or invoice.';
+      };
+      const deadline = sm.deadline
+        ? h('div', { class: 'deadline' + (sm.deadlinePassed ? ' passed' : '') },
+          sm.deadlinePassed
+            ? ['The deadline for the ', h('b', null, fmtDay(sm.deliveryDate)), ' delivery (', fmtWhen(sm.deadline), ') has passed.',
+              sm.nextDelivery ? [' Next: order by ', h('b', null, fmtWhen(sm.nextDelivery.deadline)), ' for ', fmtDay(sm.nextDelivery.deliveryDate), '.'] : null]
+            : ['Order by ', h('b', null, fmtWhen(sm.deadline)), ' for ', h('b', null, fmtDay(sm.deliveryDate)), ' delivery. Earlier in the week preferred.'])
+        : null;
+      const otherWarnings = d.warnings.filter((w) => !/case minimum/.test(w));
+
+      const lineRow = (l) => {
+        if (draft) inputs[l.id] = h('input', { type: 'text', inputmode: 'numeric', class: 'line-input', value: String(l.finalCases), 'aria-label': 'Cases of ' + l.description, oninput: recalc });
+        lineTotalEls[l.id] = h('span');
+        const name = (l.snapshot && l.snapshot.name) || l.description;
+        return h('tr', { class: l.finalCases > 0 ? '' : 'not-ordering' },
+          h('td', null, h('b', null, name), h('div', { class: 'small muted' }, (l.supplierItemNumber ? '#' + l.supplierItemNumber : 'no item #') + (name !== l.description ? ' · ' + l.description : ''))),
+          h('td', null, l.casePackRaw || '—'),
+          h('td', { class: 'num' }, l.onHandCases === null ? '—' : String(l.onHandCases)),
+          h('td', { class: 'num' }, l.minimumStock === null || l.minimumStock === undefined ? '—' : String(l.minimumStock)),
+          h('td', { class: 'num' }, l.desiredStock === null ? '—' : String(l.desiredStock)),
+          h('td', { class: 'num' }, l.suggestedCases === null ? '—' : String(l.suggestedCases)),
+          h('td', { class: 'num' }, draft ? inputs[l.id] : String(l.finalCases), l.edited ? h('div', { class: 'small muted' }, 'your number') : null),
+          h('td', { class: 'num' }, l.price === null || l.price === undefined ? 'no price' : [money(l.price), h('div', { class: 'small muted' }, l.priceDate || '')]),
+          h('td', { class: 'num' }, lineTotalEls[l.id]),
+          h('td', null, (l.flags || []).map((f) => h('div', { class: 'small' }, '⚠ ' + (FLAG_TEXT[f] || f)))));
+      };
+      const table = (lines) => {
+        const groups = {};
+        lines.forEach((l) => { const k = l.category || 'Other items'; (groups[k] = groups[k] || []).push(l); });
+        return Object.keys(groups).map((k) => Object.assign({ name: k, lines: groups[k] }, SM.areaFor(k)))
+          .sort((a, b) => a.order - b.order || a.name.localeCompare(b.name))
+          .map((g) => h('div', { style: '--area:' + g.color },
+            h('div', { class: 'area-label' }, iconEl(g.icon), g.name),
+            h('div', { class: 'table-wrap' }, h('table', { class: 'data' },
+              h('thead', null, h('tr', null, ['Item', 'Case pack', 'On hand', 'Min', 'Desired', 'Suggested', 'Order (cases)', 'Case price', 'Line total', 'Flags'].map((x, i) => h('th', { class: i >= 2 && i <= 8 ? 'num' : null }, x)))),
+              h('tbody', null, g.lines.map(lineRow))))));
       };
       const sections = ['housekeeping', 'cafe'].map((dept) => {
         const lines = d.lines.filter((l) => l.department === dept);
+        if (!lines.length) return h('div', null, h('h2', { class: 'dept-heading' }, KIND_HEADING[dept]), h('p', { class: 'muted' }, 'No ' + KIND_HEADING[dept] + ' lines in this order yet.'));
+        const ordering = lines.filter((l) => l.finalCases > 0 || (l.flags || []).some((f) => f === 'not-counted' || f === 'no-desired-stock'));
+        const rest = lines.filter((l) => ordering.indexOf(l) < 0);
         return h('div', null, h('h2', { class: 'dept-heading' }, KIND_HEADING[dept]),
-          lines.length ? h('div', { class: 'table-wrap' }, h('table', { class: 'data' },
-            h('thead', null, h('tr', null, ['Item #', 'Description', 'Case pack', 'On hand', 'Desired', 'Suggested', 'Order (cases)', 'Flags'].map((x, i) => h('th', { class: i >= 3 && i <= 6 ? 'num' : null }, x)))),
-            h('tbody', null, lines.map((l) => {
-              if (draft) {
-                inputs[l.id] = h('input', { type: 'text', inputmode: 'numeric', class: 'line-input', value: String(l.finalCases), 'aria-label': 'Cases of ' + l.description, oninput: recalc });
-              }
-              return h('tr', null,
-                h('td', null, l.supplierItemNumber || h('span', { class: 'chip red' }, 'none')),
-                h('td', null, l.description, l.snapshot && l.snapshot.name && l.snapshot.name !== l.description ? h('div', { class: 'small muted' }, l.snapshot.name) : null),
-                h('td', null, l.casePackRaw),
-                h('td', { class: 'num' }, l.onHandCases === null ? '—' : String(l.onHandCases)),
-                h('td', { class: 'num' }, l.desiredStock === null ? '—' : String(l.desiredStock)),
-                h('td', { class: 'num' }, l.suggestedCases === null ? '—' : String(l.suggestedCases)),
-                h('td', { class: 'num' }, draft ? inputs[l.id] : String(l.finalCases)),
-                h('td', null, (l.flags || []).map((f) => h('div', { class: 'small' }, '⚠ ' + (FLAG_TEXT[f] || f)))));
-            })))) : h('p', { class: 'muted' }, 'No active ' + KIND_HEADING[dept] + ' items.'));
+          ordering.length ? table(ordering) : h('p', { class: 'muted' }, 'Nothing to order from this count.'),
+          rest.length ? h('details', { class: 'card', style: 'margin-top:10px' }, h('summary', null, 'Not ordering (' + rest.length + ', above their minimum)'),
+            h('p', { class: 'small muted' }, 'Type a number to add any of these to the order.'), table(rest)) : null);
       });
       const outLines = d.lines.filter((l) => (l.flags || []).indexOf('reported-out') >= 0 && l.itemId);
       const suggest = draft && outLines.length ? h('div', { class: 'card' }, h('h3', null, 'Items reported out'),
@@ -279,8 +375,9 @@
       const exportText = d.exportText;
       const copyBtn = h('button', { class: 'btn secondary', type: 'button' }, 'Copy');
       copyBtn.onclick = () => copyText(exportText, copyBtn);
-      const csvRows = [['Department', 'Item #', 'Description', 'Case pack', 'Cases']].concat(
-        d.lines.filter((l) => l.finalCases > 0).map((l) => [KIND_HEADING[l.department] || l.department, l.supplierItemNumber, l.description, l.casePackRaw, l.finalCases]));
+      const csvRows = [['Department', 'Category', 'Item #', 'Description', 'Case pack', 'Cases', 'Case price', 'Price date', 'Line total']].concat(
+        d.lines.filter((l) => l.finalCases > 0).map((l) => [KIND_HEADING[l.department] || l.department, l.category || '', l.supplierItemNumber, l.description, l.casePackRaw, l.finalCases,
+          l.price === null || l.price === undefined ? '' : l.price.toFixed(2), l.priceDate || '', l.price === null || l.price === undefined ? '' : (l.price * l.finalCases).toFixed(2)]));
       const sent = check(false, 'I have sent this order to Ginsberg’s myself');
       const method = selectEl('text', [['text', 'Text message'], ['email', 'Email'], ['phone', 'Phone call'], ['in person', 'In person / circled guide'], ['other', 'Other']]);
       const subBtn = h('button', { class: 'btn warn', type: 'button' }, 'Mark as submitted');
@@ -294,19 +391,19 @@
         try { await aapi('adminCancelOrder', { orderId: o.id }); location.hash = '#/admin/orders'; } catch (err) { replace(msg, errBox(err)); }
       });
       replace(box,
-        h('div', { class: 'card' },
+        h('div', { class: 'card order-summary' },
           h('h2', null, (draft ? 'Draft order' : o.status === 'submitted' ? 'Submitted order' : 'Order (' + o.status + ')')),
-          h('dl', { class: 'kv' },
-            h('dt', null, 'Delivery'), h('dd', null, o.deliveryDate ? 'Thursday ' + o.deliveryDate : '—'),
-            h('dt', null, 'Latest order'), h('dd', null, o.deadline ? fmtDateTime(o.deadline) + ' (Wednesday 4:00 PM New York time). Earlier in the week preferred.' : '—'),
-            h('dt', null, 'Minimum'), h('dd', null, d.supplier.minimumCases + ' cases'),
-            h('dt', null, 'Total'), h('dd', null, totalEl),
-            o.submittedAt ? h('dt', null, 'Submitted') : null, o.submittedAt ? h('dd', null, fmtDateTime(o.submittedAt) + ' by ' + (o.submittedMethod || '?')) : null),
-          d.warnings.map((w) => h('div', { class: 'notice warn', style: 'margin-top:10px' }, w)), msg),
+          o.autoFrom ? h('p', { class: 'small muted' }, o.autoFrom + '.') : null,
+          h('div', { class: 'stats' },
+            h('div', null, h('div', { class: 'stat-label' }, 'Total'), casesEl, bar, casesNote),
+            h('div', null, h('div', { class: 'stat-label' }, 'Estimated cost'), dollarsEl, dollarsNote)),
+          draft ? deadline : null,
+          o.submittedAt ? h('p', null, 'Submitted ' + fmtDateTime(o.submittedAt) + ' by ' + (o.submittedMethod || '?') + '.') : null,
+          otherWarnings.map((w) => h('div', { class: 'notice warn', style: 'margin-top:10px' }, w)), msg),
         sections, suggest,
         draft ? h('div', { class: 'card' }, field('Order note (private)', note), h('div', { class: 'row', style: 'margin-top:10px' }, saveBtn)) : null,
         h('div', { class: 'card' }, h('h2', null, 'Copy / export'),
-          h('p', { class: 'small muted' }, draft ? 'Save changes first so the export matches.' : ''),
+          h('p', { class: 'small muted' }, (draft ? 'Save changes first so the export matches. ' : '') + 'The text for Ginsberg’s has no prices; the CSV for you does.'),
           h('pre', { class: 'export' }, exportText),
           h('div', { class: 'row' }, copyBtn,
             h('button', { class: 'btn secondary', type: 'button', onclick: () => download('ginsbergs-order-' + (o.deliveryDate || o.id) + '.csv', csv(csvRows), 'text/csv') }, 'Download CSV'),
@@ -455,7 +552,7 @@
           const link = h('a', { href: '#/admin/item/' + it.id, class: 'grow', style: 'display:block;text-decoration:none;color:inherit;min-width:0' },
             h('div', { class: 'row' }, h('b', { class: 'grow' }, it.name),
               it.archived ? h('span', { class: 'chip gray' }, 'Removed') : it.active ? h('span', { class: 'chip ordered' }, 'Active · ' + (KIND_HEADING[it.department] || '?')) : h('span', { class: 'chip gray' }, 'Inactive')),
-            h('div', { class: 'small muted' }, [it.supplierItemNumber ? '#' + it.supplierItemNumber : 'no item #', it.casePackRaw, it.supplierStatus, it.desiredStock !== null ? 'desired ' + it.desiredStock : ''].filter(Boolean).join(' · ')));
+            h('div', { class: 'small muted' }, [it.supplierItemNumber ? '#' + it.supplierItemNumber : 'no item #', it.casePackRaw, it.supplierStatus, it.minimumStock !== null && it.minimumStock !== undefined ? 'min ' + it.minimumStock : '', it.desiredStock !== null ? 'desired ' + it.desiredStock : ''].filter(Boolean).join(' · ')));
           if (!selectable) return h('div', { class: 'list-item' }, link);
           const cb = h('input', { type: 'checkbox', checked: picked.has(it.id), 'aria-label': 'Select ' + it.name, style: 'width:26px;height:26px;flex:0 0 26px', onchange: () => { if (cb.checked) picked.add(it.id); else picked.delete(it.id); syncBtn(); } });
           return h('div', { class: 'list-item row', style: 'align-items:flex-start;flex-wrap:nowrap' }, cb, link);
@@ -464,10 +561,71 @@
     };
     [show, dept].forEach((s) => s.addEventListener('change', draw));
     q.addEventListener('input', draw);
+    const looseOut = h('div');
+    const looseBtn = h('button', { class: 'btn small secondary', type: 'button' }, 'Set up loose counting');
+    looseBtn.onclick = busy(looseBtn, async () => {
+      try {
+        const sg = await aapi('adminLooseSuggest');
+        const rows = sg.rows.map((x) => {
+          const cb = h('input', { type: 'checkbox', checked: x.checked, 'aria-label': 'Count ' + x.name + ' in loose units', style: 'width:26px;height:26px', disabled: !x.suggestedUnits && !x.current });
+          const n = inp(x.current ? x.current.unitsPerCase : x.suggestedUnits, { inputmode: 'numeric', class: 'line-input', 'aria-label': 'Loose units per case for ' + x.name });
+          const label = inp(x.current ? x.current.looseUnitLabel : x.suggestedLabel, { maxlength: 60, 'aria-label': 'Name of the loose units for ' + x.name, style: 'min-width:0' });
+          [n, label].forEach((el) => el.addEventListener('input', () => { cb.checked = true; }));
+          return { x, cb, n, label };
+        });
+        const apply = h('button', { class: 'btn', type: 'button' }, 'Apply to ticked items');
+        apply.onclick = busy(apply, async () => {
+          const pick = rows.filter((r) => r.cb.checked);
+          if (!pick.length) { tell('Tick at least one item.'); return; }
+          try {
+            const res = await aapi('adminLooseApply', { rows: pick.map((r) => ({ id: r.x.id, unitsPerCase: r.n.value.trim(), looseUnitLabel: r.label.value.trim() })) });
+            replace(looseOut, okBox('Loose counting is on for ' + plural(res.applied, 'item', 'items') + '. Staff now see a "Loose" box next to Full cases for them.'));
+            items = (await aapi('adminItems')).items; draw();
+          } catch (err) { looseOut.prepend(errBox(err)); }
+        });
+        replace(looseOut, h('div', { class: 'card', style: 'margin-top:12px' }, h('h3', null, 'Set up loose counting (nothing saved yet)'),
+          h('p', { class: 'small muted' }, 'Ticked items get a "Loose" box on the count screen, so staff can count part of a case (for example 48 rolls = half a case of toilet paper). The number comes from each case pack; change it or the name if it’s wrong. Untick anything that should stay full cases only.'),
+          h('div', { class: 'table-wrap' }, h('table', { class: 'data' },
+            h('thead', null, h('tr', null, ['Use', 'Item', 'Case pack', 'Per case', 'Loose units are called', 'Note'].map((t) => h('th', null, t)))),
+            h('tbody', null, rows.map((r) => h('tr', null,
+              h('td', null, r.cb),
+              h('td', null, h('b', null, r.x.name), h('div', { class: 'small muted' }, (KIND_HEADING[r.x.department] || '') + (r.x.category ? ' · ' + r.x.category : ''))),
+              h('td', null, r.x.casePackRaw || '—'),
+              h('td', null, r.n),
+              h('td', null, r.label),
+              h('td', { class: 'small' }, r.x.current ? 'Already set up' : r.x.why)))))),
+          h('div', { class: 'row', style: 'margin-top:10px' }, apply)));
+      } catch (err) { replace(looseOut, errBox(err)); }
+    });
+    const fillOut = h('div');
+    const fillBtn = h('button', { class: 'btn small secondary', type: 'button' }, 'Fill from notes & Ginsberg’s records');
+    fillBtn.onclick = busy(fillBtn, async () => {
+      try {
+        const p = await aapi('adminFillPreview');
+        if (!p.rows.length) { replace(fillOut, okBox('Nothing to fill: every active item already has its minimum and price, or there is nothing to copy.')); return; }
+        const apply = h('button', { class: 'btn', type: 'button', disabled: !p.changed }, 'Apply to ' + plural(p.changed, 'item', 'items'));
+        apply.onclick = busy(apply, async () => {
+          try { const res = await aapi('adminFillCommit'); replace(fillOut, okBox('Updated ' + plural(res.changed, 'item', 'items') + '.')); items = (await aapi('adminItems')).items; draw(); }
+          catch (err) { fillOut.prepend(errBox(err)); }
+        });
+        replace(fillOut, h('div', { class: 'card', style: 'margin-top:12px' }, h('h3', null, 'Preview (nothing saved yet)'),
+          h('p', { class: 'small muted' }, 'Minimums come from notes like "Suggested minimum 2, target 3". Prices, purchase history and item # checks come from the imported Ginsberg’s record with the same item #. Anything you already filled in is left alone.'),
+          h('div', { class: 'table-wrap' }, h('table', { class: 'data' },
+            h('thead', null, h('tr', null, ['Item', 'Minimum', 'Desired', 'Price', 'Item #', 'Notes'].map((x) => h('th', null, x)))),
+            h('tbody', null, p.rows.map((x) => h('tr', null,
+              h('td', null, x.name),
+              h('td', { class: 'num' }, x.minimumStock === null ? '—' : String(x.minimumStock)),
+              h('td', { class: 'num' }, x.desiredStock === null ? '—' : String(x.desiredStock)),
+              h('td', { class: 'num' }, x.price === null ? '—' : '$' + Number(x.price).toFixed(2) + (x.priceDate ? ' (' + x.priceDate + ')' : '')),
+              h('td', null, (x.supplierItemNumber ? '#' + x.supplierItemNumber : '') + (x.verified ? ' ✓ matches Ginsberg’s' : '')),
+              h('td', null, x.notes.join(' '))))))),
+          h('div', { class: 'row', style: 'margin-top:10px' }, apply)));
+      } catch (err) { replace(fillOut, errBox(err)); }
+    });
     replace(box, h('div', { class: 'card' }, h('h2', null, 'Housekeeping & Cafe catalog'),
       h('p', { class: 'small muted' }, 'Imported items start inactive. An item shows on a staff count only when you give it a department, confirm how it is counted, set a desired stock, and make it active. Items you will never use can be removed (and restored later) from the "Inactive" view.'),
       h('div', { class: 'grid2 stack' }, show, dept), h('div', { style: 'margin-top:10px' }, q),
-      h('p', null, h('a', { class: 'btn small secondary', href: '#/admin/item/new' }, 'Add an item'))), h('div', { class: 'card' }, list));
+      h('div', { class: 'row' }, h('a', { class: 'btn small secondary', href: '#/admin/item/new' }, 'Add an item'), fillBtn, looseBtn), fillOut, looseOut), h('div', { class: 'card' }, list));
     draw();
   }
 
@@ -490,6 +648,7 @@
       unitsPerCase: inp(it.unitsPerCase, { inputmode: 'numeric' }),
       looseUnitLabel: inp(it.looseUnitLabel, { maxlength: 60, placeholder: 'e.g. rolls, sleeves of 50 cups' }),
       desiredStock: inp(it.desiredStock, { inputmode: 'decimal' }),
+      minimumStock: inp(it.minimumStock, { inputmode: 'decimal' }),
       notes: h('textarea', { maxlength: 2000 }, it.notes || ''),
     };
     const cu = check(it.countingUnitConfirmed, 'Counting unit confirmed');
@@ -514,7 +673,7 @@
         const r = await aapi('adminSaveItem', { id: id === 'new' ? '' : id, item: {
           name: f.name.value, department: f.department.value, supplierItemNumber: f.supplierItemNumber.value, description: f.description.value,
           brand: f.brand.value, casePackRaw: f.casePackRaw.value, countingUnit: f.countingUnit.value, unitsPerCase: f.unitsPerCase.value,
-          looseUnitLabel: f.looseUnitLabel.value, desiredStock: f.desiredStock.value, notes: f.notes.value,
+          looseUnitLabel: f.looseUnitLabel.value, desiredStock: f.desiredStock.value, minimumStock: f.minimumStock.value, notes: f.notes.value,
           countingUnitConfirmed: cu.box.checked, unitsPerCaseConfirmed: upc.box.checked, active: act.box.checked, replacementApproved: repl.box.checked,
           supplierNumberStatus: id === 'new' && f.supplierItemNumber.value ? 'entered-by-todd' : undefined,
         } });
@@ -536,7 +695,9 @@
       h('div', { class: 'row' }, caseOnly, usePacks),
       h('div', { class: 'grid2 stack' }, field('Counting unit', f.countingUnit), field('Loose units per case', f.unitsPerCase)),
       field('Name for loose units', f.looseUnitLabel), cu.el, upc.el,
-      field('Desired stock (cases)', f.desiredStock, 'Used for suggested order quantities. It only changes when you change it.'),
+      h('div', { class: 'grid2 stack' },
+        field('Minimum stock (cases)', f.minimumStock, 'At or below this, the draft order brings it back up to desired stock.'),
+        field('Desired stock (cases)', f.desiredStock, 'What a reorder brings it back up to. Only changes when you change it.')),
       act.el,
       h('h3', { style: 'margin-top:16px' }, 'Supplier information (private)'),
       h('dl', { class: 'kv' },
@@ -936,6 +1097,35 @@
 
     let settings = null;
     try { settings = (await aapi('adminSettings')).settings; } catch (e) { /* shown elsewhere */ }
+    const backupBox = h('div', null, loading());
+    const manualSteps = () => h('div', { class: 'notice warn' },
+      h('b', null, 'Google didn’t let the app set this up by itself. One-time steps instead:'),
+      h('ol', null,
+        h('li', null, 'Open script.google.com and your "Lapland Lake Supply Manager" project.'),
+        h('li', null, 'In the function list next to Run, choose ', h('b', null, 'installWeeklyDriveBackup'), ', then press ', h('b', null, 'Run'), '.'),
+        h('li', null, 'If Google asks for permission, choose your account and press Allow.'),
+        h('li', null, 'Come back here and reload: it should say the weekly backup is on.')));
+    async function drawBackup(result) {
+      let st = result;
+      if (!st) { try { st = await aapi('adminBackupStatus'); } catch (err) { replace(backupBox, errBox(err)); return; } }
+      const on = h('button', { class: 'btn', type: 'button' }, 'Turn on weekly backup');
+      on.onclick = busy(on, async () => { try { drawBackup(await aapi('adminBackupOn')); } catch (err) { replace(backupBox, errBox(err)); } });
+      const offBtn = h('button', { class: 'btn secondary', type: 'button' }, 'Turn off');
+      offBtn.onclick = busy(offBtn, async () => { if (!await ask('Turn off the weekly backup? Backups already saved stay in Drive.', { ok: 'Turn off' })) return; try { drawBackup(await aapi('adminBackupOff')); } catch (err) { replace(backupBox, errBox(err)); } });
+      const now = h('button', { class: 'btn secondary', type: 'button' }, 'Back up now');
+      now.onclick = busy(now, async () => { try { drawBackup(await aapi('adminBackupNow')); } catch (err) { replace(backupBox, errBox(err)); } });
+      const working = st.enabled && st.triggerInstalled !== false;
+      replace(backupBox,
+        st.turnedOn === false ? manualSteps() : null,
+        st.error && st.turnedOn !== false ? errBox(new Error(st.error)) : null,
+        st.saved ? okBox('Saved ' + st.saved + ' to Drive.') : null,
+        h('p', null, working ? '✅ On: a copy of everything is saved every Monday around 5 AM to your Drive folder "Lapland Lake Supply Manager" > Backups.'
+          : st.enabled ? '⚠ Marked on, but Google’s weekly timer is missing. Press "Turn on weekly backup" again.' : 'Off.'),
+        st.lastBackupAt ? h('p', { class: 'small muted' }, 'Last backup: ' + fmtDateTime(st.lastBackupAt) + '.') : null,
+        st.lastError ? h('p', { class: 'small', style: 'color:var(--err)' }, 'Last backup problem: ' + st.lastError) : null,
+        st.folderUrl ? h('p', { class: 'small' }, h('a', { href: st.folderUrl, target: '_blank', rel: 'noopener' }, 'Open the Backups folder')) : null,
+        h('div', { class: 'row' }, working ? null : on, working ? now : null, st.enabled ? offBtn : null));
+    }
     const mig = settings ? settings.migration : null;
     replace(box,
       h('div', { class: 'card' }, h('h2', null, 'Import status'),
@@ -950,8 +1140,8 @@
       h('div', { class: 'card' }, h('h2', null, 'Backup'),
         h('p', { class: 'small muted' }, 'All data already lives in your Google Sheet "Lapland Lake Supply Manager Data" in your Drive. Download a copy any time:'),
         h('div', { class: 'row' }, bk, bkCsv),
-        h('p', { class: 'small muted' }, settings && settings.backup.driveBackupEnabled ? 'Weekly Drive backup is on' + (settings.backup.lastBackupAt ? ' (last: ' + fmtDateTime(settings.backup.lastBackupAt) + ')' : '') + '.'
-          : 'Weekly Drive backup is not set up. To turn it on: in the Apps Script editor run installWeeklyDriveBackup once (Mondays ~5 AM, into the app’s Drive folder > Backups).')));
+        h('h3', { style: 'margin-top:16px' }, 'Weekly backup to Google Drive'), backupBox));
+    drawBackup();
   }
 
   /* ------------------------------------------------------------ settings */
@@ -994,9 +1184,9 @@
     supSave.onclick = busy(supSave, async () => {
       try { await aapi('adminSaveSettings', { supplier: Object.fromEntries(Object.keys(sf).map((k) => [k, sf[k].value])) }); replace(supMsg, okBox('Saved.')); } catch (err) { replace(supMsg, errBox(err)); }
     });
-    const cur = h('input', { type: 'password', autocomplete: 'current-password' });
-    const n1 = h('input', { type: 'password', autocomplete: 'new-password' });
-    const n2 = h('input', { type: 'password', autocomplete: 'new-password' });
+    const cur = pwInput('current-password');
+    const n1 = pwInput('new-password');
+    const n2 = pwInput('new-password');
     const pwMsg = h('div');
     const pwBtn = h('button', { class: 'btn', type: 'button' }, 'Change password');
     pwBtn.onclick = busy(pwBtn, async () => {

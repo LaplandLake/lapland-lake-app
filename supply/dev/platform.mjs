@@ -83,6 +83,9 @@ export function createPlatform(backend, opts = {}) {
     failMail: false,
     failNextPhotos: 0,
     driveFiles: opts.driveFiles || {},
+    backupInstalled: false,
+    failBackupInstall: false,
+    backupFiles: [],
     logs: [],
   };
   const platform = {
@@ -121,6 +124,13 @@ export function createPlatform(backend, opts = {}) {
     mail: {
       remaining: () => 100,
       send: (m) => { if (state.failMail) throw new Error('Simulated mail failure'); state.sentMail.push(m); },
+    },
+    backup: {
+      install: () => { if (state.failBackupInstall) throw new Error('Simulated: Google refused to create the timer'); state.backupInstalled = true; },
+      remove: () => { state.backupInstalled = false; },
+      isInstalled: () => !!state.backupInstalled,
+      save: (name, text) => { state.backupFiles.push({ name, size: text.length }); return 'backup-' + state.backupFiles.length; },
+      folderUrl: () => 'https://drive.google.com/drive/folders/TEST-BACKUPS',
     },
     drive: {
       readSpreadsheet: (id) => { const f = state.driveFiles[id]; if (!f || !f.tabs) throw new Error('No access to file ' + id); return f.tabs; },

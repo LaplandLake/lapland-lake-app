@@ -67,6 +67,7 @@ const server = http.createServer(async (req, res) => {
       const q = Object.fromEntries(url.searchParams);
       if (what === 'failPhotos') env.state.failNextPhotos = Number(q.n || 1);
       else if (what === 'failMail') env.state.failMail = q.on === '1';
+      else if (what === 'failBackup') env.state.failBackupInstall = q.on === '1';
       else if (what === 'offline') env.state.offline = q.on === '1';
       else if (what === 'clock') env.state.clock = q.t ? new Date(q.t).getTime() : null;
       else if (what === 'delay') delay.ms = Number(q.ms || 0);

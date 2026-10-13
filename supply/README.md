@@ -21,7 +21,7 @@ Google Apps Script web app  ← runs in Todd's Google account (supply/backend/Co
 ```
 
 This is the same setup the guest app already uses for guest photos (`scripts/photo-inbox.gs`).
-Nothing runs on Base44 or on any paid service.
+Nothing runs on a paid service.
 
 ### Free-service limits (check Google's current quota page before relying on exact numbers)
 
@@ -84,11 +84,18 @@ Deploy** (the address stays the same).
    **Send a test email** only when you want one.
 7. **Supplier info**: Admin > Settings. The import fills in the customer number and contacts from the
    reference file if they're blank; check them.
-8. **Optional weekly Drive backup**: in the Apps Script editor, run **installWeeklyDriveBackup** once.
+8. **Optional weekly Drive backup**: Admin > Import & backup > **Turn on weekly backup**. (If Google refuses to
+   set the timer from the app, the page shows the one-time editor steps: run **installWeeklyDriveBackup**.)
 
 ## What staff can and can't do
 
 * Home screen: Housekeeping Orders, Cafe Orders, Other Supply Requests, Drink Cooler, Beer / Cider / Wine.
+* Count screens are grouped by storage area in walk-through order (Cafe: Frozen, Refrigerated, Produce,
+  Dry & shelf-stable, Kitchen supplies, then Cups, to-go & utensils; Housekeeping: Paper products, Trash &
+  cleaning), each with its own color, icon and "6 of 14" progress. Cups, to-go & utensils are kept in two
+  places, so each of those items has a **Kitchen** and a **Storage room** box and the app adds them up. An amber
+  **Low** badge appears when the entered count is at or below the item's minimum; **Report low** lets staff
+  flag something by hand.
 * Counts save item by item as they're typed ("Saving…", "Saved 10:42", or "Not saved" with **Retry**).
   Blank means "not counted"; 0 is a real count. Leaving and coming back keeps saved counts; unsaved
   typing is also kept on that phone and re-sent.
@@ -116,14 +123,25 @@ Deploy** (the address stays the same).
 
 ## Ordering
 
-* Admin > Ginsberg orders > **Start a draft** combines the latest Housekeeping and Cafe counts into one
-  draft, under department headings.
-* Suggested cases = desired stock − counted stock, rounded up (never below 0). Lines are flagged for
-  missing counts, loose units that can't be converted, unconfirmed counting units, missing desired stock,
-  supplier status problems, and missing/unverified item numbers. These lines get no suggestion; Todd
-  decides.
-* Below 20 cases: warning, still allowed. The page shows Thursday delivery and the Wednesday 4:00 PM
-  (New York time) deadline; earlier in the week is preferred.
+* **Automatic draft:** each time staff finish a Housekeeping or Cafe count, the app builds (or refreshes)
+  one draft for the next Thursday delivery. Finishing a count only refreshes that department's lines, and
+  any quantity Todd already changed by hand is kept. **Start a new draft** builds one by hand from the
+  latest counts.
+* **Reorder rule:** each item has a **minimum** and a **desired stock** (cases). At or below the minimum, the
+  draft orders back up to desired stock, rounded up to whole cases; above it, nothing. Items with no minimum
+  are ordered whenever they're below desired stock and flagged "No minimum set". Missing counts or settings
+  get no suggestion; Todd decides.
+* Catalog > **Set up loose counting** suggests loose units for every active item from its case pack
+  (96 x CT -> 96 rolls, 4 x 4# -> 4 bags). Items with one pack per case stay full-case only; counts over 120 per case
+  start unticked. Todd adjusts the numbers and names, then applies; staff then get a Loose box beside Full cases.
+* Catalog > **Fill from notes & Ginsberg's records** fills each active item's minimum from notes like
+  "Suggested minimum 2, target 3" and copies the price, purchase history and item # check from the imported
+  Ginsberg's record with the same item number (preview first; never overwrites).
+* The draft shows the total cases with a progress bar toward the 20-case minimum (below 20 is a warning, still
+  allowed), the Wednesday 4:00 PM New York deadline for the Thursday delivery, each line's last known case
+  price with its date, and a running dollar total (an estimate; confirm against the current guide or invoice).
+  Lines are grouped by department and storage area; items above their minimum are folded away under
+  "Not ordering".
 * **The app never sends an order.** Copy, Download CSV, "Open in my email/texts" (your own app opens; you
   press send), Print. Then tick "I have sent this order myself" and **Mark as submitted**.
 * Desired stock never changes on its own. Items reported "out" get a suggestion box that only takes
@@ -142,10 +160,10 @@ Deploy** (the address stays the same).
   included). The supplier purchase history from Ginsberg's (what was bought, not what was sold) has its
   own report.
 
-## Migration status (as of 2026-10-12)
+## Data sources
 
-* **Old Base44 app:** no data was carried over (no export existed, and Todd doesn't need it). Admin > Import & backup
-  > Import a spreadsheet file can still bring in any CSV/JSON list later, with a preview first.
+* Admin > Import & backup > Import a spreadsheet file brings in any CSV/JSON list (catalog items including
+  minimum and desired stock, counts, requests, orders, beverage products), with a preview first.
 * **Ginsberg's files:** read for this build (the weekly ordering sheet and its purchase and price tabs,
   the ordering master, deleted items, graph data, the reference text, and the order entry worksheet).
   They're imported by the backend from Todd's Drive when he presses Import, so no prices, contacts or
