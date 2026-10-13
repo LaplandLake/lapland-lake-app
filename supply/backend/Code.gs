@@ -162,6 +162,8 @@ const ACTIONS = {
   adminSaveItem: { role: 'admin', write: true, fn: (b) => adminSaveItem_(b) },
   adminRemoveItems: { role: 'admin', write: true, fn: (b) => adminRemoveItems_(b) },
   adminFillPreview: { role: 'admin', fn: () => fillFromRecords_(false) },
+  adminLooseSuggest: { role: 'admin', fn: () => looseSuggest_() },
+  adminLooseApply: { role: 'admin', write: true, fn: (b) => looseApply_(b) },
   adminFillCommit: { role: 'admin', write: true, fn: () => fillFromRecords_(true) },
   adminCounts: { role: 'admin', fn: (b) => adminCounts_(b) },
   adminCountDetail: { role: 'admin', fn: (b) => adminCountDetail_(b) },
@@ -1355,6 +1357,75 @@ function fillFromRecords_(commit) {
       verified: r.ch.supplierNumberStatus === 'from-supplier-records', history: !!r.ch.purchaseHistory, notes: r.notes,
     })),
   };
+}
+
+// Loose-unit names for common case packs. Todd can change any of them before applying.
+const LOOSE_LABELS = [
+  [/toilet|paper roll|towel roll|paper towel|touchless/i, 'rolls'],
+  [/facial|tissue box/i, 'boxes'],
+  [/glove/i, 'boxes'],
+  [/napkin/i, 'packs'],
+  [/hot cup|cup hot|lid|sleeve|souffle/i, 'sleeves'],
+  [/canliner|trash|garbage|liner/i, 'bags'],
+  [/soup|chili|bisque|chowder/i, 'bags'],
+  [/mac.*cheese|macaroni|cavatappi/i, 'trays'],
+  [/coffee/i, 'packs'],
+  [/creamer|half & half/i, 'cups'],
+  [/mayo|ketchup|mustard|relish|sauce|dressing|sugar packet|cracker/i, 'packets'],
+  [/chips/i, 'bags'],
+  [/burger|patt/i, 'patties'],
+  [/brownie|cookie|scone|muffin/i, 'pieces'],
+  [/burger roll|roll burger|dinner roll/i, 'rolls'],
+  [/roll|bun|bread|ciabatta/i, 'packs'],
+  [/ham|turkey|cheese|provolone|swiss/i, 'packs'],
+  [/hot chocolate|cocoa/i, 'bags'],
+  [/sanitizer/i, 'bottles'],
+];
+function looseLabelFor_(it) {
+  const text = [it.name, it.description].join(' ');
+  for (let i = 0; i < LOOSE_LABELS.length; i++) if (LOOSE_LABELS[i][0].test(text)) return LOOSE_LABELS[i][1];
+  const size = String(it.packSize || '').trim();
+  if (/^ct$/i.test(size)) return 'pieces';
+  return size ? 'packs (' + size + ' each)' : 'packs';
+}
+
+// Suggests loose counting for every active item, from its case pack ("96 x CT" -> 96 rolls).
+// Big counts (over 120 per case, e.g. 1000 forks) and single-pack cases start unticked.
+function looseSuggest_() {
+  return {
+    rows: sortItems_(db_().all('items').filter((it) => it.active && !it.archived)).map((it) => {
+      const n = it.packsPerCase || parseCasePack_(it.casePackRaw).packsPerCase;
+      const already = !!(it.unitsPerCaseConfirmed && it.unitsPerCase > 1);
+      const usable = n && n > 1 && Math.floor(n) === n;
+      return {
+        id: it.id, name: it.name, department: it.department, category: it.category || '', casePackRaw: it.casePackRaw || '',
+        suggestedUnits: usable ? n : null,
+        suggestedLabel: usable ? looseLabelFor_(Object.assign({ packSize: parseCasePack_(it.casePackRaw).packSize }, it)) : '',
+        checked: !already && !!usable && n <= 120,
+        current: already ? { unitsPerCase: it.unitsPerCase, looseUnitLabel: it.looseUnitLabel || '' } : null,
+        why: !usable ? 'One pack per case (or pack count unknown): counted in full cases.' : n > 120 ? 'Over 120 per case; counting them one by one is slow, so this starts unticked.' : '',
+      };
+    }),
+  };
+}
+
+function looseApply_(b) {
+  const rows = Array.isArray(b.rows) ? b.rows : [];
+  if (!rows.length) fail_('Tick at least one item.');
+  const now = nowIso_();
+  const done = [];
+  rows.forEach((row) => {
+    const it = db_().get('items', str_(row.id, 60));
+    if (!it || it.archived) return;
+    const n = num_(row.unitsPerCase);
+    if (n === null || isNaN(n) || n < 2 || Math.floor(n) !== n || n > 100000) fail_('"' + it.name + '": units per case must be a whole number of 2 or more.');
+    const label = str_(row.looseUnitLabel, 60, 'Loose unit name');
+    if (!label) fail_('"' + it.name + '": give the loose units a name (rolls, bags, sleeves…).');
+    db_().update('items', it.id, { unitsPerCase: n, looseUnitLabel: label, unitsPerCaseConfirmed: true, countingUnit: it.countingUnit || 'case', updatedAt: now });
+    done.push(it.id);
+  });
+  audit_('admin', 'loose-counting-set', { count: done.length });
+  return { applied: done.length };
 }
 
 // Staff home card: next delivery and this week's Housekeeping/Cafe count status. No private data.

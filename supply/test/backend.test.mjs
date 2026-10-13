@@ -73,7 +73,7 @@ test('every admin action refuses anonymous and forged tokens', () => {
   const adminActions = ['adminLogout', 'adminChangePassword', 'adminDashboard', 'adminItems', 'adminSaveItem', 'adminCounts', 'adminCountDetail',
     'adminSaveCount', 'adminCompleteCount', 'adminReopenCount', 'adminOrders', 'adminOrder', 'adminCreateDraft', 'adminSaveOrder', 'adminSubmitOrder',
     'adminCancelOrder', 'adminSetDesiredStock', 'adminRequests', 'adminPhoto', 'adminUpdateRequest', 'adminDeleteRequest', 'adminLists', 'adminSaveSupply',
-    'adminRemoveItems', 'adminFillPreview', 'adminFillCommit', 'adminBackupStatus', 'adminBackupOn', 'adminBackupOff', 'adminBackupNow', 'adminSaveDrink', 'adminBev', 'adminSaveBevProduct', 'adminSaveDelivery', 'adminDeleteRecord', 'adminSaveSale', 'adminSaveAdjustment', 'adminBevReport',
+    'adminRemoveItems', 'adminLooseSuggest', 'adminLooseApply', 'adminFillPreview', 'adminFillCommit', 'adminBackupStatus', 'adminBackupOn', 'adminBackupOff', 'adminBackupNow', 'adminSaveDrink', 'adminBev', 'adminSaveBevProduct', 'adminSaveDelivery', 'adminDeleteRecord', 'adminSaveSale', 'adminSaveAdjustment', 'adminBevReport',
     'adminBevHistory', 'adminSettings', 'adminSaveSettings', 'adminSendReportEmail', 'adminSendTestEmail', 'adminImportGinsbergPreview',
     'adminImportGinsbergCommit', 'adminImportRowsPreview', 'adminImportRowsCommit', 'adminBackup', 'adminSupplierHistory', 'adminAudit'];
   for (const a of adminActions) {
@@ -737,4 +737,29 @@ test('weekly backup button: turns on, saves a first backup, can be turned off; a
   assert.equal(s.enabled, false);
   assert.equal(s.triggerInstalled, false);
   for (const a of ['adminBackupOn', 'adminBackupOff', 'adminBackupNow', 'adminBackupStatus']) bad(app.call(a), /sign in/);
+});
+
+test('set up loose counting: suggestions from case packs, big counts start unticked, apply confirms', () => {
+  const app = freshApp();
+  const tp = addItem(app, { name: 'Toilet paper 2-ply', department: 'housekeeping', casePackRaw: '96 x CT', countingUnit: 'case', countingUnitConfirmed: true, desiredStock: 3, active: true });
+  const soup = addItem(app, { name: 'Soup: red lentil', department: 'cafe', casePackRaw: '4 x 4#', countingUnit: 'case', countingUnitConfirmed: true, desiredStock: 3, active: true });
+  const knives = addItem(app, { name: 'Plastic knives', department: 'cafe', casePackRaw: '1000 x CT', countingUnit: 'case', countingUnitConfirmed: true, desiredStock: 1, active: true });
+  const lettuce = addItem(app, { name: 'Green leaf lettuce', department: 'cafe', casePackRaw: '1 x 10#', countingUnit: 'case', countingUnitConfirmed: true, desiredStock: 1, active: true });
+  const sug = ok(app.admin('adminLooseSuggest')).rows;
+  const R = (id) => sug.filter((x) => x.id === id)[0];
+  assert.equal(R(tp.id).suggestedUnits, 96);
+  assert.equal(R(tp.id).suggestedLabel, 'rolls');
+  assert.equal(R(tp.id).checked, true);
+  assert.equal(R(soup.id).suggestedLabel, 'bags');
+  assert.equal(R(knives.id).checked, false);
+  assert.equal(R(lettuce.id).suggestedUnits, null);
+  bad(app.admin('adminLooseApply', { rows: [{ id: tp.id, unitsPerCase: 1, looseUnitLabel: 'rolls' }] }), /2 or more/);
+  bad(app.admin('adminLooseApply', { rows: [{ id: tp.id, unitsPerCase: 96, looseUnitLabel: '' }] }), /name/);
+  ok(app.admin('adminLooseApply', { rows: [{ id: tp.id, unitsPerCase: 96, looseUnitLabel: 'rolls' }, { id: soup.id, unitsPerCase: 4, looseUnitLabel: 'bags (4 lb)' }] }));
+  const staff = ok(app.call('countSheet', { kind: 'housekeeping' })).items[0];
+  assert.equal(staff.allowLoose, true);
+  assert.equal(staff.unitsPerCase, 96);
+  assert.equal(staff.looseUnitLabel, 'rolls');
+  assert.equal(ok(app.admin('adminLooseSuggest')).rows.filter((x) => x.id === tp.id)[0].checked, false); // already set
+  bad(app.call('adminLooseApply', { rows: [] }), /sign in/);
 });

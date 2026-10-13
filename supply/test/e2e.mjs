@@ -374,6 +374,21 @@ try {
     await admin.click('button:has-text("Fill from notes")');
     await admin.waitForSelector('text=/Preview \\(nothing saved yet\\)|Nothing to fill/');
   });
+  await check('Catalog: "Set up loose counting" suggests from case packs and staff then get a Loose box', async () => {
+    await admin.goto(APP + '#/admin/catalog');
+    await admin.click('button:has-text("Set up loose counting")');
+    await admin.waitForSelector('text=Set up loose counting (nothing saved yet)');
+    const soupRow = admin.locator('tr', { hasText: 'TEST Soup red lentil' });
+    expect((await soupRow.locator('input[type=checkbox]').isChecked()), 'soup ticked by default');
+    expect((await soupRow.locator('input.line-input').inputValue()) === '4', 'soup 4 per case');
+    expect((await soupRow.locator('input').nth(2).inputValue()) === 'bags', 'soup label');
+    await admin.screenshot({ path: path.join(SHOTS, 'admin-loose-setup-390.png'), fullPage: true });
+    await admin.click('button:has-text("Apply to ticked items")');
+    await admin.waitForSelector('text=/Loose counting is on for/');
+    await page.goto(APP + '#/count/cafe');
+    await page.waitForSelector('.item');
+    expect(/Loose bags/.test(await page.locator('.item', { hasText: 'TEST Soup red lentil' }).textContent()), 'staff loose box');
+  });
   await check('Backup: Google refusal shows the one-time steps; then "Turn on weekly backup" works', async () => {
     await hook('failBackup?on=1');
     await admin.goto(APP + '#/admin/import');

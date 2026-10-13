@@ -131,6 +131,9 @@ Deploy** (the address stays the same).
   draft orders back up to desired stock, rounded up to whole cases; above it, nothing. Items with no minimum
   are ordered whenever they're below desired stock and flagged "No minimum set". Missing counts or settings
   get no suggestion; Todd decides.
+* Catalog > **Set up loose counting** suggests loose units for every active item from its case pack
+  (96 x CT -> 96 rolls, 4 x 4# -> 4 bags). Items with one pack per case stay full-case only; counts over 120 per case
+  start unticked. Todd adjusts the numbers and names, then applies; staff then get a Loose box beside Full cases.
 * Catalog > **Fill from notes & Ginsberg's records** fills each active item's minimum from notes like
   "Suggested minimum 2, target 3" and copies the price, purchase history and item # check from the imported
   Ginsberg's record with the same item number (preview first; never overwrites).

@@ -542,6 +542,42 @@
     };
     [show, dept].forEach((s) => s.addEventListener('change', draw));
     q.addEventListener('input', draw);
+    const looseOut = h('div');
+    const looseBtn = h('button', { class: 'btn small secondary', type: 'button' }, 'Set up loose counting');
+    looseBtn.onclick = busy(looseBtn, async () => {
+      try {
+        const sg = await aapi('adminLooseSuggest');
+        const rows = sg.rows.map((x) => {
+          const cb = h('input', { type: 'checkbox', checked: x.checked, 'aria-label': 'Count ' + x.name + ' in loose units', style: 'width:26px;height:26px', disabled: !x.suggestedUnits && !x.current });
+          const n = inp(x.current ? x.current.unitsPerCase : x.suggestedUnits, { inputmode: 'numeric', class: 'line-input', 'aria-label': 'Loose units per case for ' + x.name });
+          const label = inp(x.current ? x.current.looseUnitLabel : x.suggestedLabel, { maxlength: 60, 'aria-label': 'Name of the loose units for ' + x.name, style: 'min-width:0' });
+          [n, label].forEach((el) => el.addEventListener('input', () => { cb.checked = true; }));
+          return { x, cb, n, label };
+        });
+        const apply = h('button', { class: 'btn', type: 'button' }, 'Apply to ticked items');
+        apply.onclick = busy(apply, async () => {
+          const pick = rows.filter((r) => r.cb.checked);
+          if (!pick.length) { tell('Tick at least one item.'); return; }
+          try {
+            const res = await aapi('adminLooseApply', { rows: pick.map((r) => ({ id: r.x.id, unitsPerCase: r.n.value.trim(), looseUnitLabel: r.label.value.trim() })) });
+            replace(looseOut, okBox('Loose counting is on for ' + plural(res.applied, 'item', 'items') + '. Staff now see a "Loose" box next to Full cases for them.'));
+            items = (await aapi('adminItems')).items; draw();
+          } catch (err) { looseOut.prepend(errBox(err)); }
+        });
+        replace(looseOut, h('div', { class: 'card', style: 'margin-top:12px' }, h('h3', null, 'Set up loose counting (nothing saved yet)'),
+          h('p', { class: 'small muted' }, 'Ticked items get a "Loose" box on the count screen, so staff can count part of a case (for example 48 rolls = half a case of toilet paper). The number comes from each case pack; change it or the name if it’s wrong. Untick anything that should stay full cases only.'),
+          h('div', { class: 'table-wrap' }, h('table', { class: 'data' },
+            h('thead', null, h('tr', null, ['Use', 'Item', 'Case pack', 'Per case', 'Loose units are called', 'Note'].map((t) => h('th', null, t)))),
+            h('tbody', null, rows.map((r) => h('tr', null,
+              h('td', null, r.cb),
+              h('td', null, h('b', null, r.x.name), h('div', { class: 'small muted' }, (KIND_HEADING[r.x.department] || '') + (r.x.category ? ' · ' + r.x.category : ''))),
+              h('td', null, r.x.casePackRaw || '—'),
+              h('td', null, r.n),
+              h('td', null, r.label),
+              h('td', { class: 'small' }, r.x.current ? 'Already set up' : r.x.why)))))),
+          h('div', { class: 'row', style: 'margin-top:10px' }, apply)));
+      } catch (err) { replace(looseOut, errBox(err)); }
+    });
     const fillOut = h('div');
     const fillBtn = h('button', { class: 'btn small secondary', type: 'button' }, 'Fill from notes & Ginsberg’s records');
     fillBtn.onclick = busy(fillBtn, async () => {
@@ -570,7 +606,7 @@
     replace(box, h('div', { class: 'card' }, h('h2', null, 'Housekeeping & Cafe catalog'),
       h('p', { class: 'small muted' }, 'Imported items start inactive. An item shows on a staff count only when you give it a department, confirm how it is counted, set a desired stock, and make it active. Items you will never use can be removed (and restored later) from the "Inactive" view.'),
       h('div', { class: 'grid2 stack' }, show, dept), h('div', { style: 'margin-top:10px' }, q),
-      h('div', { class: 'row' }, h('a', { class: 'btn small secondary', href: '#/admin/item/new' }, 'Add an item'), fillBtn), fillOut), h('div', { class: 'card' }, list));
+      h('div', { class: 'row' }, h('a', { class: 'btn small secondary', href: '#/admin/item/new' }, 'Add an item'), fillBtn, looseBtn), fillOut, looseOut), h('div', { class: 'card' }, list));
     draw();
   }
 
