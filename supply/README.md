@@ -95,7 +95,7 @@ Deploy** (the address stays the same).
   cleaning), each with its own color, icon and "6 of 14" progress. Cups, to-go & utensils are kept in two
   places, so each of those items has a **Kitchen** and a **Storage room** box and the app adds them up. An amber
   **Low** badge appears when the entered count is at or below the item's minimum.
-* **Need more or less?** on each item: **+ Extra for this week** (one-time cases, added to the next draft on top of what the
+* **Special request** on each item (a note at the top of the count says when to use it): **+ Extra for this week** (one-time cases, added to the next draft on top of what the
   count orders), **We need more every week** or **We have too many** (suggestions the admin approves or dismisses; the
   regular amounts never change on their own). The reason is optional.
 * **Item not on this list?** at the bottom of a count: item name, optional note and up to 3 photos, sent to the admin.
