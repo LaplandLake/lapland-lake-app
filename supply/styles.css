@@ -54,7 +54,7 @@ h3 { font-size: 1.12rem; }
 .home-head { text-align: center; padding: 18px 16px 0; }
 .home-head .logo { width: min(92%, 440px); height: auto; display: block; margin: 0 auto; }
 .lake-rule { height: 3px; background: var(--lake); border: 0; margin: 14px auto 10px; width: min(92%, 440px); border-radius: 2px; }
-.subtitle { font-size: 1.32rem; color: var(--ink-soft); margin: 0 0 18px; }
+.subtitle { font-size: 1.4rem; font-weight: 600; color: var(--teal-dark); margin: 0 0 18px; }
 .home-buttons { display: grid; gap: 14px; }
 .home-btn {
   display: flex; align-items: center; gap: 14px; width: 100%; min-height: 76px;
@@ -63,7 +63,8 @@ h3 { font-size: 1.12rem; }
   font-size: 1.42rem; font-weight: 700; text-align: left; cursor: pointer;
 }
 .home-btn:active, .home-btn:hover { background: var(--lake-soft); }
-.home-btn .ico { width: 34px; height: 34px; flex: 0 0 34px; color: var(--teal); }
+.home-btn .tile-ico { flex: 0 0 48px; width: 48px; height: 48px; border-radius: 12px; background: var(--teal); display: grid; place-items: center; }
+.home-btn .tile-ico .ico { width: 28px; height: 28px; color: #fff; }
 .delivery {
   margin: 20px 0 8px; padding: 14px 16px; border-radius: var(--radius);
   background: var(--sun-soft); border-left: 6px solid var(--sun); font-size: 1.12rem;

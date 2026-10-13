@@ -129,7 +129,7 @@
 
   /* ------------------------------------------------------------ icons */
   const ICONS = {
-    broom: '<path d="M14 3l7 7-3 1-5-5 1-3zM12 7l5 5-6 9-8-8 9-6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>',
+    cottage: '<path d="M3 11.5L12 4l9 7.5M5.5 9.5V20h13V9.5M10 20v-5.5h4V20M16 6.5V4h2.5v4.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
     cup: '<path d="M4 8h13v5a6 6 0 0 1-6 6h-1a6 6 0 0 1-6-6V8zM17 10h2a2 2 0 0 1 0 4h-2M8 3v2M12 3v2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
     list: '<path d="M8 6h13M8 12h13M8 18h13M3 6h1M3 12h1M3 18h1" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>',
     cooler: '<rect x="5" y="2.5" width="14" height="19" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5 9h14M8 5.5v1.5M8 12v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
@@ -170,7 +170,7 @@
 
   function renderHome() {
     const buttons = [
-      ['#/count/housekeeping', 'broom', 'Housekeeping Orders'],
+      ['#/count/housekeeping', 'cottage', 'Housekeeping Orders'],
       ['#/count/cafe', 'cup', 'Cafe Orders'],
       ['#/request/supply', 'list', 'Other Supply Requests'],
       ['#/request/drink', 'cooler', 'Drink Cooler'],
@@ -185,7 +185,7 @@
       h('div', { class: 'wrap' },
         !API_URL ? h('div', { class: 'notice warn' }, 'Not connected yet: Todd needs to finish the one-time setup before counts and requests can be saved.') : null,
         h('nav', { class: 'home-buttons', 'aria-label': 'Sections' },
-          buttons.map((b) => h('a', { class: 'home-btn', href: b[0] }, icon(b[1]), h('span', null, b[2])))),
+          buttons.map((b) => h('a', { class: 'home-btn', href: b[0] }, h('span', { class: 'tile-ico' }, icon(b[1])), h('span', null, b[2])))),
         h('section', { class: 'status-card', 'aria-label': "Ginsberg's delivery and this week's counts" },
           h('h2', null, "Ginsberg's Foods"),
           live,
