@@ -573,8 +573,7 @@
           [n, label].forEach((el) => el.addEventListener('input', () => { cb.checked = true; }));
           return { x, cb, n, label };
         });
-        const apply = h('button', { class: 'btn', type: 'button' }, 'Apply to ticked items');
-        apply.onclick = busy(apply, async () => {
+        const run = async () => {
           const pick = rows.filter((r) => r.cb.checked);
           if (!pick.length) { tell('Tick at least one item.'); return; }
           try {
@@ -582,19 +581,24 @@
             replace(looseOut, okBox('Loose counting is on for ' + plural(res.applied, 'item', 'items') + '. Staff now see a "Loose" box next to Full cases for them.'));
             items = (await aapi('adminItems')).items; draw();
           } catch (err) { looseOut.prepend(errBox(err)); }
-        });
+        };
+        // The list can be long, so the button is at the top and the bottom.
+        const applyBtn = () => { const b = h('button', { class: 'btn', type: 'button' }, 'Apply to ticked items'); b.onclick = busy(b, run); return b; };
+        const table = h('table', { class: 'data' },
+          h('thead', null, h('tr', null, ['Use', 'Item', 'Case pack', 'Per case', 'Loose units are called'].map((t) => h('th', null, t)))),
+          h('tbody', null, rows.map((r) => h('tr', null,
+            h('td', null, r.cb),
+            h('td', null, h('b', null, r.x.name), h('div', { class: 'small muted' }, (KIND_HEADING[r.x.department] || '') + (r.x.category ? ' · ' + r.x.category : '')),
+              h('div', { class: 'small' }, r.x.current ? 'Already set up' : r.x.why)),
+            h('td', null, r.x.casePackRaw || '—'),
+            h('td', null, r.n),
+            h('td', null, r.label)))));
+        labelize(table);
         replace(looseOut, h('div', { class: 'card', style: 'margin-top:12px' }, h('h3', null, 'Set up loose counting (nothing saved yet)'),
           h('p', { class: 'small muted' }, 'Ticked items get a "Loose" box on the count screen, so staff can count part of a case (for example 48 rolls = half a case of toilet paper). The number comes from each case pack; change it or the name if it’s wrong. Untick anything that should stay full cases only.'),
-          h('div', { class: 'table-wrap' }, h('table', { class: 'data' },
-            h('thead', null, h('tr', null, ['Use', 'Item', 'Case pack', 'Per case', 'Loose units are called', 'Note'].map((t) => h('th', null, t)))),
-            h('tbody', null, rows.map((r) => h('tr', null,
-              h('td', null, r.cb),
-              h('td', null, h('b', null, r.x.name), h('div', { class: 'small muted' }, (KIND_HEADING[r.x.department] || '') + (r.x.category ? ' · ' + r.x.category : ''))),
-              h('td', null, r.x.casePackRaw || '—'),
-              h('td', null, r.n),
-              h('td', null, r.label),
-              h('td', { class: 'small' }, r.x.current ? 'Already set up' : r.x.why)))))),
-          h('div', { class: 'row', style: 'margin-top:10px' }, apply)));
+          h('div', { class: 'row', style: 'margin-bottom:10px' }, applyBtn()),
+          h('div', { class: 'table-wrap' }, table),
+          h('div', { class: 'row', style: 'margin-top:10px' }, applyBtn())));
       } catch (err) { replace(looseOut, errBox(err)); }
     });
     const fillOut = h('div');
@@ -603,23 +607,29 @@
       try {
         const p = await aapi('adminFillPreview');
         if (!p.rows.length) { replace(fillOut, okBox('Nothing to fill: every active item already has its minimum and price, or there is nothing to copy.')); return; }
-        const apply = h('button', { class: 'btn', type: 'button', disabled: !p.changed }, 'Apply to ' + plural(p.changed, 'item', 'items'));
-        apply.onclick = busy(apply, async () => {
+        const run = async () => {
           try { const res = await aapi('adminFillCommit'); replace(fillOut, okBox('Updated ' + plural(res.changed, 'item', 'items') + '.')); items = (await aapi('adminItems')).items; draw(); }
           catch (err) { fillOut.prepend(errBox(err)); }
-        });
+        };
+        // The list can be long, so the button is at the top and the bottom.
+        const applyBtn = () => {
+          if (!p.changed) return h('div', { class: 'notice' }, 'Nothing new to fill in. The lines below are only heads-ups.');
+          const b = h('button', { class: 'btn', type: 'button' }, 'Apply to ' + plural(p.changed, 'item', 'items')); b.onclick = busy(b, run); return b;
+        };
+        const table = h('table', { class: 'data' },
+          h('thead', null, h('tr', null, ['Item', 'Minimum', 'Desired', 'Price', 'Item #'].map((x) => h('th', null, x)))),
+          h('tbody', null, p.rows.map((x) => h('tr', null,
+            h('td', null, h('b', null, x.name), x.notes.length ? h('div', { class: 'small muted' }, x.notes.join(' ')) : null),
+            h('td', { class: 'num' }, x.minimumStock === null ? '—' : String(x.minimumStock)),
+            h('td', { class: 'num' }, x.desiredStock === null ? '—' : String(x.desiredStock)),
+            h('td', { class: 'num' }, x.price === null ? '—' : '$' + Number(x.price).toFixed(2) + (x.priceDate ? ' (' + x.priceDate + ')' : '')),
+            h('td', null, (x.supplierItemNumber ? '#' + x.supplierItemNumber : '—') + (x.verified ? ' ✓ matches Ginsberg’s' : ''))))));
+        labelize(table);
         replace(fillOut, h('div', { class: 'card', style: 'margin-top:12px' }, h('h3', null, 'Preview (nothing saved yet)'),
           h('p', { class: 'small muted' }, 'Minimums come from notes like "Suggested minimum 2, target 3". Prices, purchase history and item # checks come from the imported Ginsberg’s record with the same item #. Anything you already filled in is left alone.'),
-          h('div', { class: 'table-wrap' }, h('table', { class: 'data' },
-            h('thead', null, h('tr', null, ['Item', 'Minimum', 'Desired', 'Price', 'Item #', 'Notes'].map((x) => h('th', null, x)))),
-            h('tbody', null, p.rows.map((x) => h('tr', null,
-              h('td', null, x.name),
-              h('td', { class: 'num' }, x.minimumStock === null ? '—' : String(x.minimumStock)),
-              h('td', { class: 'num' }, x.desiredStock === null ? '—' : String(x.desiredStock)),
-              h('td', { class: 'num' }, x.price === null ? '—' : '$' + Number(x.price).toFixed(2) + (x.priceDate ? ' (' + x.priceDate + ')' : '')),
-              h('td', null, (x.supplierItemNumber ? '#' + x.supplierItemNumber : '') + (x.verified ? ' ✓ matches Ginsberg’s' : '')),
-              h('td', null, x.notes.join(' '))))))),
-          h('div', { class: 'row', style: 'margin-top:10px' }, apply)));
+          h('div', { class: 'row', style: 'margin-bottom:10px' }, applyBtn()),
+          h('div', { class: 'table-wrap' }, table),
+          h('div', { class: 'row', style: 'margin-top:10px' }, applyBtn())));
       } catch (err) { replace(fillOut, errBox(err)); }
     });
     replace(box, h('div', { class: 'card' }, h('h2', null, 'Housekeeping & Cafe catalog'),
