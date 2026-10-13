@@ -352,7 +352,7 @@
     const draw = () => {
       thumbs.innerHTML = '';
       photos.forEach((p) => thumbs.append(h('div', { class: 'thumb' }, p.previewUrl ? h('img', { src: p.previewUrl, alt: 'Photo to attach' }) : null,
-        h('button', { class: 'rm', type: 'button', 'aria-label': 'Remove this photo', onclick: () => { photos.splice(photos.indexOf(p), 1); draw(); } }, '×'),
+        h('button', { class: 'rm', type: 'button', 'aria-label': 'Remove this photo', disabled: send.disabled, onclick: () => { photos.splice(photos.indexOf(p), 1); draw(); } }, '×'),
         p.status === 'preparing' ? h('div', { class: 'st' }, 'Preparing…') : null)));
     };
     const add = async (files) => {
@@ -378,11 +378,14 @@
       if (!name.value.trim()) { show('err', 'Please type the item name.'); name.focus(); return; }
       if (photos.some((p) => p.status === 'preparing')) { show('warn', 'Wait for the photo to finish preparing.'); return; }
       send.disabled = true;
+      draw();
       try {
-        for (let i = 0; i < photos.length; i++) {
-          if (photos[i].token) continue;
-          send.textContent = 'Uploading photo ' + (i + 1) + ' of ' + photos.length + '…';
-          photos[i].token = (await apiUpload('uploadPhoto', { data: photos[i].data, mime: 'image/jpeg' })).photoToken;
+        const list = photos.slice();
+        for (let i = 0; i < list.length; i++) {
+          const p = list[i];
+          if (p.token) continue;
+          send.textContent = 'Uploading photo ' + (i + 1) + ' of ' + list.length + '…';
+          p.token = (await apiUpload('uploadPhoto', { data: p.data, mime: 'image/jpeg' })).photoToken;
         }
         send.textContent = 'Sending…';
         const res = await api('staffSuggest', { type: 'add', department: dept, itemName: name.value.trim(), note: note.value.trim(), photoTokens: photos.map((p) => p.token) });
@@ -391,6 +394,7 @@
         tell(res.message);
       } catch (err) {
         send.disabled = false; send.textContent = 'Send';
+        draw();
         show('err', err.message + ' Nothing is lost; tap Send to try again.');
       }
     };
@@ -521,6 +525,7 @@
       setStatus(r, 'saving');
       try {
         const res = await api('saveCount', body);
+        store.del('sm-c:countSheet:' + JSON.stringify({ kind })); // next open loads fresh numbers
         if (res.session) state.session = res.session;
         r.saved = clear ? null : res.entry;
         r.inflight = false;
@@ -612,12 +617,14 @@
       return el;
     }
 
-    // Paints the list. It may run twice: first from this phone's last copy, then with the fresh one
-    // (only if nobody has started typing; otherwise a note offers a reload).
+    // Paints the list. It may run twice: first from this phone's last copy (shown locked, so
+    // nothing is saved from old numbers), then with the fresh copy, which can be used.
     let painted = false;
-    let touched = false;
-    body.addEventListener('input', () => { touched = true; });
-    body.addEventListener('click', (e) => { if (e.target.closest('.stepper button')) touched = true; });
+    function lock(on) {
+      body.classList.toggle('stale', on);
+      body.querySelectorAll('input, button').forEach((el) => { el.disabled = on; });
+      finishBtn.disabled = on;
+    }
     function paint(data) {
       painted = true;
       state.items = data.items;
@@ -680,21 +687,20 @@
       const hasDraft = Object.keys(store.get(draftKey) || {}).length > 0;
       const key = 'sm-c:countSheet:' + JSON.stringify({ kind });
       const old = hasDraft ? null : store.get(key);
-      if (old) paint(old);
+      if (old) { paint(old); lock(true); }
       let data;
       try {
         data = await api('countSheet', { kind });
       } catch (err) {
-        if (painted) { body.prepend(h('div', { class: 'notice warn' }, 'Showing the list from earlier: ' + err.message)); return; }
+        if (painted) { lock(false); body.prepend(h('div', { class: 'notice warn' }, 'Showing the list from earlier (' + err.message + ') Entries may not save until the connection is back.')); return; }
         body.innerHTML = '';
-        body.append(h('div', { class: 'notice err' }, err.message), h('button', { class: 'btn', onclick: () => renderCount(kind) }, 'Try again'));
+        body.append(h('div', { class: 'notice err' }, err.message), h('button', { class: 'btn', onclick: () => { off(); renderCount(kind); } }, 'Try again'));
         return;
       }
       store.set(key, data);
-      if (old && JSON.stringify(old) === JSON.stringify(data)) return;
-      if (!old || !touched) { paint(data); return; }
-      body.prepend(h('div', { class: 'notice info' }, 'The list changed since this phone last opened it. ',
-        h('button', { class: 'btn small', type: 'button', onclick: () => { if (!pendingCount()) paint(data); else tell('Wait until everything says "Saved", then tap again.'); } }, 'Show the latest')));
+      if (old && JSON.stringify(old) === JSON.stringify(data)) { lock(false); return; }
+      lock(false);
+      paint(data);
     }
 
     async function finish() {
