@@ -114,6 +114,40 @@
     del(k) { try { localStorage.removeItem(k); } catch (e) { /* ignore */ } },
   };
 
+  // Lists open at once from this phone's last copy, then update when the fresh copy arrives
+  // (Google takes a second or more to answer). Staff lists only: nothing private is kept here.
+  async function cachedApi(action, body, paint) {
+    const key = 'sm-c:' + action + ':' + JSON.stringify(body || {});
+    const old = store.get(key);
+    if (old) paint(old, true);
+    const fresh = await api(action, body);
+    store.set(key, fresh);
+    if (!old || JSON.stringify(old) !== JSON.stringify(fresh)) paint(fresh, false);
+    return fresh;
+  }
+  // Fill the cache in the background so the next screen opens instantly.
+  function warm(action, body) {
+    api(action, body).then((d) => store.set('sm-c:' + action + ':' + JSON.stringify(body || {}), d)).catch(() => {});
+  }
+
+  /* ------------------------------------------------------------ dialogs with forms */
+  function openDialog(title, nodes) {
+    const prev = document.activeElement;
+    const onKey = (e) => { if (e.key === 'Escape') close(); };
+    const close = () => { wrap.remove(); document.removeEventListener('keydown', onKey); if (prev && prev.focus) prev.focus(); };
+    const wrap = h('div', { class: 'modal', role: 'dialog', 'aria-modal': 'true', 'aria-label': title },
+      h('div', { class: 'modal-card form-card' },
+        h('div', { class: 'row', style: 'align-items:flex-start;flex-wrap:nowrap' },
+          h('h2', { class: 'grow', style: 'margin:0 0 10px' }, title),
+          h('button', { class: 'btn small secondary', type: 'button', 'aria-label': 'Close', onclick: () => close() }, '×')),
+        nodes));
+    document.addEventListener('keydown', onKey);
+    document.body.appendChild(wrap);
+    const first = wrap.querySelector('button.choice, input, textarea');
+    if (first) first.focus();
+    return { close, wrap };
+  }
+
   /* ------------------------------------------------------------ formatting */
   function fmtTime(iso) {
     if (!iso) return '';
@@ -192,10 +226,14 @@
           h('p', { class: 'delivery' }, DELIVERY_TEXT[0], h('br'), DELIVERY_TEXT[1])),
         h('div', { style: 'text-align:center' }, h('a', { class: 'admin-link', href: '#/admin' }, 'Todd — Admin'))));
     if (!API_URL) return;
-    api('homeStatus').then((s) => {
+    cachedApi('homeStatus', null, (s) => {
       const nd = s.nextDelivery;
+      live.innerHTML = '';
+      const rules = document.querySelector('.status-card .delivery');
+      if (rules) rules.classList.toggle('hidden', !!s.paused);
       live.append(
-        nd ? h('dl', { class: 'status-dates' },
+        s.paused ? h('p', { class: 'paused-note' }, h('b', null, 'Ordering paused. '), 'Keep counting as usual; Todd isn’t ordering from Ginsberg’s right now.') : null,
+        nd && !s.paused ? h('dl', { class: 'status-dates' },
           h('dt', null, 'Next delivery'), h('dd', null, fmtDay(nd.deliveryDate)),
           h('dt', null, 'Order deadline'), h('dd', null, fmtWhen(nd.deadline))) : null,
         h('ul', { class: 'status-counts' },
@@ -204,7 +242,8 @@
             const cls = c.open ? 'progress' : c.lastFinished ? 'done' : 'none';
             return h('li', { class: cls }, h('span', { class: 'dot', 'aria-hidden': 'true' }), h('b', null, KIND_HEADING[d] + ' count: '), countStatusText(c));
           })));
-    }).catch(() => { /* the card still shows the delivery rules */ });
+    }).then(() => { ['housekeeping', 'cafe'].forEach((k) => warm('countSheet', { kind: k })); })
+      .catch(() => { /* the card still shows the delivery rules */ });
   }
 
   /* ------------------------------------------------------------ storage areas (count sections) */
@@ -255,6 +294,108 @@
     return '';
   }
 
+  // "Suggest…" on a count item: a one-time extra, or a note to Todd about the regular amount.
+  function suggestDialog(dept, it) {
+    const CHOICES = [
+      ['extra', '+ Extra for this week', 'One-time need, for example a group coming. Added to the next order.'],
+      ['more', 'We need more every week', 'We keep running out. Todd decides whether to raise the regular amount.'],
+      ['less', 'We have too many', 'Cases keep piling up or going stale. Todd decides whether to lower it.'],
+    ];
+    let type = '';
+    const cases = h('input', { type: 'text', inputmode: 'numeric', pattern: '[0-9]*', value: '1', id: 'sg-cases', 'aria-label': 'Extra cases' });
+    const step = (d) => { const v = /^\d+$/.test(cases.value) ? Number(cases.value) : 1; cases.value = String(Math.min(50, Math.max(1, v + d))); };
+    const casesRow = h('div', { class: 'hidden' }, h('label', { for: 'sg-cases' }, 'How many extra cases?'),
+      h('div', { class: 'stepper' },
+        h('button', { type: 'button', 'aria-label': 'One fewer', onclick: () => step(-1) }, '−'), cases,
+        h('button', { type: 'button', 'aria-label': 'One more', onclick: () => step(1) }, '+')));
+    const note = h('textarea', { id: 'sg-note', maxlength: 500, placeholder: 'For example: group coming Friday', style: 'min-height:70px' });
+    const msg = h('div');
+    const send = h('button', { class: 'btn block', type: 'button', disabled: true }, 'Send');
+    const choiceBtns = CHOICES.map((c) => {
+      const b = h('button', { class: 'choice', type: 'button', 'aria-pressed': 'false', onclick: () => {
+        type = c[0];
+        choiceBtns.forEach((x) => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
+        casesRow.classList.toggle('hidden', type !== 'extra');
+        send.disabled = false;
+      } }, h('b', null, c[1]), h('span', { class: 'small' }, c[2]));
+      return b;
+    });
+    const dlg = openDialog(it.name, [
+      h('div', { class: 'choices' }, choiceBtns), casesRow,
+      h('label', { for: 'sg-note' }, 'Reason (optional)'), note, msg, h('div', { style: 'margin-top:12px' }, send)]);
+    send.onclick = async () => {
+      if (!type) return;
+      if (type === 'extra' && !/^\d+$/.test(cases.value.trim())) { msg.innerHTML = ''; msg.append(h('div', { class: 'notice err' }, 'Enter a whole number of cases.')); return; }
+      send.disabled = true; send.textContent = 'Sending…';
+      try {
+        const res = await api('staffSuggest', { type, department: dept, itemId: it.id, cases: cases.value.trim(), note: note.value.trim() });
+        dlg.close();
+        tell(res.message);
+      } catch (err) {
+        send.disabled = false; send.textContent = 'Send';
+        msg.innerHTML = ''; msg.append(h('div', { class: 'notice err', role: 'alert' }, err.message + ' Nothing was sent; try again.'));
+      }
+    };
+  }
+
+  // "Item not on this list?": staff tell Todd about something they count that isn't listed.
+  function notListedDialog(dept) {
+    const photos = [];
+    const name = h('input', { type: 'text', id: 'nl-name', maxlength: 120, autocomplete: 'off', placeholder: 'For example: Oat milk, 32 oz' });
+    const note = h('textarea', { id: 'nl-note', maxlength: 500, placeholder: 'Optional: where it is kept, how many we use', style: 'min-height:70px' });
+    const cam = h('input', { type: 'file', accept: 'image/*', capture: 'environment', class: 'sr', tabindex: -1 });
+    const pick = h('input', { type: 'file', accept: 'image/*', class: 'sr', tabindex: -1 });
+    const thumbs = h('div', { class: 'thumbs' });
+    const msg = h('div');
+    const send = h('button', { class: 'btn block', type: 'button' }, 'Send to Todd');
+    const show = (type, text) => { msg.innerHTML = ''; if (text) msg.append(h('div', { class: 'notice ' + type, role: 'alert' }, text)); };
+    const draw = () => {
+      thumbs.innerHTML = '';
+      photos.forEach((p) => thumbs.append(h('div', { class: 'thumb' }, p.previewUrl ? h('img', { src: p.previewUrl, alt: 'Photo to attach' }) : null,
+        h('button', { class: 'rm', type: 'button', 'aria-label': 'Remove this photo', onclick: () => { photos.splice(photos.indexOf(p), 1); draw(); } }, '×'),
+        p.status === 'preparing' ? h('div', { class: 'st' }, 'Preparing…') : null)));
+    };
+    const add = async (files) => {
+      for (const f of Array.from(files)) {
+        if (photos.length >= 3) { show('warn', 'Up to 3 photos.'); break; }
+        const p = { status: 'preparing' };
+        photos.push(p); draw();
+        try { Object.assign(p, await preparePhoto(f), { status: 'ready' }); } catch (err) { photos.splice(photos.indexOf(p), 1); show('err', err.message); }
+        draw();
+      }
+    };
+    cam.addEventListener('change', () => { add(cam.files); cam.value = ''; });
+    pick.addEventListener('change', () => { add(pick.files); pick.value = ''; });
+    const dlg = openDialog('Item not on this list', [
+      h('p', { class: 'small muted', style: 'margin-top:0' }, 'Todd gets this and adds it to the ' + KIND_HEADING[dept] + ' count. A photo of the case label helps him find it.'),
+      h('label', { for: 'nl-name' }, 'Item name'), name,
+      h('label', { for: 'nl-note' }, 'Note (optional)'), note,
+      h('div', { class: 'photo-buttons', style: 'margin-top:10px' },
+        h('button', { class: 'btn secondary', type: 'button', onclick: () => cam.click() }, 'Take photo'),
+        h('button', { class: 'btn secondary', type: 'button', onclick: () => pick.click() }, 'Choose photo')),
+      cam, pick, thumbs, msg, h('div', { style: 'margin-top:12px' }, send)]);
+    send.onclick = async () => {
+      if (!name.value.trim()) { show('err', 'Please type the item name.'); name.focus(); return; }
+      if (photos.some((p) => p.status === 'preparing')) { show('warn', 'Wait for the photo to finish preparing.'); return; }
+      send.disabled = true;
+      try {
+        for (let i = 0; i < photos.length; i++) {
+          if (photos[i].token) continue;
+          send.textContent = 'Uploading photo ' + (i + 1) + ' of ' + photos.length + '…';
+          photos[i].token = (await apiUpload('uploadPhoto', { data: photos[i].data, mime: 'image/jpeg' })).photoToken;
+        }
+        send.textContent = 'Sending…';
+        const res = await api('staffSuggest', { type: 'add', department: dept, itemName: name.value.trim(), note: note.value.trim(), photoTokens: photos.map((p) => p.token) });
+        photos.forEach((p) => p.previewUrl && URL.revokeObjectURL(p.previewUrl));
+        dlg.close();
+        tell(res.message);
+      } catch (err) {
+        send.disabled = false; send.textContent = 'Send to Todd';
+        show('err', err.message + ' Nothing is lost; tap Send to try again.');
+      }
+    };
+  }
+
   function renderCount(kind) {
     const draftKey = 'sm-draft-' + kind;
     const state = { items: [], rows: {}, session: null, finishing: false, sections: [] };
@@ -263,8 +404,8 @@
     const progressBar = h('div');
     const progress = h('div', { class: 'progress' }, progressText, h('div', { class: 'bar' }, progressBar));
     const finishBtn = h('button', { class: 'btn', type: 'button', onclick: () => finish() }, 'Finish count');
-    const finishBar = h('div', { class: 'finish-bar hidden' }, h('div', { class: 'inner' },
-      h('a', { class: 'btn secondary', href: '#/' }, 'Save & leave'), finishBtn));
+    const leaveBtn = h('a', { class: 'btn secondary', href: '#/' }, 'Save & leave');
+    const finishBar = h('div', { class: 'finish-bar hidden' }, h('div', { class: 'inner' }, leaveBtn, finishBtn));
     mount(topbar(KIND_TITLE[kind]), body, finishBar);
 
     function pendingCount() { return Object.values(state.rows).filter((r) => r.status === 'saving' || r.status === 'pending' || r.status === 'error' || r.status === 'invalid').length; }
@@ -341,8 +482,6 @@
       r.stateEl.className = 'save-state ' + (status === 'invalid' ? 'error' : status);
       r.stateEl.textContent = txt;
       r.retry.classList.toggle('hidden', status !== 'error');
-      r.lowBtn.setAttribute('aria-pressed', r.flag === 'low' ? 'true' : 'false');
-      r.outBtn.setAttribute('aria-pressed', r.flag === 'out' ? 'true' : 'false');
       updateDerived(r);
       updateProgress();
       saveDraft();
@@ -361,7 +500,9 @@
     }
     function schedule(r, delay) {
       clearTimeout(r.timer);
-      const err = boxValues(r).map((v) => validateLocal(kind, v.full, v.loose)).filter(Boolean)[0];
+      const vals = boxValues(r);
+      const err = vals.map((v) => validateLocal(kind, v.full, v.loose)).filter(Boolean)[0]
+        || (state.finished && isBlank(vals) ? 'Enter a number (0 if there are none).' : '');
       if (err) { setStatus(r, 'invalid', err); return; }
       if (r.status !== 'saving') setStatus(r, 'pending');
       r.timer = setTimeout(() => {
@@ -431,15 +572,8 @@
       }
       r.stateEl = h('span', { class: 'save-state none' }, 'Not counted');
       r.retry = h('button', { class: 'btn small secondary hidden', type: 'button', onclick: () => schedule(r, 0) }, 'Retry');
-      r.lowBtn = h('button', { class: 'flagbtn low', type: 'button', 'aria-pressed': 'false', onclick: () => { r.flag = r.flag === 'low' ? '' : 'low'; schedule(r, 0); } }, 'Report low');
-      r.outBtn = h('button', {
-        class: 'flagbtn out', type: 'button', 'aria-pressed': 'false', onclick: () => {
-          if (r.flag === 'out') r.flag = '';
-          else { r.flag = 'out'; r.boxes.forEach((b) => { b.full.value = '0'; if (b.loose) b.loose.value = '0'; }); }
-          schedule(r, 0);
-        },
-      }, 'Out');
-      const clearBtn = h('button', { class: 'btn small secondary', type: 'button', onclick: () => { r.boxes.forEach((b) => { b.full.value = ''; if (b.loose) b.loose.value = ''; }); r.flag = ''; r.wantClear = true; schedule(r, 0); } }, 'Clear');
+      const suggestBtn = kind === 'beverage' ? null : h('button', { class: 'flagbtn suggest', type: 'button', onclick: () => suggestDialog(kind, it) }, 'Suggest…');
+      const clearBtn = state.finished ? null : h('button', { class: 'btn small secondary', type: 'button', onclick: () => { r.boxes.forEach((b) => { b.full.value = ''; if (b.loose) b.loose.value = ''; }); r.flag = ''; r.wantClear = true; schedule(r, 0); } }, 'Clear');
       r.lowBadge = h('span', { class: 'low-badge hidden', title: 'At or below the minimum' }, 'Low');
       const meta = [];
       if (kind === 'beverage') {
@@ -456,7 +590,7 @@
         h('p', { class: 'meta' }, meta.join(' · ')),
         r.boxes.map((b) => b.el),
         r.totalEl || null,
-        h('div', { class: 'item-foot' }, r.lowBtn, r.outBtn, clearBtn, r.stateEl, r.retry));
+        h('div', { class: 'item-foot' }, suggestBtn, clearBtn, r.stateEl, r.retry));
       state.rows[it.id] = r;
       setStatus(r, saved ? 'saved' : 'none');
       return r.el;
@@ -478,32 +612,49 @@
       return el;
     }
 
-    async function load() {
-      let data;
-      try {
-        data = await api('countSheet', { kind });
-      } catch (err) {
-        body.innerHTML = '';
-        body.append(h('div', { class: 'notice err' }, err.message), h('button', { class: 'btn', onclick: () => renderCount(kind) }, 'Try again'));
-        return;
-      }
+    // Paints the list. It may run twice: first from this phone's last copy, then with the fresh one
+    // (only if nobody has started typing; otherwise a note offers a reload).
+    let painted = false;
+    let touched = false;
+    body.addEventListener('input', () => { touched = true; });
+    body.addEventListener('click', (e) => { if (e.target.closest('.stepper button')) touched = true; });
+    function paint(data) {
+      painted = true;
       state.items = data.items;
       state.session = data.session;
+      state.finished = data.finished || null;
       state.entries = data.entries;
+      state.rows = {};
+      state.sections = [];
       body.innerHTML = '';
       body.append(h('h2', { class: 'dept-heading' }, KIND_HEADING[kind] + ' count'));
       if (!data.items.length) {
+        finishBar.classList.add('hidden');
         body.append(h('div', { class: 'notice info' }, kind === 'beverage'
           ? 'No beer, cider, wine or craft soda products are set up yet. Todd adds them (with confirmed case sizes) in Admin.'
           : 'No items are on the ' + KIND_HEADING[kind] + ' list yet. Todd chooses the items in Admin.'));
         return;
       }
       body.append(progress);
-      body.append(h('p', { class: 'muted small' }, data.session
-        ? 'Count started ' + fmtDateTime(data.session.startedAt) + '. Each entry saves on its own; you can leave and come back.'
-        : 'Each entry saves as you type. You can leave and come back; saved counts stay. Blank means "not counted"; enter 0 if there are none.'));
+      const f = state.finished;
+      if (f) {
+        body.append(h('div', { class: 'notice ok finished-note' },
+          h('b', null, 'This count was finished ' + fmtWhen(f.completedAt) + '. '),
+          f.mode === 'sent' ? 'Todd already sent this week’s order. If a number changes (for example something sells out), fix it here and Todd is told right away.'
+            : f.mode === 'paused' ? 'If a number changes, you can still fix it here until the end of the week.'
+              : 'If a number changes (for example something sells out), fix it here. The order updates by itself until Todd sends it.'));
+      } else {
+        body.append(h('p', { class: 'muted small' }, data.session
+          ? 'Count started ' + fmtDateTime(data.session.startedAt) + '. Each entry saves on its own; you can leave and come back.'
+          : 'Each entry saves as you type. You can leave and come back; saved counts stay. Blank means "not counted"; enter 0 if there are none.'));
+      }
       if (kind === 'beverage') data.items.forEach((it) => body.append(itemCard(it, data.entries[it.id] || null)));
       else groupByArea(data.items).forEach((g) => body.append(sectionEl(g)));
+      if (kind !== 'beverage') {
+        body.append(h('div', { class: 'not-listed' },
+          h('button', { class: 'btn secondary block', type: 'button', onclick: () => notListedDialog(kind) }, 'Item not on this list?'),
+          h('p', { class: 'small muted' }, 'Tell Todd about something you count that isn’t here.')));
+      }
       const draft = store.get(draftKey) || {};
       Object.keys(draft).forEach((id) => {
         const r = state.rows[id];
@@ -518,8 +669,32 @@
         schedule(r, 300);
       });
       finishBar.classList.remove('hidden');
+      finishBtn.classList.toggle('hidden', !!f);
+      leaveBtn.textContent = f ? 'Done' : 'Save & leave';
       updateProgress();
       placeHeaders();
+    }
+
+    async function load() {
+      // Unsent typing from last time is restored onto the fresh list only.
+      const hasDraft = Object.keys(store.get(draftKey) || {}).length > 0;
+      const key = 'sm-c:countSheet:' + JSON.stringify({ kind });
+      const old = hasDraft ? null : store.get(key);
+      if (old) paint(old);
+      let data;
+      try {
+        data = await api('countSheet', { kind });
+      } catch (err) {
+        if (painted) { body.prepend(h('div', { class: 'notice warn' }, 'Showing the list from earlier: ' + err.message)); return; }
+        body.innerHTML = '';
+        body.append(h('div', { class: 'notice err' }, err.message), h('button', { class: 'btn', onclick: () => renderCount(kind) }, 'Try again'));
+        return;
+      }
+      store.set(key, data);
+      if (old && JSON.stringify(old) === JSON.stringify(data)) return;
+      if (!old || !touched) { paint(data); return; }
+      body.prepend(h('div', { class: 'notice info' }, 'The list changed since this phone last opened it. ',
+        h('button', { class: 'btn small', type: 'button', onclick: () => { if (!pendingCount()) paint(data); else tell('Wait until everything says "Saved", then tap again.'); } }, 'Show the latest')));
     }
 
     async function finish() {
@@ -541,6 +716,7 @@
       try {
         const res = await api('completeCount', { kind, sessionId: state.session.id });
         store.del(draftKey);
+        store.del('sm-c:countSheet:' + JSON.stringify({ kind }));
         off();
         mount(topbar(KIND_TITLE[kind]), h('div', { class: 'wrap' },
           h('div', { class: 'notice ok' }, h('b', null, 'Count finished. Thank you!'), h('br'),
@@ -733,7 +909,14 @@
 
     async function loadRecent() {
       try {
-        const data = await api('recentRequests', { kind: isDrink ? 'drink' : 'supply' });
+        await cachedApi('recentRequests', { kind: isDrink ? 'drink' : 'supply' }, (data) => paintRecent(data));
+      } catch (err) {
+        recent.innerHTML = '';
+        recent.appendChild(h('div', { class: 'notice err' }, 'Could not load recent requests: ' + err.message));
+      }
+    }
+    function paintRecent(data) {
+      {
         recent.innerHTML = '';
         recent.appendChild(h('h2', null, 'Recent requests'));
         if (!data.requests.length) recent.appendChild(h('p', { class: 'muted' }, 'No requests in the last 45 days.'));
@@ -742,9 +925,6 @@
             h('div', { class: 'small muted' }, fmtDateTime(r.createdAt) + (r.photoCount ? ' · ' + plural(r.photoCount, 'photo', 'photos') : '')),
             r.note ? h('div', { class: 'small' }, r.note) : null),
           h('span', { class: 'chip ' + (r.status === 'Ordered' ? 'ordered' : 'shopping') }, r.status))));
-      } catch (err) {
-        recent.innerHTML = '';
-        recent.appendChild(h('div', { class: 'notice err' }, 'Could not load recent requests: ' + err.message));
       }
     }
 
@@ -768,23 +948,31 @@
         : 'For anything that isn’t on the Housekeeping or Cafe count. These are kept separate from the Ginsberg’s order.'),
       msg, form, recent));
 
-    (async () => {
-      try {
-        options = (await api('requestOptions', { kind: isDrink ? 'drink' : 'supply' })).options;
-      } catch (err) {
-        showMsg('err', 'Could not load the list: ' + err.message + ' You can still type the item.');
-      }
+    let filled = false;
+    function fillOptions() {
+      const keep = filled ? select.value : null;
       select.innerHTML = '';
       select.appendChild(h('option', { value: '' }, options.length ? 'Choose…' : (isDrink ? 'Type the drink below' : 'Type the item below')));
       options.forEach((o) => select.appendChild(h('option', { value: o.id }, o.name)));
       select.appendChild(h('option', { value: '__other' }, isDrink ? 'Another drink (type it)' : 'Something else (type it)'));
+      if (filled) {
+        if (keep && Array.from(select.options).some((o) => o.value === keep)) select.value = keep;
+        syncOther();
+        return;
+      }
+      filled = true;
       const d = store.get(draftKey);
       if (d) {
         if (d.opt && Array.from(select.options).some((o) => o.value === d.opt)) select.value = d.opt;
         nameInput.value = d.name || ''; qty.value = d.qty || ''; unit.value = d.unit || ''; note.value = d.note || '';
       }
       syncOther();
-    })();
+    }
+    cachedApi('requestOptions', { kind: isDrink ? 'drink' : 'supply' }, (data) => { options = data.options; fillOptions(); })
+      .catch((err) => {
+        if (!filled) fillOptions();
+        showMsg('err', 'Could not load the list: ' + err.message + ' You can still type the item.');
+      });
     loadRecent();
   }
 
@@ -800,5 +988,5 @@
   window.addEventListener('hashchange', route);
   window.addEventListener('DOMContentLoaded', route);
 
-  window.SM = { h, mount, ask, tell, fmtDay, fmtWhen, areaFor, AREAS, api, apiUpload, ApiError, store, fmtTime, fmtDateTime, plural, topbar, API_URL, KIND_HEADING };
+  window.SM = { h, mount, ask, tell, cachedApi, fmtDay, fmtWhen, areaFor, AREAS, api, apiUpload, ApiError, store, fmtTime, fmtDateTime, plural, topbar, API_URL, KIND_HEADING };
 })();

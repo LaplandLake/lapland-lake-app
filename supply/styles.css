@@ -284,3 +284,16 @@ tr.not-ordering td { color: var(--ink-soft); }
 .pw-row { display: flex; gap: 8px; align-items: stretch; }
 .pw-row input { flex: 1; min-width: 0; }
 .pw-row .pw-toggle { flex: 0 0 auto; min-width: 72px; }
+
+/* Staff suggestions, "not on this list", paused ordering */
+.flagbtn.suggest { border-color: var(--teal); color: var(--teal-dark); }
+.modal-card.form-card { max-height: calc(100vh - 32px); overflow-y: auto; }
+.modal-card.form-card label { margin-top: 10px; }
+.choices { display: grid; gap: 8px; }
+.choice { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; min-height: 56px; padding: 10px 14px; border-radius: 12px; border: 2px solid var(--line); background: #fff; color: var(--ink); cursor: pointer; font: inherit; }
+.choice[aria-pressed=true] { border-color: var(--teal); background: var(--lake-soft); }
+.choice b { font-size: 1.02rem; }
+.not-listed { margin: 18px 0 8px; text-align: center; }
+.paused-note { margin: 0 0 8px; padding: 10px 12px; border-radius: 10px; background: var(--sun-soft); }
+.staff-notes { margin-top: 4px; }
+.staff-notes div { font-size: 0.85rem; color: var(--teal-dark); font-weight: 600; }

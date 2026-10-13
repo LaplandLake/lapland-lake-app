@@ -32,7 +32,7 @@ Nothing runs on a paid service.
 | Google Sheet | 10 million cells per spreadsheet | Years of weekly counts. |
 | Drive (photos) | The Google account's storage (15 GB free on personal accounts; Workspace accounts get their plan's storage) | Photos are shrunk to at most 1600 px (~200–400 KB each) before upload. |
 | Email (MailApp) | About 100 emails/day on a personal Gmail account, 1,500/day on Google Workspace | One email per finished weekly beverage count. |
-| Scheduling | Time-based triggers are free; total trigger run time is limited per day | Only used for the optional weekly Drive backup. The weekly email needs no schedule: it's sent when a count is marked finished. |
+| Scheduling | Time-based triggers are free; total trigger run time is limited per day | Only used for the optional weekly Drive backup (Wednesdays about 5 AM). The weekly email needs no schedule: it's sent when a count is marked finished. |
 
 Google's quota page: https://developers.google.com/apps-script/guides/services/quotas
 
@@ -94,8 +94,15 @@ Deploy** (the address stays the same).
   Dry & shelf-stable, Kitchen supplies, then Cups, to-go & utensils; Housekeeping: Paper products, Trash &
   cleaning), each with its own color, icon and "6 of 14" progress. Cups, to-go & utensils are kept in two
   places, so each of those items has a **Kitchen** and a **Storage room** box and the app adds them up. An amber
-  **Low** badge appears when the entered count is at or below the item's minimum; **Report low** lets staff
-  flag something by hand.
+  **Low** badge appears when the entered count is at or below the item's minimum.
+* **Suggest…** on each item: **+ Extra for this week** (one-time cases, added to the next draft on top of what the
+  count orders), **We need more every week** or **We have too many** (suggestions Todd approves or dismisses; the
+  regular amounts never change on their own). The reason is optional.
+* **Item not on this list?** at the bottom of a count: item name, optional note and up to 3 photos, sent to Todd.
+* After **Finish count** the numbers stay on screen so staff can fix one (for example something sells out): the draft
+  updates until Todd marks the order submitted; after that the change is shown to Todd as a notice until the
+  Wednesday deadline and noted on next week's draft. While ordering is paused, counts can be fixed until the week ends.
+* Lists open instantly from the phone's last copy and update a second later when Google answers.
 * Counts save item by item as they're typed ("Saving…", "Saved 10:42", or "Not saved" with **Retry**).
   Blank means "not counted"; 0 is a real count. Leaving and coming back keeps saved counts; unsaved
   typing is also kept on that phone and re-sent.
@@ -142,10 +149,15 @@ Deploy** (the address stays the same).
   price with its date, and a running dollar total (an estimate; confirm against the current guide or invoice).
   Lines are grouped by department and storage area; items above their minimum are folded away under
   "Not ordering".
+* **Ordering paused** (Admin > Settings > Ordering): for the off-season. Counts continue, no drafts are made, the home
+  screen says "Ordering paused", and staff extras wait on Todd's Overview instead (they are not carried into the first
+  draft when ordering is turned back on).
+* Staff extras, count changes after an order was sent, "need more / too many" and items to add appear on the Overview
+  and under Requests > **Extras & count notes** / **Add to count list**.
 * **The app never sends an order.** Copy, Download CSV, "Open in my email/texts" (your own app opens; you
   press send), Print. Then tick "I have sent this order myself" and **Mark as submitted**.
-* Desired stock never changes on its own. Items reported "out" get a suggestion box that only takes
-  effect when Todd presses Approve.
+* Desired stock never changes on its own. Items counted at 0 and staff "need more / too many" suggestions get a box on
+  the draft that only takes effect when Todd presses Approve.
 
 ## Beverage reports
 

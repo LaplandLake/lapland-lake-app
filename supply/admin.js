@@ -16,6 +16,7 @@
   }
   function clearToken() {
     memToken = '';
+    acClear();
     try { sessionStorage.removeItem(TOKEN_KEY); localStorage.removeItem(TOKEN_KEY); } catch (e) { /* ignore */ }
   }
   let memToken = '';
@@ -31,6 +32,21 @@
       }
       throw err;
     }
+  }
+
+  // Admin pages open at once from the last copy seen in this browser tab, then update when the
+  // fresh copy arrives. Kept only for this tab (sessionStorage) and wiped on sign-out.
+  const AC = 'sm-ac:';
+  function acClear() { try { Object.keys(sessionStorage).filter((k) => k.indexOf(AC) === 0).forEach((k) => sessionStorage.removeItem(k)); } catch (e) { /* ignore */ } }
+  async function aload(action, body, paint) {
+    const key = AC + action + JSON.stringify(body || {});
+    let old = null;
+    try { old = JSON.parse(sessionStorage.getItem(key)); } catch (e) { old = null; }
+    if (old) paint(old, true);
+    const fresh = await aapi(action, body);
+    try { sessionStorage.setItem(key, JSON.stringify(fresh)); } catch (e) { /* full: just no cache */ }
+    if (!old || JSON.stringify(old) !== JSON.stringify(fresh)) paint(fresh, false);
+    return fresh;
   }
 
   // Count-screen sections, in walk-through order (matches AREAS in app.js).
@@ -202,16 +218,94 @@
     msg, field('One-time setup code', code), field('New password', p1), field('New password again', p2), btn));
   }
 
+  /* ------------------------------------------------------------ from staff */
+  const SG_TITLE = { extra: 'Extra for this week', more: 'Need more every week', less: 'Have too many', add: 'Add to count list', late: 'Count changed after you sent the order' };
+  const SG_STATUS = { open: 'To do', added: 'Added to the order', done: 'Done', dismissed: 'Dismissed' };
+  function staffCard(g) {
+    const msg = h('div');
+    const card = h('div', { class: 'card staff-card' });
+    const act = (b, body) => busy(b, async () => {
+      try { const r = await aapi('adminHandleSuggestion', Object.assign({ id: g.id }, body)); Object.assign(g, r.suggestion); draw(); acClear(); }
+      catch (err) { replace(msg, errBox(err)); }
+    });
+    function draw() {
+      const open = g.status === 'open';
+      const lines = [];
+      const buttons = [];
+      const dept = KIND_HEADING[g.department] || '';
+      if (g.kind === 'extra') {
+        lines.push(h('p', { style: 'margin:4px 0' }, h('b', null, '+' + g.cases + ' ' + (g.cases === 1 ? 'case' : 'cases') + ' of ' + g.itemName)));
+        if (g.status === 'added') lines.push(h('p', { class: 'small' }, 'Added to the draft for ' + fmtDay(g.deliveryDate) + '. ', g.orderId ? h('a', { href: '#/admin/order/' + g.orderId }, 'Open the draft') : null));
+        else if (open && g.detail && g.detail.reason === 'paused') lines.push(h('p', { class: 'small' }, 'Ordering is paused, so this was not added to an order. Buy it elsewhere, or mark it done.'));
+        else if (open && g.detail && g.detail.reason === 'sent') lines.push(h('p', { class: 'small' }, 'Came in after you sent the order for ' + fmtDay(g.deliveryDate) + '. You can still call it in until ' + fmtWhen(g.detail.deadline) + '; otherwise it goes on next week’s draft.'));
+      } else if (g.kind === 'late') {
+        const d = g.detail || {};
+        const t = (v) => (!v || (v.fullCases === null && v.looseUnits === null) ? 'not counted' : (v.fullCases || 0) + (v.looseUnits ? ' + ' + v.looseUnits + ' loose' : ''));
+        lines.push(h('p', { style: 'margin:4px 0' }, h('b', null, g.itemName + ': ' + t(d.from) + ' → ' + t(d.to)), ' (' + fmtWhen(d.at) + ')'));
+        if (open) lines.push(h('p', { class: 'small' }, 'You can still call it in until ' + fmtWhen(d.deadline) + '. After that it’s noted on next week’s draft.'));
+      } else if (g.kind === 'more' || g.kind === 'less') {
+        lines.push(h('p', { style: 'margin:4px 0' }, h('b', null, g.itemName), ' · now: minimum ' + (g.minimumStock === null || g.minimumStock === undefined ? '—' : g.minimumStock) + ', desired ' + (g.desiredStock === null ? '—' : g.desiredStock)));
+        if (open) {
+          const cur = g.desiredStock === null || g.desiredStock === undefined ? 0 : g.desiredStock;
+          const v = inp(g.kind === 'more' ? cur + 1 : Math.max(0, cur - 1), { inputmode: 'decimal', class: 'line-input', 'aria-label': 'New desired stock for ' + g.itemName });
+          const ok = h('button', { class: 'btn small', type: 'button' }, 'Approve');
+          ok.onclick = act(ok, { act: 'done', desiredStock: v.value });
+          buttons.push(h('label', { class: 'small', style: 'display:flex;align-items:center;gap:6px;margin:0' }, 'New desired stock', v), ok);
+        }
+      } else if (g.kind === 'add') {
+        lines.push(h('p', { style: 'margin:4px 0' }, h('b', null, g.itemName)));
+        const find = h('button', { class: 'btn small secondary', type: 'button', onclick: () => { store.set('sm-cat-filter', { show: 'all', dept: '', q: g.itemName }); location.hash = '#/admin/catalog'; } }, 'Find in catalog');
+        buttons.push(find, h('a', { class: 'btn small secondary', href: '#/admin/item/new' }, 'Add an item'));
+        const n = (g.photoIds || []).length;
+        if (n) {
+          const photosEl = h('div', { class: 'photos-admin' });
+          const show = h('button', { class: 'btn small secondary', type: 'button' }, 'Show ' + plural(n, 'photo', 'photos'));
+          show.onclick = busy(show, async () => {
+            photosEl.innerHTML = '';
+            for (const pid of g.photoIds) {
+              try { const ph = await aapi('adminPhoto', { photoId: pid }); const src = 'data:' + ph.mimeType + ';base64,' + ph.data; photosEl.appendChild(h('img', { src, alt: 'Photo of ' + g.itemName, onclick: () => viewPhoto(src) })); }
+              catch (err) { photosEl.appendChild(h('div', { class: 'notice err small' }, 'Photo could not load: ' + err.message)); }
+            }
+          });
+          lines.push(h('div', null, show, photosEl));
+        }
+      }
+      if (g.note) lines.push(h('p', { class: 'small', style: 'margin:4px 0' }, 'Staff: “' + g.note + '”'));
+      if (open) {
+        const done = h('button', { class: 'btn small' + (g.kind === 'more' || g.kind === 'less' ? ' secondary' : ''), type: 'button' }, g.kind === 'more' || g.kind === 'less' ? 'Keep as is' : 'Done');
+        done.onclick = act(done, { act: g.kind === 'more' || g.kind === 'less' ? 'dismiss' : 'done' });
+        buttons.push(done);
+        if (g.kind !== 'more' && g.kind !== 'less') {
+          const dis = h('button', { class: 'btn small secondary', type: 'button' }, 'Dismiss');
+          dis.onclick = act(dis, { act: 'dismiss' });
+          buttons.push(dis);
+        }
+      }
+      replace(card,
+        h('div', { class: 'row' }, h('span', { class: 'grow small muted' }, SG_TITLE[g.kind] + (dept ? ' · ' + dept : '') + ' · ' + fmtDateTime(g.createdAt)),
+          h('span', { class: 'chip ' + (open ? 'shopping' : 'gray') }, SG_STATUS[g.status] || g.status)),
+        lines, buttons.length ? h('div', { class: 'row', style: 'margin-top:6px' }, buttons) : null, msg);
+    }
+    draw();
+    return card;
+  }
+
   /* ------------------------------------------------------------ overview */
   async function renderHome() {
     const box = h('div', null, loading());
     shell('home', box);
     try {
-      const d = await aapi('adminDashboard');
+      await aload('adminDashboard', null, (d) => paintHome(d));
+    } catch (err) { if (box.querySelector('.card')) box.prepend(errBox(err)); else replace(box, errBox(err)); }
+    function paintHome(d) {
       const c = d.checklist;
       const tick = (ok, text, href) => h('li', null, ok ? '✅ ' : '⬜ ', href ? h('a', { href }, text) : text);
+      const staff = d.staff || [];
       replace(box,
-        d.latestDraft ? h('div', { class: 'notice info' }, h('b', null, 'Draft order for ' + fmtDay(d.latestDraft.deliveryDate) + '. '),
+        d.paused ? h('div', { class: 'notice warn' }, h('b', null, 'Ordering is paused. '), 'Staff keep counting, but no draft orders are made. ', h('a', { href: '#/admin/settings' }, 'Turn ordering back on in Settings')) : null,
+        staff.length ? h('div', { class: 'card' }, h('h2', null, 'From staff (' + staff.length + ')'),
+          staff.map(staffCard)) : null,
+        d.latestDraft && !d.paused ? h('div', { class: 'notice info' }, h('b', null, 'Draft order for ' + fmtDay(d.latestDraft.deliveryDate) + '. '),
           d.latestDraft.autoFrom ? d.latestDraft.autoFrom + '. ' : '', h('a', { href: '#/admin/order/' + d.latestDraft.id }, 'Review the draft')) : null,
         h('div', { class: 'grid2 stack' },
           h('div', { class: 'card' }, h('h2', null, 'Right now'),
@@ -236,7 +330,7 @@
         h('div', { class: 'card' }, h('h2', null, 'Catalog'),
           h('p', null, d.catalog.active + ' active items, ' + d.catalog.candidates + ' inactive review candidates. Beverages: ' + d.beverages.active + ' active, ' + d.beverages.needsReview + ' need a confirmed case size.')),
         h('p', null, h('button', { class: 'btn secondary', onclick: async () => { try { await aapi('adminLogout'); } catch (e) { /* ignore */ } clearToken(); location.hash = '#/'; } }, 'Sign out')));
-    } catch (err) { replace(box, errBox(err)); }
+    }
   }
 
   /* ------------------------------------------------------------ orders */
@@ -257,7 +351,9 @@
       h('p', null, 'A draft is built automatically each time a Housekeeping or Cafe count is finished: anything at or below its minimum is ordered back up to its desired stock. Nothing is ever sent from the app: you review it, send it yourself (text, email or call), then mark it submitted here.'),
       newBtn), box);
     try {
-      const d = await aapi('adminOrders');
+      await aload('adminOrders', null, (d) => paintOrders(d));
+    } catch (err) { if (box.querySelector('.card')) box.prepend(errBox(err)); else replace(box, errBox(err)); }
+    function paintOrders(d) {
       const rows = d.orders.map((o) => h('div', { class: 'list-item row' },
         h('div', { class: 'grow' }, h('a', { href: '#/admin/order/' + o.id }, h('b', null, (o.status === 'draft' ? 'Draft' : o.status === 'submitted' ? 'Submitted' : o.status === 'discarded' ? 'Discarded' : o.status) + ' · ' + plural(o.totalCases, 'case', 'cases'))),
           o.autoFrom ? h('div', { class: 'small' }, o.autoFrom) : null,
@@ -265,7 +361,7 @@
         h('span', { class: 'chip ' + (o.status === 'submitted' ? 'ordered' : o.status === 'draft' ? 'shopping' : 'gray') }, o.status)));
       replace(box, h('div', { class: 'card' }, h('h2', null, 'Order history'), d.nextDelivery ? h('p', { class: 'small muted' }, 'Next delivery Thursday ' + d.nextDelivery.deliveryDate + '. Latest order ' + fmtDateTime(d.nextDelivery.deadline) + '. Earlier in the week preferred.') : null,
         rows.length ? rows : h('p', { class: 'muted' }, 'No orders yet.')));
-    } catch (err) { replace(box, errBox(err)); }
+    }
   }
 
   async function renderOrder(id) {
@@ -322,12 +418,18 @@
         : null;
       const otherWarnings = d.warnings.filter((w) => !/case minimum/.test(w));
 
+      const staffLines = (l) => {
+        const notes = (l.staffNotes || []).concat(l.countChange ? [l.countChange] : [])
+          .concat((d.staffSuggestions || []).filter((g) => g.itemId === l.itemId).map((g) => 'Staff: ' + (g.kind === 'more' ? 'need more every week' : 'we have too many') + (g.note ? ' (' + g.note + ')' : '')));
+        return notes.length ? h('div', { class: 'staff-notes' }, notes.map((t) => h('div', null, t))) : null;
+      };
       const lineRow = (l) => {
         if (draft) inputs[l.id] = h('input', { type: 'text', inputmode: 'numeric', class: 'line-input', value: String(l.finalCases), 'aria-label': 'Cases of ' + l.description, oninput: recalc });
         lineTotalEls[l.id] = h('span');
         const name = (l.snapshot && l.snapshot.name) || l.description;
         return h('tr', { class: l.finalCases > 0 ? '' : 'not-ordering' },
-          h('td', null, h('b', null, name), h('div', { class: 'small muted' }, (l.supplierItemNumber ? '#' + l.supplierItemNumber : 'no item #') + (name !== l.description ? ' · ' + l.description : ''))),
+          h('td', null, h('b', null, name), h('div', { class: 'small muted' }, (l.supplierItemNumber ? '#' + l.supplierItemNumber : 'no item #') + (name !== l.description ? ' · ' + l.description : '')),
+            staffLines(l)),
           h('td', null, l.casePackRaw || '—'),
           h('td', { class: 'num' }, l.onHandCases === null ? '—' : String(l.onHandCases)),
           h('td', { class: 'num' }, l.minimumStock === null || l.minimumStock === undefined ? '—' : String(l.minimumStock)),
@@ -352,21 +454,25 @@
       const sections = ['housekeeping', 'cafe'].map((dept) => {
         const lines = d.lines.filter((l) => l.department === dept);
         if (!lines.length) return h('div', null, h('h2', { class: 'dept-heading' }, KIND_HEADING[dept]), h('p', { class: 'muted' }, 'No ' + KIND_HEADING[dept] + ' lines in this order yet.'));
-        const ordering = lines.filter((l) => l.finalCases > 0 || (l.flags || []).some((f) => f === 'not-counted' || f === 'no-desired-stock'));
+        const ordering = lines.filter((l) => l.finalCases > 0 || (l.flags || []).some((f) => f === 'not-counted' || f === 'no-desired-stock') ||
+          (l.staffNotes || []).length || l.countChange || (d.staffSuggestions || []).some((g) => g.itemId === l.itemId));
         const rest = lines.filter((l) => ordering.indexOf(l) < 0);
         return h('div', null, h('h2', { class: 'dept-heading' }, KIND_HEADING[dept]),
           ordering.length ? table(ordering) : h('p', { class: 'muted' }, 'Nothing to order from this count.'),
           rest.length ? h('details', { class: 'card', style: 'margin-top:10px' }, h('summary', null, 'Not ordering (' + rest.length + ', above their minimum)'),
             h('p', { class: 'small muted' }, 'Type a number to add any of these to the order.'), table(rest)) : null);
       });
-      const outLines = d.lines.filter((l) => (l.flags || []).indexOf('reported-out') >= 0 && l.itemId);
-      const suggest = draft && outLines.length ? h('div', { class: 'card' }, h('h3', null, 'Items reported out'),
-        h('p', { class: 'small muted' }, 'Desired stock never changes on its own. If you want a higher target for next time, enter it and press Approve.'),
-        outLines.map((l) => {
-          const v = inp(l.desiredStock, { inputmode: 'decimal', class: 'line-input' });
+      // Raise or lower the regular amount: items counted at 0, and staff "need more / too many".
+      const zeroLines = d.lines.filter((l) => l.itemId && (l.onHandCases === 0 || (l.flags || []).indexOf('reported-out') >= 0));
+      const sgs = d.staffSuggestions || [];
+      const suggest = draft && (zeroLines.length || sgs.length) ? h('div', { class: 'card' }, h('h3', null, 'Change the regular amount?'),
+        h('p', { class: 'small muted' }, 'Desired stock never changes on its own. Items counted at 0 and staff suggestions are listed here; enter a new desired stock and press Approve if you want one.'),
+        sgs.map((g) => staffCard(g)),
+        zeroLines.filter((l) => !sgs.some((g) => g.itemId === l.itemId)).map((l) => {
+          const v = inp(l.desiredStock, { inputmode: 'decimal', class: 'line-input', 'aria-label': 'Desired stock for ' + l.description });
           const b = h('button', { class: 'btn small secondary', type: 'button' }, 'Approve');
           b.onclick = busy(b, async () => { try { await aapi('adminSetDesiredStock', { itemId: l.itemId, desiredStock: v.value }); b.textContent = 'Saved ✓'; } catch (err) { tell(err.message); } });
-          return h('div', { class: 'row', style: 'margin:6px 0' }, h('span', { class: 'grow' }, l.description), v, b);
+          return h('div', { class: 'row', style: 'margin:6px 0' }, h('span', { class: 'grow' }, ((l.snapshot && l.snapshot.name) || l.description) + ' · counted 0'), v, b);
         })) : null;
       const note = h('textarea', { maxlength: 2000 }, o.note || '');
       const saveBtn = h('button', { class: 'btn', type: 'button' }, 'Save changes');
@@ -423,14 +529,29 @@
   async function renderRequests(filter) {
     filter = filter || 'supply';
     const box = h('div', null, loading());
-    const filters = [['supply', 'Other Supply list'], ['beverage', 'Beer / Cider / Wine list'], ['unassigned', 'Drinks to assign'], ['ordered', 'Ordered'], ['lists', 'Supply & drink lists']];
+    const filters = [['supply', 'Other Supply list'], ['beverage', 'Beer / Cider / Wine list'], ['unassigned', 'Drinks to assign'], ['extras', 'Extras & count notes'], ['add', 'Add to count list'], ['ordered', 'Ordered'], ['lists', 'Supply & drink lists']];
     shell('requests', h('nav', { class: 'tabs', 'aria-label': 'Request lists' }, filters.map((f) => h('a', { href: '#/admin/requests/' + f[0], 'aria-current': f[0] === filter ? 'page' : null }, f[1]))), box);
     if (filter === 'lists') return renderLists(box);
-    let d;
-    try { d = await aapi('adminRequests'); } catch (err) { replace(box, errBox(err)); return; }
-    const reqs = d.requests.filter((r) => filter === 'ordered' ? r.status === 'ordered' : r.status === 'shopping' && r.routing === filter);
-    replace(box, h('p', { class: 'muted small' }, filter === 'ordered' ? 'Requests marked Ordered.' : 'Requests marked "On shopping list" on the ' + ROUTE_LABEL[filter] + '.'),
-      reqs.length ? reqs.map(requestCard) : h('p', { class: 'muted' }, 'Nothing here.'));
+    if (filter === 'extras' || filter === 'add') {
+      const kinds = filter === 'add' ? ['add'] : ['extra', 'late', 'more', 'less'];
+      try {
+        await aload('adminSuggestions', null, (d) => {
+          const list = d.suggestions.filter((g) => kinds.indexOf(g.kind) >= 0);
+          replace(box, h('p', { class: 'muted small' }, filter === 'add'
+            ? 'Items staff count that aren’t on their list. Use Find in catalog to turn on an item you already have, or Add an item. Last 60 days.'
+            : 'Extras staff asked for, count changes after you sent an order, and "need more / too many" suggestions. Last 60 days; to-do items first.'),
+          list.length ? list.map(staffCard) : h('p', { class: 'muted' }, 'Nothing here.'));
+        });
+      } catch (err) { replace(box, errBox(err)); }
+      return;
+    }
+    try {
+      await aload('adminRequests', null, (d) => {
+        const reqs = d.requests.filter((r) => filter === 'ordered' ? r.status === 'ordered' : r.status === 'shopping' && r.routing === filter);
+        replace(box, h('p', { class: 'muted small' }, filter === 'ordered' ? 'Requests marked Ordered.' : 'Requests marked "On shopping list" on the ' + ROUTE_LABEL[filter] + '.'),
+          reqs.length ? reqs.map(requestCard) : h('p', { class: 'muted' }, 'Nothing here.'));
+      });
+    } catch (err) { replace(box, errBox(err)); }
 
     function requestCard(r) {
       const status = selectEl(r.status, [['shopping', 'On shopping list'], ['ordered', 'Ordered']]);
@@ -442,6 +563,7 @@
       save.onclick = busy(save, async () => {
         try {
           await aapi('adminUpdateRequest', Object.assign({ requestId: r.id, status: status.value, adminNote: note.value }, routing ? { routingOverride: routing.value } : {}));
+          acClear();
           replace(msg, okBox('Saved.'));
         } catch (err) { replace(msg, errBox(err)); }
       });
@@ -514,7 +636,12 @@
     const box = h('div', null, loading());
     shell('catalog', box);
     let items;
-    try { items = (await aapi('adminItems')).items; } catch (err) { replace(box, errBox(err)); return; }
+    // The list opens from the last copy in this tab; the fresh copy replaces it when it arrives.
+    let cachedItems = null;
+    try { cachedItems = JSON.parse(sessionStorage.getItem(AC + 'adminItems{}')); } catch (e) { cachedItems = null; }
+    const freshItems = aload('adminItems', null, () => {});
+    if (cachedItems) { items = cachedItems.items; freshItems.catch(() => {}); }
+    else { try { items = (await freshItems).items; } catch (err) { replace(box, errBox(err)); return; } }
     const saved = store.get('sm-cat-filter') || {};
     const show = selectEl(saved.show || 'active', [['active', 'Active items'], ['candidates', 'Inactive / review candidates'], ['all', 'Active + inactive'], ['removed', 'Removed items']]);
     const dept = selectEl(saved.dept || '', [['', 'All departments'], ['housekeeping', 'Housekeeping'], ['cafe', 'Cafe'], ['none', 'No department yet']]);
@@ -639,6 +766,7 @@
       h('div', { class: 'grid2 stack' }, show, dept), h('div', { style: 'margin-top:10px' }, q),
       h('div', { class: 'row' }, h('a', { class: 'btn small secondary', href: '#/admin/item/new' }, 'Add an item'), fillBtn, looseBtn), fillOut, looseOut), h('div', { class: 'card' }, list));
     draw();
+    if (cachedItems) freshItems.then((d) => { if (JSON.stringify(d.items) !== JSON.stringify(items)) { items = d.items; draw(); } }).catch(() => {});
   }
 
   async function renderItem(id) {
@@ -734,14 +862,13 @@
     shell('counts', box);
     if (sessionId) return renderCountDetail(box, sessionId);
     try {
-      const d = await aapi('adminCounts');
-      replace(box, h('div', { class: 'card' }, h('h2', null, 'Count history'),
+      await aload('adminCounts', null, (d) => replace(box, h('div', { class: 'card' }, h('h2', null, 'Count history'),
         h('p', { class: 'small muted' }, 'Each count keeps the package sizes and counting units as they were when counted.'),
         d.sessions.length ? d.sessions.map((s) => h('a', { href: '#/admin/count/' + s.id, class: 'list-item', style: 'display:block;color:inherit;text-decoration:none' },
           h('div', { class: 'row' }, h('b', { class: 'grow' }, KIND_HEADING[s.kind] + ' · week of ' + s.weekPeriod),
             h('span', { class: 'chip ' + (s.status === 'open' ? 'shopping' : 'ordered') }, s.status === 'open' ? 'In progress' : 'Finished')),
           h('div', { class: 'small muted' }, 'Started ' + fmtDateTime(s.startedAt) + (s.completedAt ? ' · finished ' + fmtDateTime(s.completedAt) : '') + ' · ' + s.countedItems + ' counted' +
-            (s.incompleteAtCompletion ? ' · ' + s.incompleteAtCompletion + ' not counted' : '') + (s.origin && s.origin !== 'app' ? ' · ' + s.origin : '')))) : h('p', { class: 'muted' }, 'No counts yet.')));
+            (s.incompleteAtCompletion ? ' · ' + s.incompleteAtCompletion + ' not counted' : '') + (s.origin && s.origin !== 'app' ? ' · ' + s.origin : '')))) : h('p', { class: 'muted' }, 'No counts yet.'))));
     } catch (err) { replace(box, errBox(err)); }
   }
   async function renderCountDetail(box, id) {
@@ -1208,7 +1335,17 @@
       if (n1.value !== n2.value) { replace(pwMsg, errBox(new Error('The new passwords do not match.'))); return; }
       try { await aapi('adminChangePassword', { currentPassword: cur.value, newPassword: n1.value }); clearToken(); renderLogin('Password changed. Please sign in with the new password.'); } catch (err) { replace(pwMsg, errBox(err)); }
     });
+    const paused = check(s.ordering && s.ordering.paused, 'Pause ordering (for the off-season)');
+    const ordMsg = h('div');
+    const ordSave = h('button', { class: 'btn', type: 'button' }, 'Save');
+    ordSave.onclick = busy(ordSave, async () => {
+      try { const r = await aapi('adminSaveSettings', { ordering: { paused: paused.box.checked } }); s.ordering = r.settings.ordering; acClear(); replace(ordMsg, okBox(s.ordering.paused ? 'Ordering is paused. Counts continue; no drafts are made.' : 'Ordering is on. The next finished count builds a draft.')); }
+      catch (err) { replace(ordMsg, errBox(err)); }
+    });
     replace(box,
+      h('div', { class: 'card' }, h('h2', null, 'Ordering'),
+        h('p', { class: 'small muted' }, 'Pause ordering at the end of the season and through the summer. Staff keep counting and fixing counts; no draft orders are made, and the home screen says "Ordering paused". Extras staff ask for show up on your Overview instead. Turn it back off right before ski season.'),
+        paused.el, h('div', { class: 'row' }, ordSave), ordMsg),
       h('div', { class: 'card' }, h('h2', null, 'Weekly beverage email'),
         h('p', { class: 'small muted' }, 'Sent from your Google account (free, about 100 emails a day) only to you, once per finished count. Staff are never emailed. Nothing is sent until you enter an address and tick the box.'),
         field('Send to', recipient), enabled.el, h('div', { class: 'row' }, emSave, test), emMsg,
