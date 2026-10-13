@@ -658,12 +658,12 @@
       if (kind !== 'beverage') {
         // Plain-language help, so staff know the count alone is enough.
         body.append(h('div', { class: 'count-help' },
-          h('p', null, h('b', null, 'Just count what is on the shelf. '), 'That is all you need to do. The order is made for you from your count.'),
-          h('p', null, 'Only tap ', h('b', null, 'Special request'), ' on an item when:'),
+          h('p', null, h('b', null, 'Count what is on the shelf. The app uses your count to make the order.')),
+          h('p', null, 'Only tap ', h('b', null, 'Special request'), ' on an item if:'),
           h('ul', null,
-            h('li', null, 'a group is coming and we need extra this week, or'),
-            h('li', null, 'we keep running out of it, or'),
-            h('li', null, 'we always have too much of it.'))));
+            h('li', null, 'we keep running out or running low'),
+            h('li', null, 'we always have too much'),
+            h('li', null, 'we need extra next week for something out of the ordinary'))));
       }
       if (kind === 'beverage') data.items.forEach((it) => body.append(itemCard(it, data.entries[it.id] || null)));
       else groupByArea(data.items).forEach((g) => body.append(sectionEl(g)));
