@@ -168,7 +168,7 @@ test('Ginsberg draft: combined departments, suggestions, flags, minimum warning,
   assert.equal(d.totalCases, 9);
   assert.ok(d.warnings.some((w) => /below the 20-case minimum/.test(w)));
   assert.ok(/HOUSEKEEPING[\s\S]*#070626[\s\S]*CAFE/.test(d.exportText));
-  // Todd edits quantities; whole numbers only.
+  // Admin edits quantities; whole numbers only.
   bad(app.admin('adminSaveOrder', { orderId: d.order.id, lines: [{ id: L(cafe2.id).id, finalCases: '1.5' }] }), /whole numbers/);
   const saved = ok(app.admin('adminSaveOrder', { orderId: d.order.id, lines: [{ id: L(cafe2.id).id, finalCases: '2' }] }));
   assert.equal(saved.totalCases, 11);
@@ -221,7 +221,7 @@ test('requests: validation, photos, two statuses, staff see no private data', ()
   assert.equal(mine.status, 'On shopping list');
   // Staff cannot change the status: there is no staff action for it.
   bad(app.call('adminUpdateRequest', { requestId: r.id, status: 'ordered' }), /sign in/);
-  // Todd sees photos, routing, and changes status; only two statuses exist.
+  // Admin sees photos, routing, and changes status; only two statuses exist.
   const all = ok(app.admin('adminRequests')).requests;
   assert.equal(all[0].routing, 'beverage');
   const ph = ok(app.admin('adminPhoto', { photoId: all[0].photoIds[1] }));
@@ -349,7 +349,7 @@ test('weekly email: blank until configured, sent once per report version, failur
   assert.equal(s.settings.email.recipient, ''); // never guessed
   assert.equal(s.emailLog[0].status, 'not-configured');
   bad(app.admin('adminSaveSettings', { email: { recipient: 'not an email', enabled: true } }), /does not look right/);
-  ok(app.admin('adminSaveSettings', { email: { recipient: 'todd@example.com', enabled: true } }));
+  ok(app.admin('adminSaveSettings', { email: { recipient: 'manager@example.com', enabled: true } }));
   bad(app.admin('adminSendTestEmail', {}), /confirm/);
   const sid = s.emailLog[0].sessionId;
   app.state.failMail = true;
@@ -360,7 +360,7 @@ test('weekly email: blank until configured, sent once per report version, failur
   r = ok(app.admin('adminSendReportEmail', { sessionId: sid }));
   assert.equal(r.result.status, 'sent');
   assert.equal(app.state.sentMail.length, 1);
-  assert.equal(app.state.sentMail[0].to, 'todd@example.com');
+  assert.equal(app.state.sentMail[0].to, 'manager@example.com');
   assert.match(app.state.sentMail[0].html, /IPA/);
   assert.match(app.state.sentMail[0].attachments[0].content, /Product,Type/);
   r = ok(app.admin('adminSendReportEmail', { sessionId: sid }));
@@ -378,7 +378,7 @@ test('weekly email: blank until configured, sent once per report version, failur
   assert.equal(ok(app.admin('adminSettings')).settings.email.enabled, false);
 });
 
-test('Ginsberg import: inactive candidates, item numbers as text, prices dated, duplicates, refresh keeps Todd’s choices', () => {
+test('Ginsberg import: inactive candidates, item numbers as text, prices dated, duplicates, refresh keeps the admin’s choices', () => {
   const app = freshApp();
   const links = { weeklySheet: driveLink(WEEKLY_ID), masterSheet: driveLink(MASTER_ID), deletedCsv: driveLink(DELETED_ID), graphCsv: driveLink(GRAPH_ID), referenceTxt: driveLink(REF_ID) };
   bad(app.admin('adminImportGinsbergPreview', { weeklySheet: 'not a link' }), /Google Drive link/);
@@ -416,7 +416,7 @@ test('Ginsberg import: inactive candidates, item numbers as text, prices dated, 
   const set = ok(app.admin('adminSettings')).settings.supplier;
   assert.equal(set.customerNumber, '99999');
   assert.match(set.contactsText, /test\.rep@example\.com/);
-  // Todd configures an item, then re-imports with refresh: his choices survive.
+  // Admin configures an item, then re-imports with refresh: those choices survive.
   ok(app.admin('adminSaveItem', { id: by('90001').id, item: { name: 'Toilet paper', department: 'housekeeping', countingUnit: 'case', countingUnitConfirmed: true, desiredStock: 5, active: true } }));
   const again = ok(app.admin('adminImportGinsbergCommit', links));
   assert.equal(again.added, 0);
@@ -524,7 +524,7 @@ test('remove and restore catalog items: hidden, history kept, never on a staff l
   assert.equal(prev.newCount, 0);
   assert.equal(prev.removedDuplicateCount, 2);
   assert.equal(ok(app.admin('adminDashboard')).catalog.removed, 2);
-  // Restore brings it back inactive; Todd can activate it again.
+  // Restore brings it back inactive; the admin can activate it again.
   ok(app.admin('adminRemoveItems', { ids: [a.id], restore: true }));
   const back = ok(app.admin('adminItems')).items.filter((i) => i.id === a.id)[0];
   assert.equal(back.archived, false);
@@ -618,7 +618,7 @@ test('auto draft: one per delivery, each count refreshes its own department, han
   o = ok(app.admin('adminOrder', { orderId: all[0].id }));
   const soup = o.lines.filter((l) => l.itemId === cafe.id)[0];
   assert.equal(soup.suggestedCases, 6); // recalculated from the new count
-  assert.equal(soup.finalCases, 8); // Todd's number kept
+  assert.equal(soup.finalCases, 8); // the admin's number kept
   assert.match(soup.countChange, /Count changed Tue 10:00 AM \(1 → 0\)/);
   assert.equal(o.lines.filter((l) => l.itemId === hk.id)[0].finalCases, 3);
   assert.equal(o.summary.totalCases, 11);
@@ -779,7 +779,7 @@ test('staff extras: added on top of the count, survive refreshes, and a hand-typ
   bad(app.call('staffSuggest', { type: 'extra', department: 'cafe', itemId: soup.id, cases: 0 }), /1 to 50/);
   bad(app.call('staffSuggest', { type: 'extra', department: 'housekeeping', itemId: soup.id, cases: 1 }), /not on the/);
   const r = ok(app.call('staffSuggest', { type: 'extra', department: 'cafe', itemId: soup.id, cases: 1, note: 'group Friday' }));
-  assert.match(r.message, /Added: 1 extra case of Soup/);
+  assert.match(r.message, /Added to this week’s order ✓ \(\+1 case of Soup\)/);
   ok(app.call('staffSuggest', { type: 'extra', department: 'cafe', itemId: rolls.id, cases: 2 }));
   let o = ok(app.admin('adminOrder', { orderId: ok(app.admin('adminOrders')).orders[0].id }));
   const line = (id) => o.lines.filter((l) => l.itemId === id)[0];
@@ -793,7 +793,7 @@ test('staff extras: added on top of the count, survive refreshes, and a hand-typ
   // Saving the draft unchanged does not mark lines as hand-edited.
   o = ok(app.admin('adminSaveOrder', { orderId: o.order.id, lines: o.lines.map((l) => ({ id: l.id, finalCases: String(l.finalCases) })) }));
   assert.equal(o.lines.some((l) => l.edited), false);
-  // Extra on a hand-typed line adds to Todd's number.
+  // Extra on a hand-typed line adds to the admin's number.
   o = ok(app.admin('adminSaveOrder', { orderId: o.order.id, lines: [{ id: line(soup.id).id, finalCases: '3' }] }));
   ok(app.call('staffSuggest', { type: 'extra', department: 'cafe', itemId: soup.id, cases: 1 }));
   o = ok(app.admin('adminOrder', { orderId: o.order.id }));
@@ -816,7 +816,7 @@ test('after the order is sent: count fixes and extras become notices, then roll 
   ok(app.call('saveCount', { kind: 'cafe', itemId: brownies.id, fullCases: 0 }));
   ok(app.call('saveCount', { kind: 'cafe', itemId: brownies.id, fullCases: 0, looseUnits: '' }));
   const extra = ok(app.call('staffSuggest', { type: 'extra', department: 'cafe', itemId: brownies.id, cases: 1 }));
-  assert.match(extra.message, /already sent/);
+  assert.equal(extra.message, 'Sent ✓');
   let open = ok(app.admin('adminDashboard')).staff;
   same(open.map((g) => g.kind).sort(), ['extra', 'late']); // one notice per item, not one per save
   assert.equal(open.filter((g) => g.kind === 'late')[0].detail.from.fullCases, 2);
@@ -837,7 +837,7 @@ test('after the order is sent: count fixes and extras become notices, then roll 
   assert.equal(ok(app.call('adminDashboard', { token: t2 })).staff.length, 0);
 });
 
-test('ordering paused: counts continue, no drafts, extras wait on Todd’s list and do not carry over', () => {
+test('ordering paused: counts continue, no drafts, extras wait on the admin’s list and do not carry over', () => {
   const app = freshApp();
   at(app, '2026-10-12T14:00:00Z');
   const soap = addItem(app, { name: 'Soap', department: 'housekeeping', countingUnit: 'case', countingUnitConfirmed: true, desiredStock: 2, minimumStock: 1, active: true });
@@ -850,7 +850,7 @@ test('ordering paused: counts continue, no drafts, extras wait on Todd’s list 
   assert.equal(ok(app.call('countSheet', { kind: 'housekeeping' })).finished.mode, 'paused');
   ok(app.call('saveCount', { kind: 'housekeeping', itemId: soap.id, fullCases: 1 }));
   const r = ok(app.call('staffSuggest', { type: 'extra', department: 'housekeeping', itemId: soap.id, cases: 2, note: 'spring cleaning' }));
-  assert.match(r.message, /paused/);
+  assert.equal(r.message, 'Sent ✓');
   assert.equal(ok(app.admin('adminOrders')).orders.length, 0);
   assert.equal(ok(app.admin('adminDashboard')).staff[0].detail.reason, 'paused');
   // New week: fresh screen. Turning ordering back on does not pull the paused extra in.
@@ -862,10 +862,10 @@ test('ordering paused: counts continue, no drafts, extras wait on Todd’s list 
   ok(app.call('completeCount', { kind: 'housekeeping' }));
   const o = ok(app.call('adminOrders', { token: t2 })).orders[0];
   assert.equal(ok(app.call('adminOrder', { token: t2, orderId: o.id })).lines[0].finalCases, 0);
-  assert.equal(ok(app.call('adminDashboard', { token: t2 })).staff.length, 1); // still on Todd's list
+  assert.equal(ok(app.call('adminDashboard', { token: t2 })).staff.length, 1); // still on the admin's list
 });
 
-test('need more / too many / not on this list: Todd approves or dismisses; nothing changes on its own', () => {
+test('need more / too many / not on this list: the admin approves or dismisses; nothing changes on its own', () => {
   const app = freshApp();
   at(app, '2026-10-12T14:00:00Z');
   const soup = cafeItem(app, { name: 'Soup', desiredStock: 6, minimumStock: 2 });
@@ -889,4 +889,64 @@ test('need more / too many / not on this list: Todd approves or dismisses; nothi
   assert.equal(ok(app.admin('adminDashboard')).staff.length, 0);
   // Staff responses never include another person's notes or anything private.
   bad(app.call('adminSuggestions', {}), /sign in/);
+});
+
+test('review fixes: uncounted lines stay automatic, other department keeps its draft, DST and week edges', () => {
+  // 1. Saving a draft unchanged does not freeze an uncounted line.
+  let app = freshApp();
+  at(app, '2026-10-12T14:00:00Z'); // Monday
+  const a = cafeItem(app, { name: 'A', desiredStock: 4, minimumStock: 1 });
+  const b = cafeItem(app, { name: 'B', desiredStock: 4, minimumStock: 1 });
+  ok(app.call('saveCount', { kind: 'cafe', itemId: a.id, fullCases: 3 }));
+  ok(app.call('completeCount', { kind: 'cafe' }));
+  let o = ok(app.admin('adminOrder', { orderId: ok(app.admin('adminOrders')).orders[0].id }));
+  o = ok(app.admin('adminSaveOrder', { orderId: o.order.id, lines: o.lines.map((l) => ({ id: l.id, finalCases: String(l.finalCases) })) }));
+  ok(app.call('saveCount', { kind: 'cafe', itemId: b.id, fullCases: 0 }));
+  o = ok(app.admin('adminOrder', { orderId: o.order.id }));
+  assert.equal(o.lines.filter((l) => l.itemId === b.id)[0].finalCases, 4);
+
+  // 3. Cafe order sent; Housekeeping's new draft for the same Thursday still takes fixes and extras.
+  app = freshApp();
+  at(app, '2026-10-12T14:00:00Z');
+  const soup = cafeItem(app, { name: 'Soup', desiredStock: 3, minimumStock: 1 });
+  const tp = addItem(app, { name: 'TP', department: 'housekeeping', countingUnit: 'case', countingUnitConfirmed: true, desiredStock: 4, minimumStock: 1, active: true });
+  ok(app.call('saveCount', { kind: 'cafe', itemId: soup.id, fullCases: 0 }));
+  ok(app.call('completeCount', { kind: 'cafe' }));
+  ok(app.admin('adminSubmitOrder', { orderId: ok(app.admin('adminOrders')).orders[0].id, confirm: 'I-SENT-IT', method: 'text' }));
+  ok(app.call('saveCount', { kind: 'housekeeping', itemId: tp.id, fullCases: 0 }));
+  ok(app.call('completeCount', { kind: 'housekeeping' }));
+  ok(app.call('saveCount', { kind: 'housekeeping', itemId: tp.id, fullCases: 1 }));
+  assert.match(ok(app.call('staffSuggest', { type: 'extra', department: 'housekeeping', itemId: tp.id, cases: 2 })).message, /Added to this week/);
+  const draft = ok(app.admin('adminOrders')).orders.filter((x) => x.status === 'draft')[0];
+  assert.equal(ok(app.admin('adminOrder', { orderId: draft.id })).lines.filter((l) => l.itemId === tp.id)[0].finalCases, 5); // 3 + 2 extra
+  assert.equal(ok(app.admin('adminDashboard')).staff.length, 0);
+
+  // 2. Daylight saving (spring forward Mar 8): a count finished before last week's deadline is not editable.
+  app = freshApp();
+  at(app, '2026-03-04T20:30:00Z'); // Wed Mar 4, 3:30 PM EST, before the 4 PM deadline
+  const x = cafeItem(app, { name: 'X', desiredStock: 2, minimumStock: 1 });
+  ok(app.call('saveCount', { kind: 'cafe', itemId: x.id, fullCases: 2 }));
+  ok(app.call('completeCount', { kind: 'cafe' }));
+  at(app, '2026-03-09T14:00:00Z'); // Mon Mar 9 (EDT)
+  assert.equal(ok(app.call('countSheet', { kind: 'cafe' })).session, null);
+
+  // 5. A count finished after the deadline (Thursday) stays fixable that week only.
+  app = freshApp();
+  const y = cafeItem(app, { name: 'Y', desiredStock: 2, minimumStock: 1 });
+  at(app, '2026-10-15T14:00:00Z'); // Thursday
+  ok(app.call('saveCount', { kind: 'cafe', itemId: y.id, fullCases: 2 }));
+  ok(app.call('completeCount', { kind: 'cafe' }));
+  assert.equal(ok(app.call('countSheet', { kind: 'cafe' })).finished.mode, 'draft');
+  at(app, '2026-10-19T14:00:00Z'); // next Monday: fresh count
+  assert.equal(ok(app.call('countSheet', { kind: 'cafe' })).session, null);
+
+  // 4. Paused: a count started Sunday evening and finished Monday is fixable that week.
+  app = freshApp();
+  ok(app.admin('adminSaveSettings', { ordering: { paused: true } }));
+  const z = cafeItem(app, { name: 'Z', desiredStock: 2, minimumStock: 1 });
+  at(app, '2026-10-18T23:00:00Z'); // Sunday 7 PM
+  ok(app.call('saveCount', { kind: 'cafe', itemId: z.id, fullCases: 2 }));
+  at(app, '2026-10-19T13:00:00Z'); // Monday 9 AM
+  ok(app.call('completeCount', { kind: 'cafe' }));
+  assert.equal(ok(app.call('countSheet', { kind: 'cafe' })).finished.mode, 'paused');
 });

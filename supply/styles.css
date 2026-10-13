@@ -297,3 +297,4 @@ tr.not-ordering td { color: var(--ink-soft); }
 .paused-note { margin: 0 0 8px; padding: 10px 12px; border-radius: 10px; background: var(--sun-soft); }
 .staff-notes { margin-top: 4px; }
 .staff-notes div { font-size: 0.85rem; color: var(--teal-dark); font-weight: 600; }
+.stale .item, .stale .area-items { opacity: 0.65; }

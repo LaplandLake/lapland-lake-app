@@ -1,6 +1,6 @@
-// Synthetic source files with the same layout as Todd's real Ginsberg's files.
+// Synthetic source files with the same layout as the admin's real Ginsberg's files.
 // Every value here is made up for testing (item numbers, prices, names, contacts).
-// The real files stay in Todd's Drive and are never copied into this public repository.
+// The real files stay in the admin's Drive and are never copied into this public repository.
 
 export const WEEKLY_ID = 'TESTweeklySheet000000000001';
 export const MASTER_ID = 'TESTmasterSheet000000000001';

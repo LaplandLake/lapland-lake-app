@@ -1,23 +1,23 @@
 # Lapland Lake Supply Manager
 
-A phone-friendly website for staff supply counts and requests, with a private Admin area for Todd.
+A phone-friendly website for staff supply counts and requests, with a private, password-protected Admin area.
 It's a separate section of this repository; the guest app is unchanged.
 
 **Address once published:** https://laplandlake.github.io/lapland-lake-app/supply/
 
-Staff need no account. Todd's Admin area is protected by a password that only he knows, and the
+Staff need no account. The Admin area is protected by a password, and the
 server checks it.
 
 ## How it works (all free)
 
 ```
-Staff phones / Todd's computer
+Staff phones / the admin's computer
         │  (the website: GitHub Pages, same as the guest app)
         ▼
-Google Apps Script web app  ← runs in Todd's Google account (supply/backend/Code.gs)
+Google Apps Script web app  ← runs in the admin's Google account (supply/backend/Code.gs)
         ├── Google Sheet "Lapland Lake Supply Manager Data"  (all records)
         ├── Drive folder "Lapland Lake Supply Manager"       (request photos, backups)
-        └── Gmail (MailApp)                                  (weekly beverage email to Todd only)
+        └── Gmail (MailApp)                                  (weekly beverage email to the admin only)
 ```
 
 This is the same setup the guest app already uses for guest photos (`scripts/photo-inbox.gs`).
@@ -39,9 +39,9 @@ Google's quota page: https://developers.google.com/apps-script/guides/services/q
 If automatic email ever fails (for example, the quota is used up), the report can always be downloaded
 (CSV, print/PDF, Share) and emailed by hand from Admin > Reports.
 
-## Deploy (one time, about 15 minutes, Todd)
+## Deploy (one time, about 15 minutes)
 
-1. Go to https://script.google.com while signed in as **todd@laplandlake.com** and choose **New project**.
+1. Go to https://script.google.com while signed in to the business Google account and choose **New project**.
    Name it "Lapland Lake Supply Manager".
 2. Delete the sample code and paste the whole of `supply/backend/Code.gs`. Save.
 3. In the function menu choose **setup** and press **Run**. Approve the permissions (Sheets, Drive,
@@ -54,14 +54,14 @@ If automatic email ever fails (for example, the quota is used up), the report ca
 6. Publish: merge this branch into `main` (every push to `main` republishes the site, including the
    guest app, which is unchanged).
 7. Set your password: in the Apps Script editor choose **createAdminSetupCode** and press **Run**.
-   Copy the code from the Execution log, open the Supply Manager, tap **Todd — Admin**, and use the
+   Copy the code from the Execution log, open the Supply Manager, tap **Admin**, and use the
    code to choose your password. **Don't paste your password into a chat or email.** Forgot it? Do
    step 7 again.
 
 After pasting a newer `Code.gs` later: **Deploy > Manage deployments > pencil > Version: New version >
 Deploy** (the address stays the same).
 
-## Todd's setup checklist (Admin > Overview shows these ticks)
+## Setup checklist (Admin > Overview shows these ticks)
 
 1. **Password**: step 7 above.
 2. **Import the Ginsberg's files**: Admin > Import & backup. Paste the Drive links to *Ginsbergs
@@ -96,11 +96,11 @@ Deploy** (the address stays the same).
   places, so each of those items has a **Kitchen** and a **Storage room** box and the app adds them up. An amber
   **Low** badge appears when the entered count is at or below the item's minimum.
 * **Suggest…** on each item: **+ Extra for this week** (one-time cases, added to the next draft on top of what the
-  count orders), **We need more every week** or **We have too many** (suggestions Todd approves or dismisses; the
+  count orders), **We need more every week** or **We have too many** (suggestions the admin approves or dismisses; the
   regular amounts never change on their own). The reason is optional.
-* **Item not on this list?** at the bottom of a count: item name, optional note and up to 3 photos, sent to Todd.
+* **Item not on this list?** at the bottom of a count: item name, optional note and up to 3 photos, sent to the admin.
 * After **Finish count** the numbers stay on screen so staff can fix one (for example something sells out): the draft
-  updates until Todd marks the order submitted; after that the change is shown to Todd as a notice until the
+  updates until the admin marks the order submitted; after that the change is shown to the admin as a notice until the
   Wednesday deadline and noted on next week's draft. While ordering is paused, counts can be fixed until the week ends.
 * Lists open instantly from the phone's last copy and update a second later when Google answers.
 * Counts save item by item as they're typed ("Saving…", "Saved 10:42", or "Not saved" with **Retry**).
@@ -132,15 +132,15 @@ Deploy** (the address stays the same).
 
 * **Automatic draft:** each time staff finish a Housekeeping or Cafe count, the app builds (or refreshes)
   one draft for the next Thursday delivery. Finishing a count only refreshes that department's lines, and
-  any quantity Todd already changed by hand is kept. **Start a new draft** builds one by hand from the
+  any quantity the admin already changed by hand is kept. **Start a new draft** builds one by hand from the
   latest counts.
 * **Reorder rule:** each item has a **minimum** and a **desired stock** (cases). At or below the minimum, the
   draft orders back up to desired stock, rounded up to whole cases; above it, nothing. Items with no minimum
   are ordered whenever they're below desired stock and flagged "No minimum set". Missing counts or settings
-  get no suggestion; Todd decides.
+  get no suggestion; the admin decides.
 * Catalog > **Set up loose counting** suggests loose units for every active item from its case pack
   (96 x CT -> 96 rolls, 4 x 4# -> 4 bags). Items with one pack per case stay full-case only; counts over 120 per case
-  start unticked. Todd adjusts the numbers and names, then applies; staff then get a Loose box beside Full cases.
+  start unticked. The admin adjusts the numbers and names, then applies; staff then get a Loose box beside Full cases.
 * Catalog > **Fill from notes & Ginsberg's records** fills each active item's minimum from notes like
   "Suggested minimum 2, target 3" and copies the price, purchase history and item # check from the imported
   Ginsberg's record with the same item number (preview first; never overwrites).
@@ -150,21 +150,21 @@ Deploy** (the address stays the same).
   Lines are grouped by department and storage area; items above their minimum are folded away under
   "Not ordering".
 * **Ordering paused** (Admin > Settings > Ordering): for the off-season. Counts continue, no drafts are made, the home
-  screen says "Ordering paused", and staff extras wait on Todd's Overview instead (they are not carried into the first
+  screen says "Ordering paused", and staff extras wait on the admin's Overview instead (they are not carried into the first
   draft when ordering is turned back on).
 * Staff extras, count changes after an order was sent, "need more / too many" and items to add appear on the Overview
   and under Requests > **Extras & count notes** / **Add to count list**.
 * **The app never sends an order.** Copy, Download CSV, "Open in my email/texts" (your own app opens; you
   press send), Print. Then tick "I have sent this order myself" and **Mark as submitted**.
 * Desired stock never changes on its own. Items counted at 0 and staff "need more / too many" suggestions get a box on
-  the draft that only takes effect when Todd presses Approve.
+  the draft that only takes effect when the admin presses Approve.
 
 ## Beverage reports
 
 * Estimated usage = previous count + deliveries recorded between the two count times − current count,
   then minus recorded waste/transfers/returns. This is **inventory depletion, not exact sales**.
 * Each product uses its own count timestamps, so a delivery only counts in the interval it happened in.
-* Recorded sales (only if Todd enters real numbers) are shown separately and never filled in.
+* Recorded sales (only if the admin enters real numbers) are shown separately and never filled in.
 * Missing counts, missing case sizes or a missing earlier count give **Insufficient data**, never zero.
   Negative results and sales higher than depletion are flagged **Needs review**.
 * Products with no activity are listed separately from products with missing data.
@@ -178,9 +178,9 @@ Deploy** (the address stays the same).
   minimum and desired stock, counts, requests, orders, beverage products), with a preview first.
 * **Ginsberg's files:** read for this build (the weekly ordering sheet and its purchase and price tabs,
   the ordering master, deleted items, graph data, the reference text, and the order entry worksheet).
-  They're imported by the backend from Todd's Drive when he presses Import, so no prices, contacts or
+  They're imported by the backend from the admin's Drive when Import is pressed, so no prices, contacts or
   account numbers are stored in this public repository. The order guide PDF, the sales report workbook
-  and the invoice PDFs are not parsed directly; their data comes in through Todd's reconciliation sheets
+  and the invoice PDFs are not parsed directly; their data comes in through the admin's reconciliation sheets
   (weekly ordering + master), which were built from them.
 * Existing graph PNGs/PDF stay in Drive; the same numbers appear in Admin > Reports > Ginsberg's purchases.
 

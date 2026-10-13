@@ -1,4 +1,4 @@
-/* Lapland Lake Supply Manager: Todd's Admin area.
+/* Lapland Lake Supply Manager: Admin area.
    Every action here is checked again on the server; hiding a button is never the only guard. */
 (function () {
   'use strict';
@@ -22,9 +22,13 @@
   let memToken = '';
   function token() { return memToken || getToken(); }
 
+  // Anything that changes data clears the saved page copies, so no page opens with old numbers.
+  const READ_ONLY = /^admin(Dashboard|Items|Orders?|Requests|Suggestions|Counts|CountDetail|Photo|Settings|Lists|Bev|BevReport|BevHistory|FillPreview|LooseSuggest|Backup|BackupStatus|SupplierHistory|Audit|Import\w*Preview)$/;
   async function aapi(action, body) {
     try {
-      return await api(action, Object.assign({ token: token() }, body || {}));
+      const r = await api(action, Object.assign({ token: token() }, body || {}));
+      if (!READ_ONLY.test(action)) acClear();
+      return r;
     } catch (err) {
       if (err.code === 'auth' && action !== 'adminLogin' && action !== 'adminSetup' && action !== 'adminChangePassword') {
         clearToken();
@@ -38,14 +42,22 @@
   // fresh copy arrives. Kept only for this tab (sessionStorage) and wiped on sign-out.
   const AC = 'sm-ac:';
   function acClear() { try { Object.keys(sessionStorage).filter((k) => k.indexOf(AC) === 0).forEach((k) => sessionStorage.removeItem(k)); } catch (e) { /* ignore */ } }
-  async function aload(action, body, paint) {
+  // While the old copy is showing, its buttons and boxes are switched off, so nothing is saved
+  // from stale data and nothing typed is lost when the fresh copy replaces it.
+  async function aload(action, body, paint, box) {
     const key = AC + action + JSON.stringify(body || {});
     let old = null;
     try { old = JSON.parse(sessionStorage.getItem(key)); } catch (e) { old = null; }
-    if (old) paint(old, true);
-    const fresh = await aapi(action, body);
+    let locked = [];
+    if (old) {
+      paint(old, true);
+      if (box) { locked = Array.from(box.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled])')); locked.forEach((el) => { el.disabled = true; }); }
+    }
+    let fresh;
+    try { fresh = await aapi(action, body); } catch (err) { locked.forEach((el) => { el.disabled = false; }); throw err; }
     try { sessionStorage.setItem(key, JSON.stringify(fresh)); } catch (e) { /* full: just no cache */ }
     if (!old || JSON.stringify(old) !== JSON.stringify(fresh)) paint(fresh, false);
+    else locked.forEach((el) => { el.disabled = false; });
     return fresh;
   }
 
@@ -56,7 +68,7 @@
     ['counts', 'Counts'], ['beverages', 'Beverages'], ['reports', 'Reports'], ['import', 'Import & backup'], ['settings', 'Settings'],
   ];
   function shell(tab, ...content) {
-    mount(topbar('Todd — Admin', '#/'),
+    mount(topbar('Admin', '#/'),
       h('div', { class: 'wrap wide' },
         h('nav', { class: 'tabs', 'aria-label': 'Admin sections' }, TABS.map((t) => h('a', { href: '#/admin/' + t[0], 'aria-current': t[0] === tab ? 'page' : null }, t[1]))),
         ...content));
@@ -98,7 +110,7 @@
     kids.flat().forEach((k) => k && el.appendChild(k));
     el.querySelectorAll('table.data').forEach(labelize);
   }
-  // Password boxes show what's typed by default (Todd is the only user); "Hide" switches to dots.
+  // Password boxes show what's typed by default (one admin user); "Hide" switches to dots.
   // The choice is remembered on this device and applies to every password box.
   function pwShown() { const v = store.get('sm-show-pw'); return v === null ? true : !!v; }
   function pwInput(autocomplete, id) {
@@ -172,7 +184,7 @@
   /* ------------------------------------------------------------ sign in */
   async function renderLogin(message) {
     const box = h('div', { class: 'wrap' }, loading());
-    mount(topbar('Todd — Admin', '#/'), box);
+    mount(topbar('Admin', '#/'), box);
     let configured = true;
     try { configured = (await api('adminSetupStatus')).configured; } catch (err) { replace(box, errBox(err)); return; }
     if (!configured) return renderSetup(box);
@@ -224,9 +236,14 @@
   function staffCard(g) {
     const msg = h('div');
     const card = h('div', { class: 'card staff-card' });
-    const act = (b, body) => busy(b, async () => {
-      try { const r = await aapi('adminHandleSuggestion', Object.assign({ id: g.id }, body)); Object.assign(g, r.suggestion); draw(); acClear(); }
-      catch (err) { replace(msg, errBox(err)); }
+    // getBody runs when the button is pressed, so typed values are used.
+    const act = (b, getBody) => busy(b, async () => {
+      try {
+        const r = await aapi('adminHandleSuggestion', Object.assign({ id: g.id }, getBody()));
+        Object.assign(g, r.suggestion);
+        if (r.item) { g.desiredStock = r.item.desiredStock; g.minimumStock = r.item.minimumStock; }
+        draw(); acClear();
+      } catch (err) { replace(msg, errBox(err)); }
     });
     function draw() {
       const open = g.status === 'open';
@@ -249,7 +266,7 @@
           const cur = g.desiredStock === null || g.desiredStock === undefined ? 0 : g.desiredStock;
           const v = inp(g.kind === 'more' ? cur + 1 : Math.max(0, cur - 1), { inputmode: 'decimal', class: 'line-input', 'aria-label': 'New desired stock for ' + g.itemName });
           const ok = h('button', { class: 'btn small', type: 'button' }, 'Approve');
-          ok.onclick = act(ok, { act: 'done', desiredStock: v.value });
+          ok.onclick = act(ok, () => ({ act: 'done', desiredStock: v.value }));
           buttons.push(h('label', { class: 'small', style: 'display:flex;align-items:center;gap:6px;margin:0' }, 'New desired stock', v), ok);
         }
       } else if (g.kind === 'add') {
@@ -273,11 +290,11 @@
       if (g.note) lines.push(h('p', { class: 'small', style: 'margin:4px 0' }, 'Staff: “' + g.note + '”'));
       if (open) {
         const done = h('button', { class: 'btn small' + (g.kind === 'more' || g.kind === 'less' ? ' secondary' : ''), type: 'button' }, g.kind === 'more' || g.kind === 'less' ? 'Keep as is' : 'Done');
-        done.onclick = act(done, { act: g.kind === 'more' || g.kind === 'less' ? 'dismiss' : 'done' });
+        done.onclick = act(done, () => ({ act: g.kind === 'more' || g.kind === 'less' ? 'dismiss' : 'done' }));
         buttons.push(done);
         if (g.kind !== 'more' && g.kind !== 'less') {
           const dis = h('button', { class: 'btn small secondary', type: 'button' }, 'Dismiss');
-          dis.onclick = act(dis, { act: 'dismiss' });
+          dis.onclick = act(dis, () => ({ act: 'dismiss' }));
           buttons.push(dis);
         }
       }
@@ -295,7 +312,7 @@
     const box = h('div', null, loading());
     shell('home', box);
     try {
-      await aload('adminDashboard', null, (d) => paintHome(d));
+      await aload('adminDashboard', null, (d) => paintHome(d), box);
     } catch (err) { if (box.querySelector('.card')) box.prepend(errBox(err)); else replace(box, errBox(err)); }
     function paintHome(d) {
       const c = d.checklist;
@@ -451,13 +468,15 @@
               h('thead', null, h('tr', null, ['Item', 'Case pack', 'On hand', 'Min', 'Desired', 'Suggested', 'Order (cases)', 'Case price', 'Line total', 'Flags'].map((x, i) => h('th', { class: i >= 2 && i <= 8 ? 'num' : null }, x)))),
               h('tbody', null, g.lines.map(lineRow))))));
       };
-      const sections = ['housekeeping', 'cafe'].map((dept) => {
-        const lines = d.lines.filter((l) => l.department === dept);
+      // Imported orders can have lines with no department; they get their own "Other" section.
+      const depts = ['housekeeping', 'cafe'].concat(d.lines.some((l) => l.department !== 'housekeeping' && l.department !== 'cafe') ? ['other'] : []);
+      const sections = depts.map((dept) => {
+        const lines = d.lines.filter((l) => (dept === 'other' ? l.department !== 'housekeeping' && l.department !== 'cafe' : l.department === dept));
         if (!lines.length) return h('div', null, h('h2', { class: 'dept-heading' }, KIND_HEADING[dept]), h('p', { class: 'muted' }, 'No ' + KIND_HEADING[dept] + ' lines in this order yet.'));
         const ordering = lines.filter((l) => l.finalCases > 0 || (l.flags || []).some((f) => f === 'not-counted' || f === 'no-desired-stock') ||
           (l.staffNotes || []).length || l.countChange || (d.staffSuggestions || []).some((g) => g.itemId === l.itemId));
         const rest = lines.filter((l) => ordering.indexOf(l) < 0);
-        return h('div', null, h('h2', { class: 'dept-heading' }, KIND_HEADING[dept]),
+        return h('div', null, h('h2', { class: 'dept-heading' }, KIND_HEADING[dept] || 'Other'),
           ordering.length ? table(ordering) : h('p', { class: 'muted' }, 'Nothing to order from this count.'),
           rest.length ? h('details', { class: 'card', style: 'margin-top:10px' }, h('summary', null, 'Not ordering (' + rest.length + ', above their minimum)'),
             h('p', { class: 'small muted' }, 'Type a number to add any of these to the order.'), table(rest)) : null);
@@ -541,7 +560,7 @@
             ? 'Items staff count that aren’t on their list. Use Find in catalog to turn on an item you already have, or Add an item. Last 60 days.'
             : 'Extras staff asked for, count changes after you sent an order, and "need more / too many" suggestions. Last 60 days; to-do items first.'),
           list.length ? list.map(staffCard) : h('p', { class: 'muted' }, 'Nothing here.'));
-        });
+        }, box);
       } catch (err) { replace(box, errBox(err)); }
       return;
     }
@@ -550,7 +569,7 @@
         const reqs = d.requests.filter((r) => filter === 'ordered' ? r.status === 'ordered' : r.status === 'shopping' && r.routing === filter);
         replace(box, h('p', { class: 'muted small' }, filter === 'ordered' ? 'Requests marked Ordered.' : 'Requests marked "On shopping list" on the ' + ROUTE_LABEL[filter] + '.'),
           reqs.length ? reqs.map(requestCard) : h('p', { class: 'muted' }, 'Nothing here.'));
-      });
+      }, box);
     } catch (err) { replace(box, errBox(err)); }
 
     function requestCard(r) {
@@ -570,7 +589,7 @@
       const del = h('button', { class: 'btn small danger', type: 'button' }, 'Delete');
       del.onclick = busy(del, async () => {
         if (!await ask('Delete this request and its photos? This cannot be undone.')) return;
-        try { await aapi('adminDeleteRequest', { requestId: r.id, confirm: 'DELETE' }); card.remove(); } catch (err) { replace(msg, errBox(err)); }
+        try { await aapi('adminDeleteRequest', { requestId: r.id, confirm: 'DELETE' }); acClear(); card.remove(); } catch (err) { replace(msg, errBox(err)); }
       });
       const n = (r.photoIds || []).length;
       const showBtn = h('button', { class: 'btn small secondary', type: 'button' }, 'Show ' + plural(n, 'photo', 'photos'));
@@ -766,7 +785,8 @@
       h('div', { class: 'grid2 stack' }, show, dept), h('div', { style: 'margin-top:10px' }, q),
       h('div', { class: 'row' }, h('a', { class: 'btn small secondary', href: '#/admin/item/new' }, 'Add an item'), fillBtn, looseBtn), fillOut, looseOut), h('div', { class: 'card' }, list));
     draw();
-    if (cachedItems) freshItems.then((d) => { if (JSON.stringify(d.items) !== JSON.stringify(items)) { items = d.items; draw(); } }).catch(() => {});
+    // Ignore the fresh copy if a change made on this page already replaced the list.
+    if (cachedItems) freshItems.then((d) => { if (items === cachedItems.items && JSON.stringify(d.items) !== JSON.stringify(items)) { items = d.items; draw(); } }).catch(() => {});
   }
 
   async function renderItem(id) {
@@ -817,7 +837,7 @@
           brand: f.brand.value, casePackRaw: f.casePackRaw.value, countingUnit: f.countingUnit.value, unitsPerCase: f.unitsPerCase.value,
           looseUnitLabel: f.looseUnitLabel.value, category: f.category.value, desiredStock: f.desiredStock.value, minimumStock: f.minimumStock.value, notes: f.notes.value,
           countingUnitConfirmed: cu.box.checked, unitsPerCaseConfirmed: upc.box.checked, active: act.box.checked, replacementApproved: repl.box.checked,
-          supplierNumberStatus: id === 'new' && f.supplierItemNumber.value ? 'entered-by-todd' : undefined,
+          supplierNumberStatus: id === 'new' && f.supplierItemNumber.value ? 'entered-in-admin' : undefined,
         } });
         if (id === 'new') { location.hash = '#/admin/item/' + r.item.id; return; }
         it = r.item;
@@ -1274,7 +1294,7 @@
         h('dl', { class: 'kv' },
           h('dt', null, 'Ginsberg’s files'), h('dd', null, mig ? (mig.ginsberg === 'not-imported' ? 'Not imported yet.' : mig.ginsberg) : '?'))),
       h('div', { class: 'card' }, h('h2', null, 'Import Ginsberg’s source files from your Drive'),
-        h('p', { class: 'small muted' }, 'Paste the Google Drive links (open the file, Share > Copy link, or copy the address bar). The files stay where they are; the app only reads them. To include brands, replacement candidates and Kathy’s order-form lines, first open "Ginsbergs Ordering Master" in Drive and choose File > Save as Google Sheets, then paste that link.'),
+        h('p', { class: 'small muted' }, 'Paste the Google Drive links (open the file, Share > Copy link, or copy the address bar). The files stay where they are; the app only reads them. To include brands, replacement candidates and the order-form lines, first open "Ginsbergs Ordering Master" in Drive and choose File > Save as Google Sheets, then paste that link.'),
         Object.keys(links).map((k) => h('div', { style: 'margin:6px 0' }, links[k])), refresh.el, gPrev, gOut),
       h('div', { class: 'card' }, h('h2', null, 'Import a spreadsheet file (optional)'),
         h('p', { class: 'small muted' }, 'CSV or JSON. You get a preview with checks and duplicate detection before anything is saved. Original IDs are kept, and imported history keeps the package sizes from the file, not today’s catalog.'),
