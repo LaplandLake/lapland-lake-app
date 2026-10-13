@@ -80,10 +80,29 @@
     kids.flat().forEach((k) => k && el.appendChild(k));
     el.querySelectorAll('table.data').forEach(labelize);
   }
+  // Password boxes show what's typed by default (Todd is the only user); "Hide" switches to dots.
+  // The choice is remembered on this device and applies to every password box.
+  function pwShown() { const v = store.get('sm-show-pw'); return v === null ? true : !!v; }
+  function pwInput(autocomplete, id) {
+    return h('input', { type: pwShown() ? 'text' : 'password', autocomplete, id: id || null, 'data-pw': '1', autocapitalize: 'none', autocorrect: 'off', spellcheck: 'false' });
+  }
+  function pwToggle(input) {
+    const b = h('button', { class: 'btn small secondary pw-toggle', type: 'button' });
+    const sync = () => { b.textContent = input.type === 'password' ? 'Show' : 'Hide'; b.setAttribute('aria-label', (input.type === 'password' ? 'Show' : 'Hide') + ' password'); };
+    b.onclick = () => {
+      const show = input.type === 'password';
+      store.set('sm-show-pw', show);
+      document.querySelectorAll('input[data-pw]').forEach((el) => { el.type = show ? 'text' : 'password'; });
+      document.querySelectorAll('.pw-toggle').forEach((t) => { t.textContent = show ? 'Hide' : 'Show'; t.setAttribute('aria-label', (show ? 'Hide' : 'Show') + ' password'); });
+    };
+    sync();
+    return b;
+  }
   function field(label, input, hint) {
     const id = input.id || ('f' + Math.random().toString(36).slice(2, 9));
     input.id = id;
-    return h('div', null, h('label', { for: id }, label), input, hint ? h('div', { class: 'small muted' }, hint) : null);
+    const control = input.getAttribute && input.getAttribute('data-pw') ? h('div', { class: 'pw-row' }, input, pwToggle(input)) : input;
+    return h('div', null, h('label', { for: id }, label), control, hint ? h('div', { class: 'small muted' }, hint) : null);
   }
   function inp(value, attrs) { return h('input', Object.assign({ type: 'text', value: value === null || value === undefined ? '' : String(value), autocomplete: 'off' }, attrs || {})); }
   function check(checked, label, attrs) {
@@ -139,7 +158,7 @@
     let configured = true;
     try { configured = (await api('adminSetupStatus')).configured; } catch (err) { replace(box, errBox(err)); return; }
     if (!configured) return renderSetup(box);
-    const pw = h('input', { type: 'password', autocomplete: 'current-password', id: 'pw' });
+    const pw = pwInput('current-password', 'pw');
     const remember = check(false, 'Keep me signed in on this device (12 hours)');
     const msg = h('div', null, message ? h('div', { class: 'notice warn' }, message) : null);
     const btn = h('button', { class: 'btn block', type: 'submit' }, 'Sign in');
@@ -159,8 +178,8 @@
 
   function renderSetup(box) {
     const code = inp('', { autocapitalize: 'characters' });
-    const p1 = h('input', { type: 'password', autocomplete: 'new-password' });
-    const p2 = h('input', { type: 'password', autocomplete: 'new-password' });
+    const p1 = pwInput('new-password');
+    const p2 = pwInput('new-password');
     const msg = h('div');
     const btn = h('button', { class: 'btn block', type: 'submit' }, 'Save password and sign in');
     replace(box, h('form', { class: 'card', onsubmit: (e) => busy(btn, async () => {
@@ -1165,9 +1184,9 @@
     supSave.onclick = busy(supSave, async () => {
       try { await aapi('adminSaveSettings', { supplier: Object.fromEntries(Object.keys(sf).map((k) => [k, sf[k].value])) }); replace(supMsg, okBox('Saved.')); } catch (err) { replace(supMsg, errBox(err)); }
     });
-    const cur = h('input', { type: 'password', autocomplete: 'current-password' });
-    const n1 = h('input', { type: 'password', autocomplete: 'new-password' });
-    const n2 = h('input', { type: 'password', autocomplete: 'new-password' });
+    const cur = pwInput('current-password');
+    const n1 = pwInput('new-password');
+    const n2 = pwInput('new-password');
     const pwMsg = h('div');
     const pwBtn = h('button', { class: 'btn', type: 'button' }, 'Change password');
     pwBtn.onclick = busy(pwBtn, async () => {

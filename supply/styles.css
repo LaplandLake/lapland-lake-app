@@ -279,3 +279,8 @@ details > summary { cursor: pointer; font-weight: 700; min-height: 44px; display
 .area-label { display: inline-flex; align-items: center; gap: 6px; font-weight: 800; color: var(--area); margin: 14px 0 6px; }
 .area-label .ico { width: 20px; height: 20px; color: var(--area); }
 tr.not-ordering td { color: var(--ink-soft); }
+
+/* ---------- password box with Show/Hide */
+.pw-row { display: flex; gap: 8px; align-items: stretch; }
+.pw-row input { flex: 1; min-width: 0; }
+.pw-row .pw-toggle { flex: 0 0 auto; min-width: 72px; }

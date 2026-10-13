@@ -269,7 +269,13 @@ try {
   await check('Admin sign-in (password checked on the server); wrong password refused', async () => {
     await admin.goto(APP + '#/admin');
     await admin.waitForSelector('#pw');
+    expect((await admin.getAttribute('#pw', 'type')) === 'text', 'password visible by default');
+    await admin.click('button.pw-toggle');
+    expect((await admin.getAttribute('#pw', 'type')) === 'password', 'Hide switches to dots');
+    await admin.click('button.pw-toggle');
+    expect((await admin.getAttribute('#pw', 'type')) === 'text', 'Show switches back');
     await admin.fill('#pw', 'wrong-password-123');
+    await admin.screenshot({ path: path.join(SHOTS, 'admin-signin-390.png') });
     await admin.click('button:has-text("Sign in")');
     await admin.waitForSelector('.notice.err');
     await admin.fill('#pw', 'test-password-123');
