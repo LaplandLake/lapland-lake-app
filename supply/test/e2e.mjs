@@ -157,7 +157,7 @@ try {
     const frozen = page.locator('.area', { hasText: 'Frozen' }).first();
     expect((await frozen.locator('.sec-count').textContent()) === '0 of 1', 'frozen progress before');
     const soup = page.locator('.item', { hasText: 'TEST Soup red lentil' });
-    expect(await soup.locator('button', { hasText: 'Suggest…' }).isVisible(), 'Suggest button');
+    expect(await soup.locator('button', { hasText: 'Need more or less?' }).isVisible(), 'Suggest button');
     expect((await soup.locator('button', { hasText: /^(Out|Report low)$/ }).count()) === 0, 'Out and Report low are gone');
     await soup.locator('input').first().fill('2'); // minimum is 2
     await soup.locator('.low-badge').waitFor({ state: 'visible' });
@@ -207,7 +207,7 @@ try {
     await soup.locator('input').first().fill('1');
     await soup.locator('.save-state', { hasText: /^Saved/ }).waitFor({ timeout: 8000 });
     const sugar = page.locator('.item', { hasText: 'TEST Sugar packets' });
-    await sugar.locator('button', { hasText: 'Suggest…' }).click();
+    await sugar.locator('button', { hasText: 'Need more or less?' }).click();
     await page.waitForSelector('.modal .choice');
     await page.screenshot({ path: path.join(SHOTS, 'staff-suggest-390.png') });
     await page.click('.modal .choice:has-text("+ Extra for this week")');

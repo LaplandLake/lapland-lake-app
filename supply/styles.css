@@ -145,7 +145,7 @@ input:focus, select:focus, textarea:focus, button:focus-visible, a:focus-visible
 .qty:not(.one) .stepper button { width: 44px; flex-basis: 44px; }
 .stepper input { border-radius: 0; text-align: center; min-width: 0; font-size: 1.25rem; font-weight: 700; min-height: 56px; }
 .item-foot { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
-.flagbtn { min-height: 44px; padding: 6px 14px; border-radius: 999px; border: 2px solid var(--line); background: #fff; font-weight: 700; cursor: pointer; }
+.flagbtn { min-height: 44px; padding: 6px 14px; border-radius: 999px; border: 2px solid var(--teal); background: #fff; color: var(--teal-dark); font-weight: 700; cursor: pointer; }
 .flagbtn[aria-pressed=true].low { background: var(--sun-soft); border-color: var(--sun); }
 .flagbtn[aria-pressed=true].out { background: var(--err-bg); border-color: var(--err); color: var(--err); }
 .save-state { margin-left: auto; font-size: 0.9rem; font-weight: 600; }

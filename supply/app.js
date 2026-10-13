@@ -294,7 +294,7 @@
     return '';
   }
 
-  // "Suggest…" on a count item: a one-time extra, or a note about the regular amount.
+  // "Need more or less?" on a count item: a one-time extra, or a note about the regular amount.
   function suggestDialog(dept, it) {
     const CHOICES = [
       ['extra', '+ Extra for this week', 'One-time need, for example a group coming. Added to the next order.'],
@@ -577,8 +577,8 @@
       }
       r.stateEl = h('span', { class: 'save-state none' }, 'Not counted');
       r.retry = h('button', { class: 'btn small secondary hidden', type: 'button', onclick: () => schedule(r, 0) }, 'Retry');
-      const suggestBtn = kind === 'beverage' ? null : h('button', { class: 'flagbtn suggest', type: 'button', onclick: () => suggestDialog(kind, it) }, 'Suggest…');
-      const clearBtn = state.finished ? null : h('button', { class: 'btn small secondary', type: 'button', onclick: () => { r.boxes.forEach((b) => { b.full.value = ''; if (b.loose) b.loose.value = ''; }); r.flag = ''; r.wantClear = true; schedule(r, 0); } }, 'Clear');
+      const suggestBtn = kind === 'beverage' ? null : h('button', { class: 'flagbtn suggest', type: 'button', onclick: () => suggestDialog(kind, it) }, 'Need more or less?');
+      const clearBtn = state.finished ? null : h('button', { class: 'flagbtn', type: 'button', onclick: () => { r.boxes.forEach((b) => { b.full.value = ''; if (b.loose) b.loose.value = ''; }); r.flag = ''; r.wantClear = true; schedule(r, 0); } }, 'Clear');
       r.lowBadge = h('span', { class: 'low-badge hidden', title: 'At or below the minimum' }, 'Low');
       const meta = [];
       if (kind === 'beverage') {
