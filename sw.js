@@ -50,6 +50,8 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
+  // The staff Supply Manager (/supply/) is a separate app: always load it fresh from the internet.
+  if (new URL(req.url).pathname.includes('/supply/')) return;
 
   const isContent = new URL(req.url).pathname.includes('/content/');
   if (isContent) {

@@ -80,7 +80,7 @@ try {
       expect(JSON.stringify(labels) === JSON.stringify(['Housekeeping Orders', 'Cafe Orders', 'Other Supply Requests', 'Drink Cooler', 'Beer / Cider / Wine']), 'buttons: ' + labels);
       const del = await page.textContent('.delivery');
       expect(/Delivery Thursday · Preferable order by Tuesday afternoon\.\s*Latest order by Wednesday at 4:00 PM · 20-case minimum\./.test(del), 'delivery text: ' + del);
-      expect((await page.textContent('.admin-link')) === 'Todd — Admin', 'admin link');
+      expect((await page.textContent('.admin-link')) === 'Admin', 'admin link');
       await page.waitForSelector('.status-dates');
       const card = await page.textContent('.status-card');
       expect(/Next delivery\s*Thursday/.test(card) && /Order deadline\s*Wed/.test(card), 'delivery dates: ' + card);
@@ -198,7 +198,7 @@ try {
     expect(/not been counted/.test(dialogText), 'warning dialog: ' + dialogText);
     expect(/2 items were left uncounted/.test(await page.textContent('.notice.ok')), 'finish message');
   });
-  await check('After Finish: staff fix a number, ask for an extra, report an item not on the list; Todd sees it all', async () => {
+  await check('After Finish: staff fix a number, ask for an extra, report an item not on the list; the admin sees it all', async () => {
     await page.goto(APP + '#/');
     await page.goto(APP + '#/count/cafe');
     await page.waitForSelector('.finished-note');
@@ -216,13 +216,13 @@ try {
     await page.click('.modal button:has-text("Send")');
     await page.waitForSelector('.modal-msg');
     const extraMsg = await page.textContent('.modal-msg');
-    expect(/Added: 2 extra cases of TEST Sugar packets/.test(extraMsg), 'extra message: ' + extraMsg);
+    expect(/Added to this week’s order ✓ \(\+2 cases of TEST Sugar packets\)/.test(extraMsg), 'extra message: ' + extraMsg);
     await page.click('.modal button:has-text("OK")');
     await page.click('button:has-text("Item not on this list?")');
     await page.fill('#nl-name', 'TEST Oat milk');
-    await page.click('.modal button:has-text("Send to Todd")');
+    await page.click('.modal button:has-text("Send")');
     await page.waitForSelector('.modal-msg');
-    expect(/add "TEST Oat milk"/.test(await page.textContent('.modal-msg')), 'not-listed message');
+    expect(/Sent ✓ "TEST Oat milk"/.test(await page.textContent('.modal-msg')), 'not-listed message');
     await page.click('.modal button:has-text("OK")');
     await noHScroll(page, 'finished count');
   });
@@ -315,8 +315,8 @@ try {
     await noHScroll(admin, 'admin overview');
     await admin.screenshot({ path: path.join(SHOTS, 'admin-overview-390.png'), fullPage: true });
   });
-  await check('Todd sees the count fix and the extra on the draft, and the item to add on the Overview', async () => {
-    // Todd: the draft shows the fix and the extra.
+  await check('the admin sees the count fix and the extra on the draft, and the item to add on the Overview', async () => {
+    // Admin: the draft shows the fix and the extra.
     await admin.goto(APP + '#/admin/orders');
     await admin.locator('.list-item', { hasText: 'Draft' }).locator('a').first().click();
     await admin.waitForSelector('.order-summary');
@@ -352,12 +352,12 @@ try {
     await page.waitForSelector('.req');
     expect(/TEST Paper towels for tupa 3[\s\S]*Ordered/.test(await page.textContent('.req')), 'staff status');
   });
-  await check('Drink routing is private: root beer is on the Beer / Cider / Wine list for Todd', async () => {
+  await check('Drink routing is private: root beer is on the Beer / Cider / Wine list for the admin', async () => {
     await admin.goto(APP + '#/admin/requests/beverage');
     await admin.locator('.card', { hasText: 'TEST Craft root beer' }).waitFor();
     await noHScroll(admin, 'admin requests');
   });
-  await check('Ginsberg draft: department headings, below-20 warning, stays a draft until Todd confirms', async () => {
+  await check('Ginsberg draft: department headings, below-20 warning, stays a draft until the admin confirms', async () => {
     await admin.goto(APP + '#/admin/orders');
     await admin.click('button:has-text("Start a new draft")');
     await admin.waitForSelector('text=Draft order');

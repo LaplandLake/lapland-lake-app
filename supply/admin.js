@@ -1,4 +1,4 @@
-/* Lapland Lake Supply Manager: Todd's Admin area.
+/* Lapland Lake Supply Manager: Admin area.
    Every action here is checked again on the server; hiding a button is never the only guard. */
 (function () {
   'use strict';
@@ -56,7 +56,7 @@
     ['counts', 'Counts'], ['beverages', 'Beverages'], ['reports', 'Reports'], ['import', 'Import & backup'], ['settings', 'Settings'],
   ];
   function shell(tab, ...content) {
-    mount(topbar('Todd — Admin', '#/'),
+    mount(topbar('Admin', '#/'),
       h('div', { class: 'wrap wide' },
         h('nav', { class: 'tabs', 'aria-label': 'Admin sections' }, TABS.map((t) => h('a', { href: '#/admin/' + t[0], 'aria-current': t[0] === tab ? 'page' : null }, t[1]))),
         ...content));
@@ -98,7 +98,7 @@
     kids.flat().forEach((k) => k && el.appendChild(k));
     el.querySelectorAll('table.data').forEach(labelize);
   }
-  // Password boxes show what's typed by default (Todd is the only user); "Hide" switches to dots.
+  // Password boxes show what's typed by default (one admin user); "Hide" switches to dots.
   // The choice is remembered on this device and applies to every password box.
   function pwShown() { const v = store.get('sm-show-pw'); return v === null ? true : !!v; }
   function pwInput(autocomplete, id) {
@@ -172,7 +172,7 @@
   /* ------------------------------------------------------------ sign in */
   async function renderLogin(message) {
     const box = h('div', { class: 'wrap' }, loading());
-    mount(topbar('Todd — Admin', '#/'), box);
+    mount(topbar('Admin', '#/'), box);
     let configured = true;
     try { configured = (await api('adminSetupStatus')).configured; } catch (err) { replace(box, errBox(err)); return; }
     if (!configured) return renderSetup(box);
@@ -817,7 +817,7 @@
           brand: f.brand.value, casePackRaw: f.casePackRaw.value, countingUnit: f.countingUnit.value, unitsPerCase: f.unitsPerCase.value,
           looseUnitLabel: f.looseUnitLabel.value, category: f.category.value, desiredStock: f.desiredStock.value, minimumStock: f.minimumStock.value, notes: f.notes.value,
           countingUnitConfirmed: cu.box.checked, unitsPerCaseConfirmed: upc.box.checked, active: act.box.checked, replacementApproved: repl.box.checked,
-          supplierNumberStatus: id === 'new' && f.supplierItemNumber.value ? 'entered-by-todd' : undefined,
+          supplierNumberStatus: id === 'new' && f.supplierItemNumber.value ? 'entered-in-admin' : undefined,
         } });
         if (id === 'new') { location.hash = '#/admin/item/' + r.item.id; return; }
         it = r.item;

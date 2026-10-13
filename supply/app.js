@@ -72,7 +72,7 @@
     constructor(message, code) { super(message); this.code = code; }
   }
   async function api(action, body, opts) {
-    if (!API_URL) throw new ApiError('The app is not connected to its data yet. Todd needs to finish setup (see the README).', 'setup');
+    if (!API_URL) throw new ApiError('The app is not connected to its data yet. Setup needs to be finished (see the README).', 'setup');
     const payload = Object.assign({ action }, body || {});
     // Preview build only (dev/build-demo.mjs): the backend runs inside the page.
     if (window.SUPPLY_LOCAL_API) {
@@ -217,14 +217,14 @@
         h('hr', { class: 'lake-rule' }),
         h('p', { class: 'subtitle' }, 'Supply inventory & ordering')),
       h('div', { class: 'wrap' },
-        !API_URL ? h('div', { class: 'notice warn' }, 'Not connected yet: Todd needs to finish the one-time setup before counts and requests can be saved.') : null,
+        !API_URL ? h('div', { class: 'notice warn' }, 'Not connected yet: the one-time setup needs to be finished before counts and requests can be saved.') : null,
         h('nav', { class: 'home-buttons', 'aria-label': 'Sections' },
           buttons.map((b) => h('a', { class: 'home-btn', href: b[0] }, h('span', { class: 'tile-ico' }, icon(b[1])), h('span', null, b[2])))),
         h('section', { class: 'status-card', 'aria-label': "Ginsberg's delivery and this week's counts" },
           h('h2', null, "Ginsberg's Foods"),
           live,
           h('p', { class: 'delivery' }, DELIVERY_TEXT[0], h('br'), DELIVERY_TEXT[1])),
-        h('div', { style: 'text-align:center' }, h('a', { class: 'admin-link', href: '#/admin' }, 'Todd — Admin'))));
+        h('div', { style: 'text-align:center' }, h('a', { class: 'admin-link', href: '#/admin' }, 'Admin'))));
     if (!API_URL) return;
     cachedApi('homeStatus', null, (s) => {
       const nd = s.nextDelivery;
@@ -232,7 +232,7 @@
       const rules = document.querySelector('.status-card .delivery');
       if (rules) rules.classList.toggle('hidden', !!s.paused);
       live.append(
-        s.paused ? h('p', { class: 'paused-note' }, h('b', null, 'Ordering paused. '), 'Keep counting as usual; Todd isn’t ordering from Ginsberg’s right now.') : null,
+        s.paused ? h('p', { class: 'paused-note' }, h('b', null, 'Ordering paused. '), 'Keep counting as usual.') : null,
         nd && !s.paused ? h('dl', { class: 'status-dates' },
           h('dt', null, 'Next delivery'), h('dd', null, fmtDay(nd.deliveryDate)),
           h('dt', null, 'Order deadline'), h('dd', null, fmtWhen(nd.deadline))) : null,
@@ -294,12 +294,12 @@
     return '';
   }
 
-  // "Suggest…" on a count item: a one-time extra, or a note to Todd about the regular amount.
+  // "Suggest…" on a count item: a one-time extra, or a note about the regular amount.
   function suggestDialog(dept, it) {
     const CHOICES = [
       ['extra', '+ Extra for this week', 'One-time need, for example a group coming. Added to the next order.'],
-      ['more', 'We need more every week', 'We keep running out. Todd decides whether to raise the regular amount.'],
-      ['less', 'We have too many', 'Cases keep piling up or going stale. Todd decides whether to lower it.'],
+      ['more', 'We need more every week', 'We keep running out.'],
+      ['less', 'We have too many', 'Cases keep piling up or going stale.'],
     ];
     let type = '';
     const cases = h('input', { type: 'text', inputmode: 'numeric', pattern: '[0-9]*', value: '1', id: 'sg-cases', 'aria-label': 'Extra cases' });
@@ -338,7 +338,7 @@
     };
   }
 
-  // "Item not on this list?": staff tell Todd about something they count that isn't listed.
+  // "Item not on this list?": staff report something they count that isn't listed.
   function notListedDialog(dept) {
     const photos = [];
     const name = h('input', { type: 'text', id: 'nl-name', maxlength: 120, autocomplete: 'off', placeholder: 'For example: Oat milk, 32 oz' });
@@ -347,7 +347,7 @@
     const pick = h('input', { type: 'file', accept: 'image/*', class: 'sr', tabindex: -1 });
     const thumbs = h('div', { class: 'thumbs' });
     const msg = h('div');
-    const send = h('button', { class: 'btn block', type: 'button' }, 'Send to Todd');
+    const send = h('button', { class: 'btn block', type: 'button' }, 'Send');
     const show = (type, text) => { msg.innerHTML = ''; if (text) msg.append(h('div', { class: 'notice ' + type, role: 'alert' }, text)); };
     const draw = () => {
       thumbs.innerHTML = '';
@@ -367,7 +367,7 @@
     cam.addEventListener('change', () => { add(cam.files); cam.value = ''; });
     pick.addEventListener('change', () => { add(pick.files); pick.value = ''; });
     const dlg = openDialog('Item not on this list', [
-      h('p', { class: 'small muted', style: 'margin-top:0' }, 'Todd gets this and adds it to the ' + KIND_HEADING[dept] + ' count. A photo of the case label helps him find it.'),
+      h('p', { class: 'small muted', style: 'margin-top:0' }, 'A photo of the case label helps find the right item.'),
       h('label', { for: 'nl-name' }, 'Item name'), name,
       h('label', { for: 'nl-note' }, 'Note (optional)'), note,
       h('div', { class: 'photo-buttons', style: 'margin-top:10px' },
@@ -390,7 +390,7 @@
         dlg.close();
         tell(res.message);
       } catch (err) {
-        send.disabled = false; send.textContent = 'Send to Todd';
+        send.disabled = false; send.textContent = 'Send';
         show('err', err.message + ' Nothing is lost; tap Send to try again.');
       }
     };
@@ -631,8 +631,8 @@
       if (!data.items.length) {
         finishBar.classList.add('hidden');
         body.append(h('div', { class: 'notice info' }, kind === 'beverage'
-          ? 'No beer, cider, wine or craft soda products are set up yet. Todd adds them (with confirmed case sizes) in Admin.'
-          : 'No items are on the ' + KIND_HEADING[kind] + ' list yet. Todd chooses the items in Admin.'));
+          ? 'No beer, cider, wine or craft soda products are set up yet. They are added in Admin.'
+          : 'No items are on the ' + KIND_HEADING[kind] + ' list yet. Items are chosen in Admin.'));
         return;
       }
       body.append(progress);
@@ -640,9 +640,9 @@
       if (f) {
         body.append(h('div', { class: 'notice ok finished-note' },
           h('b', null, 'This count was finished ' + fmtWhen(f.completedAt) + '. '),
-          f.mode === 'sent' ? 'Todd already sent this week’s order. If a number changes (for example something sells out), fix it here and Todd is told right away.'
+          f.mode === 'sent' ? 'This week’s order was already sent. If a number changes (for example something sells out), you can still fix it here.'
             : f.mode === 'paused' ? 'If a number changes, you can still fix it here until the end of the week.'
-              : 'If a number changes (for example something sells out), fix it here. The order updates by itself until Todd sends it.'));
+              : 'If a number changes (for example something sells out), you can still fix it here.'));
       } else {
         body.append(h('p', { class: 'muted small' }, data.session
           ? 'Count started ' + fmtDateTime(data.session.startedAt) + '. Each entry saves on its own; you can leave and come back.'
@@ -653,7 +653,7 @@
       if (kind !== 'beverage') {
         body.append(h('div', { class: 'not-listed' },
           h('button', { class: 'btn secondary block', type: 'button', onclick: () => notListedDialog(kind) }, 'Item not on this list?'),
-          h('p', { class: 'small muted' }, 'Tell Todd about something you count that isn’t here.')));
+          h('p', { class: 'small muted' }, 'For something you count that isn’t on this list.')));
       }
       const draft = store.get(draftKey) || {};
       Object.keys(draft).forEach((id) => {
@@ -944,7 +944,7 @@
     mount(topbar(title), h('div', { class: 'wrap' },
       h('h2', { class: 'dept-heading' }, isDrink ? 'Drink Cooler restock' : 'Other supply request'),
       h('p', { class: 'muted' }, isDrink
-        ? 'Tell Todd which drink needs restocking and how many. Todd decides where it gets ordered.'
+        ? 'Which drink needs restocking, and how many.'
         : 'For anything that isn’t on the Housekeeping or Cafe count. These are kept separate from the Ginsberg’s order.'),
       msg, form, recent));
 

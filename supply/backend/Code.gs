@@ -1,7 +1,7 @@
 /* Lapland Lake Supply Manager: backend (Google Apps Script).
 
-   Runs in Todd's Google account. Data lives in a Google Sheet ("Lapland Lake Supply
-   Manager Data") and request photos in a private Drive folder, both owned by Todd.
+   Runs in the owner's Google account. Data lives in a Google Sheet ("Lapland Lake Supply
+   Manager Data") and request photos in a private Drive folder, both owned by that account.
    Nothing here is shared publicly: photos are only returned to a signed-in Admin.
 
    Setup (once): see supply/README.md. In short:
@@ -16,7 +16,7 @@
    The same file runs in Node for automated tests (see supply/test). Everything that
    touches Google services goes through the "platform" object at the bottom. */
 
-const APP_VERSION = '1.2.0';
+const APP_VERSION = '1.2.1';
 const TZ = 'America/New_York';
 const DATA_SPREADSHEET_NAME = 'Lapland Lake Supply Manager Data';
 const DRIVE_FOLDER_NAME = 'Lapland Lake Supply Manager';
@@ -161,7 +161,7 @@ const ACTIONS = {
   adminSetupStatus: { role: 'staff', fn: () => ({ configured: !!platform_().props.get('ADMIN_HASH') }) },
   adminSetup: { role: 'staff', write: true, fn: (b) => adminSetup_(b) },
   adminLogin: { role: 'staff', write: true, fn: (b) => adminLogin_(b) },
-  // Todd only
+  // admin only
   adminLogout: { role: 'admin', write: true, fn: (b) => adminLogout_(b) },
   adminChangePassword: { role: 'admin', write: true, fn: (b) => adminChangePassword_(b) },
   adminDashboard: { role: 'admin', fn: () => adminDashboard_() },
@@ -275,7 +275,7 @@ function rateLimit_(bucket) {
   const n = Number(p.cache.get(key) || 0) + 1;
   p.cache.put(key, String(n), 3700);
   if (n > STAFF_LIMITS[bucket]) {
-    fail_('Too many submissions in the last hour. Please wait a bit and try again, or tell Todd.', 'rate');
+    fail_('Too many submissions in the last hour. Please wait a bit and try again.', 'rate');
   }
 }
 
@@ -444,7 +444,7 @@ function adminChangePassword_(b) {
   return { changed: true, signedOut: true };
 }
 
-// Run this from the Apps Script editor (only Todd can). It writes a one-time code to the
+// Run this from the Apps Script editor (only the account owner can). It writes a one-time code to the
 // execution log, valid for 30 minutes, used on the Admin screen to set or reset the password.
 function createAdminSetupCode() {
   const code = randomToken_().slice(0, 10).toUpperCase();
@@ -721,7 +721,7 @@ function saveCount_(b, actor) {
     flag: v.flag, note: str_(b.note, 300), countedAt: now, snapshot: snap, parts, updatedAt: now,
   };
   if (ed) {
-    // Keep the number from when the count was finished, so Todd sees "2 → 0".
+    // Keep the number from when the count was finished, so the admin sees "2 → 0".
     const first = existing && existing.changedAfterFinish ? existing.changedAfterFinish.from
       : existing ? { fullCases: existing.fullCases, looseUnits: existing.looseUnits } : null;
     rec.changedAfterFinish = { from: first, at: now };
@@ -763,7 +763,7 @@ function completeCount_(b, actor) {
   audit_(actor, 'count-completed', { kind: b.kind, sessionId: session.id, missing });
   const out = { completed: true, notCounted: missing, total: countables.length };
   if (b.kind !== 'beverage' && !orderingPaused_()) {
-    // Build or refresh the draft Ginsberg's order. Nothing is sent; Todd reviews it in Admin.
+    // Build or refresh the draft Ginsberg's order. Nothing is sent; the admin reviews it in Admin.
     try {
       const d = autoDraft_(b.kind, session.id);
       if (actor === 'admin') out.draft = d;
@@ -772,7 +772,7 @@ function completeCount_(b, actor) {
     }
   }
   if (b.kind === 'beverage') {
-    // Staff only learn that the count is done; the email result is shown to Todd in Admin.
+    // Staff only learn that the count is done; the email result is shown to the admin in Admin.
     const res = sendWeeklyReport_(session.id, 'auto', false);
     if (actor === 'admin') out.email = res;
   }
@@ -834,7 +834,7 @@ function latestSession_(kind) {
 
 // Reorder rule: when what's on hand is at or below the minimum, order back up to the desired
 // stock in whole cases. Items with no minimum are ordered whenever they're below desired stock,
-// and flagged so Todd can set one. Missing counts or settings get no suggestion at all.
+// and flagged so the admin can set one. Missing counts or settings get no suggestion at all.
 function suggestLine_(it, e) {
   const r = onHandFromEntry_(e);
   const flags = r.flags.slice();
@@ -891,7 +891,7 @@ function lineFields_(it, sug, e, pr) {
   };
 }
 
-// Works out one department's lines. Quantities Todd already changed by hand are kept.
+// Works out one department's lines. Quantities already changed by hand are kept.
 function deptLines_(order, dept, session, existing, idx) {
   const entries = session ? db_().all('entries').filter((e) => e.sessionId === session.id) : [];
   const old = {};
@@ -905,7 +905,7 @@ function deptLines_(order, dept, session, existing, idx) {
     const qty = sug.suggested === null ? 0 : sug.suggested;
     seen[it.id] = true;
     const o = old[it.id];
-    // Staff extras ride on top of the suggestion; a number Todd typed is kept as it is.
+    // Staff extras ride on top of the suggestion; a number typed in Admin is kept as it is.
     if (o) keep.push({ id: o.id, fields: o.edited ? fields : Object.assign(fields, { finalCases: qty + (o.extraCases || 0) }) });
     else add.push(Object.assign({ id: newId_('l'), orderId: order.id, itemId: it.id, finalCases: qty, edited: false, sortOrder: 0, note: '', extraCases: 0, staffNotes: [] }, fields));
   });
@@ -1020,7 +1020,7 @@ function adminSaveOrder_(b) {
     if (!l) fail_('Order line not found.');
     const q = num_(u.finalCases);
     if (q === null || isNaN(q) || q < 0 || Math.floor(q) !== q || q > 9999) fail_('Order quantities must be whole numbers of cases, 0 or more.');
-    // A quantity that differs from the suggestion counts as Todd's choice and survives later refreshes.
+    // A quantity that differs from the suggestion counts as the admin's choice and survives later refreshes.
     const base = l.suggestedCases === null ? null : l.suggestedCases + (l.extraCases || 0);
     db_().update('orderLines', l.id, { finalCases: q, note: str_(u.note, 300), edited: l.edited || q !== base });
   });
@@ -1028,7 +1028,7 @@ function adminSaveOrder_(b) {
   return adminOrder_(order.id);
 }
 
-// Todd marks the order as submitted after he has sent it himself. Nothing is sent from here.
+// The admin marks the order as submitted after sending it. Nothing is sent from here.
 function adminSubmitOrder_(b) {
   const order = db_().get('orders', str_(b.orderId, 60));
   if (!order) fail_('Order not found.');
@@ -1053,7 +1053,7 @@ function adminCancelOrder_(b) {
   return { discarded: true };
 }
 
-// Desired stock only ever changes when Todd approves a value here or in the catalog.
+// Desired stock only ever changes when the admin approves a value here or in the catalog.
 function adminSetDesiredStock_(b) {
   const it = db_().get('items', str_(b.itemId, 60));
   if (!it) fail_('Item not found.');
@@ -1120,7 +1120,7 @@ function draftFor_(nd) {
 }
 
 // A finished Housekeeping or Cafe count stays open for fixes (staff only):
-// - ordering on: until the next order deadline; once Todd marks that order submitted, changes
+// - ordering on: until the next order deadline; once the admin marks that order submitted, changes
 //   are passed to him as notices instead of changing the order;
 // - ordering paused: until the end of the week.
 function editableSession_(kind) {
@@ -1141,7 +1141,7 @@ function afterFinishChange_(ed, it, rec) {
   if (ed.mode === 'draft') {
     autoDraft_(ed.session.kind, ed.session.id);
   } else if (ed.mode === 'sent') {
-    // The order is already sent: tell Todd, so he can call it in before the deadline.
+    // The order is already sent: pass it on, so it can still be called in before the deadline.
     const open = db_().all('suggestions').filter((g) => g.kind === 'late' && g.status === 'open' && g.itemId === it.id && g.deliveryDate === ed.delivery.deliveryDate)[0];
     const detail = { from: rec.changedAfterFinish.from, to: { fullCases: rec.fullCases, looseUnits: rec.looseUnits }, at: rec.countedAt, deadline: ed.delivery.deadline };
     if (open) db_().update('suggestions', open.id, { detail, updatedAt: nowIso_() });
@@ -1237,7 +1237,7 @@ function staffSuggest_(b) {
     g.photoIds = ph.ids;
     db_().insert('suggestions', g);
     ph.attach();
-    return { saved: true, message: 'Sent to Todd: please add "' + g.itemName + '" to the ' + KIND_LABEL[dept] + ' count.' };
+    return { saved: true, message: 'Sent ✓ "' + g.itemName + '" for the ' + KIND_LABEL[dept] + ' count.' };
   }
   const it = db_().get('items', str_(b.itemId, 60));
   if (!it || !activeCountables_(dept).some((c) => c.id === it.id)) fail_('That item is not on the ' + KIND_LABEL[dept] + ' list any more. Reload the page.');
@@ -1251,12 +1251,12 @@ function staffSuggest_(b) {
     const sent = nd ? submittedOrderFor_(nd.deliveryDate) : null;
     if (!nd) {
       g.detail = { reason: 'paused' };
-      message = 'Sent to Todd. Ordering is paused right now, so he will see it on his list.';
+      message = 'Sent ✓';
     } else if (sent) {
       g.deliveryDate = nd.deliveryDate;
       g.orderId = sent.id;
       g.detail = { reason: 'sent', deadline: nd.deadline };
-      message = 'Sent to Todd. This week’s order was already sent, so he will see it right away.';
+      message = 'Sent ✓';
     } else {
       const order = draftFor_(nd);
       addExtraToOrder_(order, it, n, note);
@@ -1264,10 +1264,10 @@ function staffSuggest_(b) {
       g.orderId = order.id;
       g.deliveryDate = nd.deliveryDate;
       g.handledAt = nowIso_();
-      message = 'Added: ' + n + ' extra ' + (n === 1 ? 'case' : 'cases') + ' of ' + it.name + ' on the order for Thursday.';
+      message = 'Added to this week’s order ✓ (+' + n + ' ' + (n === 1 ? 'case' : 'cases') + ' of ' + it.name + ')';
     }
   } else {
-    message = 'Sent to Todd. He decides whether to change the regular amount.';
+    message = 'Sent ✓';
   }
   db_().insert('suggestions', g);
   return { saved: true, message };
@@ -1564,7 +1564,7 @@ function adminRemoveItems_(b) {
 
 // One-time helper for items added from a spreadsheet: takes the minimum from notes like
 // "Suggested minimum 2, target 3 cases" and copies price/history from the matching imported
-// Ginsberg's record (same item #). Never overwrites anything Todd has already filled in.
+// Ginsberg's record (same item #). Never overwrites anything already already filled in.
 function fillFromRecords_(commit) {
   const items = db_().all('items');
   const src = {};
@@ -1608,7 +1608,7 @@ function fillFromRecords_(commit) {
   };
 }
 
-// Loose-unit names for common case packs. Todd can change any of them before applying.
+// Loose-unit names for common case packs. The admin can change any of them before applying.
 const LOOSE_LABELS = [
   [/toilet|paper roll|towel roll|paper towel|touchless/i, 'rolls'],
   [/facial|tissue box/i, 'boxes'],
@@ -1716,7 +1716,7 @@ function backupOn_() {
   try {
     platform_().backup.install();
   } catch (err) {
-    // Google can refuse to create the weekly timer from the web app; Todd then does it once in the editor.
+    // Google can refuse to create the weekly timer from the web app; the admin then does it once in the editor.
     return Object.assign(backupStatus_(), { turnedOn: false, error: String(err && err.message ? err.message : err).slice(0, 300) });
   }
   putSetting_('backup', Object.assign(allSettings_().backup, { driveBackupEnabled: true }));
@@ -1790,7 +1790,7 @@ function adminSaveBevProduct_(b) {
   else {
     next.id = newId_('b');
     next.type = next.type || 'other';
-    next.source = next.source || 'Entered by Todd';
+    next.source = next.source || 'Entered in Admin';
     next.origin = 'admin';
     next.createdAt = now;
     db_().insert('bevProducts', next);
@@ -2065,7 +2065,7 @@ function adminSendReportEmail_(b) {
   return { result: r, emailLog: emailLogList_() };
 }
 
-// Only runs when Todd presses "Send test email" in Admin.
+// Only runs when the admin presses "Send test email" in Admin.
 function adminSendTestEmail_(b) {
   if (b.confirm !== 'SEND-TEST') fail_('Please confirm sending a test email.');
   const email = allSettings_().email;
@@ -2195,7 +2195,7 @@ function parseCsv_(text) {
   return rows;
 }
 
-// Reads Todd's source files and turns them into inactive review candidates.
+// Reads the source files and turns them into inactive review candidates.
 // Sources (all optional except at least one): the "Ginsbergs Weekly Ordering" Google Sheet,
 // the Ordering Master saved as a Google Sheet, the deleted-items CSV, the graph-data CSV,
 // and the ordering/contact reference text file.
@@ -2486,7 +2486,7 @@ function importGinsberg_(b, commit) {
   db_().insertMany('items', rows);
   let refreshed = 0;
   if (b.refreshExisting) {
-    // Only supplier reference fields are refreshed. Todd's choices (active, department,
+    // Only supplier reference fields are refreshed. Admin choices (active, department,
     // counting unit, units per case, desired stock, name) are never touched.
     dupes.forEach((d) => {
       const c = d.c;
