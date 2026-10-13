@@ -298,3 +298,6 @@ tr.not-ordering td { color: var(--ink-soft); }
 .staff-notes { margin-top: 4px; }
 .staff-notes div { font-size: 0.85rem; color: var(--teal-dark); font-weight: 600; }
 .stale .item, .stale .area-items { opacity: 0.65; }
+.count-help { background: var(--lake-soft); border-left: 5px solid var(--teal); border-radius: 10px; padding: 10px 14px; margin: 0 0 14px; font-size: 1.02rem; }
+.count-help p { margin: 4px 0; }
+.count-help ul { margin: 4px 0 2px; padding-left: 22px; }

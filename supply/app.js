@@ -294,7 +294,7 @@
     return '';
   }
 
-  // "Need more or less?" on a count item: a one-time extra, or a note about the regular amount.
+  // "Special request" on a count item: a one-time extra, or a note about the regular amount.
   function suggestDialog(dept, it) {
     const CHOICES = [
       ['extra', '+ Extra for this week', 'One-time need, for example a group coming. Added to the next order.'],
@@ -577,7 +577,7 @@
       }
       r.stateEl = h('span', { class: 'save-state none' }, 'Not counted');
       r.retry = h('button', { class: 'btn small secondary hidden', type: 'button', onclick: () => schedule(r, 0) }, 'Retry');
-      const suggestBtn = kind === 'beverage' ? null : h('button', { class: 'flagbtn suggest', type: 'button', onclick: () => suggestDialog(kind, it) }, 'Need more or less?');
+      const suggestBtn = kind === 'beverage' ? null : h('button', { class: 'flagbtn suggest', type: 'button', onclick: () => suggestDialog(kind, it) }, 'Special request');
       const clearBtn = state.finished ? null : h('button', { class: 'flagbtn', type: 'button', onclick: () => { r.boxes.forEach((b) => { b.full.value = ''; if (b.loose) b.loose.value = ''; }); r.flag = ''; r.wantClear = true; schedule(r, 0); } }, 'Clear');
       r.lowBadge = h('span', { class: 'low-badge hidden', title: 'At or below the minimum' }, 'Low');
       const meta = [];
@@ -654,6 +654,16 @@
         body.append(h('p', { class: 'muted small' }, data.session
           ? 'Count started ' + fmtDateTime(data.session.startedAt) + '. Each entry saves on its own; you can leave and come back.'
           : 'Each entry saves as you type. You can leave and come back; saved counts stay. Blank means "not counted"; enter 0 if there are none.'));
+      }
+      if (kind !== 'beverage') {
+        // Plain-language help, so staff know the count alone is enough.
+        body.append(h('div', { class: 'count-help' },
+          h('p', null, h('b', null, 'Count what is on the shelf. The app uses your count to make the order.')),
+          h('p', null, 'Only tap ', h('b', null, 'Special request'), ' on an item if:'),
+          h('ul', null,
+            h('li', null, 'we keep running out or running low'),
+            h('li', null, 'we always have too much'),
+            h('li', null, 'we need extra next week for something out of the ordinary'))));
       }
       if (kind === 'beverage') data.items.forEach((it) => body.append(itemCard(it, data.entries[it.id] || null)));
       else groupByArea(data.items).forEach((g) => body.append(sectionEl(g)));
