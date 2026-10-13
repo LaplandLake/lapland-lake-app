@@ -890,3 +890,63 @@ test('need more / too many / not on this list: the admin approves or dismisses; 
   // Staff responses never include another person's notes or anything private.
   bad(app.call('adminSuggestions', {}), /sign in/);
 });
+
+test('review fixes: uncounted lines stay automatic, other department keeps its draft, DST and week edges', () => {
+  // 1. Saving a draft unchanged does not freeze an uncounted line.
+  let app = freshApp();
+  at(app, '2026-10-12T14:00:00Z'); // Monday
+  const a = cafeItem(app, { name: 'A', desiredStock: 4, minimumStock: 1 });
+  const b = cafeItem(app, { name: 'B', desiredStock: 4, minimumStock: 1 });
+  ok(app.call('saveCount', { kind: 'cafe', itemId: a.id, fullCases: 3 }));
+  ok(app.call('completeCount', { kind: 'cafe' }));
+  let o = ok(app.admin('adminOrder', { orderId: ok(app.admin('adminOrders')).orders[0].id }));
+  o = ok(app.admin('adminSaveOrder', { orderId: o.order.id, lines: o.lines.map((l) => ({ id: l.id, finalCases: String(l.finalCases) })) }));
+  ok(app.call('saveCount', { kind: 'cafe', itemId: b.id, fullCases: 0 }));
+  o = ok(app.admin('adminOrder', { orderId: o.order.id }));
+  assert.equal(o.lines.filter((l) => l.itemId === b.id)[0].finalCases, 4);
+
+  // 3. Cafe order sent; Housekeeping's new draft for the same Thursday still takes fixes and extras.
+  app = freshApp();
+  at(app, '2026-10-12T14:00:00Z');
+  const soup = cafeItem(app, { name: 'Soup', desiredStock: 3, minimumStock: 1 });
+  const tp = addItem(app, { name: 'TP', department: 'housekeeping', countingUnit: 'case', countingUnitConfirmed: true, desiredStock: 4, minimumStock: 1, active: true });
+  ok(app.call('saveCount', { kind: 'cafe', itemId: soup.id, fullCases: 0 }));
+  ok(app.call('completeCount', { kind: 'cafe' }));
+  ok(app.admin('adminSubmitOrder', { orderId: ok(app.admin('adminOrders')).orders[0].id, confirm: 'I-SENT-IT', method: 'text' }));
+  ok(app.call('saveCount', { kind: 'housekeeping', itemId: tp.id, fullCases: 0 }));
+  ok(app.call('completeCount', { kind: 'housekeeping' }));
+  ok(app.call('saveCount', { kind: 'housekeeping', itemId: tp.id, fullCases: 1 }));
+  assert.match(ok(app.call('staffSuggest', { type: 'extra', department: 'housekeeping', itemId: tp.id, cases: 2 })).message, /Added to this week/);
+  const draft = ok(app.admin('adminOrders')).orders.filter((x) => x.status === 'draft')[0];
+  assert.equal(ok(app.admin('adminOrder', { orderId: draft.id })).lines.filter((l) => l.itemId === tp.id)[0].finalCases, 5); // 3 + 2 extra
+  assert.equal(ok(app.admin('adminDashboard')).staff.length, 0);
+
+  // 2. Daylight saving (spring forward Mar 8): a count finished before last week's deadline is not editable.
+  app = freshApp();
+  at(app, '2026-03-04T20:30:00Z'); // Wed Mar 4, 3:30 PM EST, before the 4 PM deadline
+  const x = cafeItem(app, { name: 'X', desiredStock: 2, minimumStock: 1 });
+  ok(app.call('saveCount', { kind: 'cafe', itemId: x.id, fullCases: 2 }));
+  ok(app.call('completeCount', { kind: 'cafe' }));
+  at(app, '2026-03-09T14:00:00Z'); // Mon Mar 9 (EDT)
+  assert.equal(ok(app.call('countSheet', { kind: 'cafe' })).session, null);
+
+  // 5. A count finished after the deadline (Thursday) stays fixable that week only.
+  app = freshApp();
+  const y = cafeItem(app, { name: 'Y', desiredStock: 2, minimumStock: 1 });
+  at(app, '2026-10-15T14:00:00Z'); // Thursday
+  ok(app.call('saveCount', { kind: 'cafe', itemId: y.id, fullCases: 2 }));
+  ok(app.call('completeCount', { kind: 'cafe' }));
+  assert.equal(ok(app.call('countSheet', { kind: 'cafe' })).finished.mode, 'draft');
+  at(app, '2026-10-19T14:00:00Z'); // next Monday: fresh count
+  assert.equal(ok(app.call('countSheet', { kind: 'cafe' })).session, null);
+
+  // 4. Paused: a count started Sunday evening and finished Monday is fixable that week.
+  app = freshApp();
+  ok(app.admin('adminSaveSettings', { ordering: { paused: true } }));
+  const z = cafeItem(app, { name: 'Z', desiredStock: 2, minimumStock: 1 });
+  at(app, '2026-10-18T23:00:00Z'); // Sunday 7 PM
+  ok(app.call('saveCount', { kind: 'cafe', itemId: z.id, fullCases: 2 }));
+  at(app, '2026-10-19T13:00:00Z'); // Monday 9 AM
+  ok(app.call('completeCount', { kind: 'cafe' }));
+  assert.equal(ok(app.call('countSheet', { kind: 'cafe' })).finished.mode, 'paused');
+});

@@ -1021,7 +1021,7 @@ function adminSaveOrder_(b) {
     const q = num_(u.finalCases);
     if (q === null || isNaN(q) || q < 0 || Math.floor(q) !== q || q > 9999) fail_('Order quantities must be whole numbers of cases, 0 or more.');
     // A quantity that differs from the suggestion counts as the admin's choice and survives later refreshes.
-    const base = l.suggestedCases === null ? null : l.suggestedCases + (l.extraCases || 0);
+    const base = (l.suggestedCases || 0) + (l.extraCases || 0);
     db_().update('orderLines', l.id, { finalCases: q, note: str_(u.note, 300), edited: l.edited || q !== base });
   });
   db_().update('orders', order.id, { note: str_(b.note, 2000), totalCases: orderTotal_(order.id), updatedAt: nowIso_() });
@@ -1102,6 +1102,20 @@ function countText_(v) {
   return String(v.fullCases || 0) + (v.looseUnits ? ' + ' + v.looseUnits + ' loose' : '');
 }
 
+// The order deadline one week before this delivery's (Wednesday 4 PM New York, by the wall clock,
+// so it stays right across daylight-saving changes).
+function prevDeadline_(deliveryDate) {
+  const d = addDaysYmd_(deliveryDate, -8).split('-').map(Number);
+  return nyToDate_(d[0], d[1], d[2], 16, 0).getTime();
+}
+function draftOrderFor_(deliveryDate) {
+  return db_().all('orders').filter((o) => o.supplier === 'ginsbergs' && o.status === 'draft' && o.deliveryDate === deliveryDate)[0] || null;
+}
+// Changes go into the draft for that delivery; only when there is no draft but the order was already
+// sent do they become notices.
+function sentWithoutDraft_(deliveryDate) {
+  return draftOrderFor_(deliveryDate) ? null : submittedOrderFor_(deliveryDate);
+}
 function submittedOrderFor_(deliveryDate) {
   return db_().all('orders').filter((o) => o.supplier === 'ginsbergs' && o.status === 'submitted' && o.deliveryDate === deliveryDate)[0] || null;
 }
@@ -1128,12 +1142,13 @@ function editableSession_(kind) {
   const s = latestSession_(kind);
   if (!s || s.status !== 'completed' || !s.completedAt) return null;
   const now = platform_().now();
-  if (orderingPaused_()) return s.weekPeriod === weekPeriodOf_(now) ? { session: s, mode: 'paused' } : null;
+  // A new week always starts a fresh count.
+  if (weekPeriodOf_(new Date(s.completedAt)) !== weekPeriodOf_(now)) return null;
+  if (orderingPaused_()) return { session: s, mode: 'paused' };
   const nd = nextDelivery_(now);
   if (!nd) return null;
-  const cycleStart = new Date(nd.deadline).getTime() - 7 * 86400000;
-  if (new Date(s.completedAt).getTime() <= cycleStart) return null;
-  const sent = submittedOrderFor_(nd.deliveryDate);
+  if (new Date(s.completedAt).getTime() <= prevDeadline_(nd.deliveryDate)) return null;
+  const sent = sentWithoutDraft_(nd.deliveryDate);
   return { session: s, mode: sent ? 'sent' : 'draft', delivery: nd, sentOrder: sent };
 }
 
@@ -1167,7 +1182,7 @@ function ensureLine_(order, it) {
   if (line) return line;
   const s = latestSession_(it.department);
   // Only a count from this order's week is used; otherwise the line starts at 0.
-  const weekStart = order.deadline ? new Date(order.deadline).getTime() - 7 * 86400000 : 0;
+  const weekStart = order.deliveryDate ? prevDeadline_(order.deliveryDate) : 0;
   const recent = s && (s.status === 'open' || new Date(s.completedAt).getTime() > weekStart);
   const e = recent ? db_().all('entries').filter((x) => x.sessionId === s.id && x.itemId === it.id)[0] || null : null;
   const sug = suggestLine_(it, e);
@@ -1248,7 +1263,7 @@ function staffSuggest_(b) {
     if (n === null || isNaN(n) || n < 1 || n > 50 || Math.floor(n) !== n) fail_('Extra cases must be a whole number from 1 to 50.');
     g.cases = n;
     const nd = orderingPaused_() ? null : nextDelivery_(platform_().now());
-    const sent = nd ? submittedOrderFor_(nd.deliveryDate) : null;
+    const sent = nd ? sentWithoutDraft_(nd.deliveryDate) : null;
     if (!nd) {
       g.detail = { reason: 'paused' };
       message = 'Sent ✓';
