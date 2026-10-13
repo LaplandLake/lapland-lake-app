@@ -983,7 +983,7 @@ function adminOrder_(orderId) {
   lines.forEach((l) => { itemIds[l.itemId] = true; });
   return {
     order, lines, warnings: w.warnings, totalCases: w.totalCases, supplier,
-    staffSuggestions: db_().all('suggestions').filter((g) => g.status === 'open' && (g.kind === 'more' || g.kind === 'less') && itemIds[g.itemId]),
+    staffSuggestions: suggestionList_().filter((g) => g.status === 'open' && (g.kind === 'more' || g.kind === 'less') && itemIds[g.itemId]),
     summary: {
       totalCases: w.totalCases,
       minimumCases: supplier.minimumCases,
@@ -1294,7 +1294,7 @@ function adminHandleSuggestion_(b) {
   const now = nowIso_();
   db_().update('suggestions', g.id, { status: act === 'reopen' ? 'open' : act === 'done' ? 'done' : 'dismissed', handledAt: act === 'reopen' ? '' : now, updatedAt: now });
   audit_('admin', 'staff-suggestion-' + act, { id: g.id, kind: g.kind });
-  return { suggestion: db_().get('suggestions', g.id) };
+  return { suggestion: db_().get('suggestions', g.id), item: g.itemId ? db_().get('items', g.itemId) : null };
 }
 
 /* ---------------------------------------------------------------- requests and photos */
