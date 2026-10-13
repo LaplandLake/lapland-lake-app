@@ -81,6 +81,10 @@ try {
       const del = await page.textContent('.delivery');
       expect(/Delivery Thursday · Preferable order by Tuesday afternoon\.\s*Latest order by Wednesday at 4:00 PM · 20-case minimum\./.test(del), 'delivery text: ' + del);
       expect((await page.textContent('.admin-link')) === 'Todd — Admin', 'admin link');
+      await page.waitForSelector('.status-dates');
+      const card = await page.textContent('.status-card');
+      expect(/Next delivery\s*Thursday/.test(card) && /Order deadline\s*Wed/.test(card), 'delivery dates: ' + card);
+      expect(/Housekeeping count:/.test(card) && /Cafe count:/.test(card), 'count status');
       const btnH = await page.locator('.home-btn').first().evaluate((e) => e.getBoundingClientRect().height);
       expect(btnH >= 60, 'buttons too small: ' + btnH);
       await noHScroll(page, 'home');
@@ -107,7 +111,7 @@ try {
     await page.waitForSelector('.item');
     const tp = page.locator('.item', { hasText: 'TEST Toilet tissue' });
     expect(/96 rolls per case/.test(await tp.textContent()), 'units per case not shown');
-    expect(/Desired stock: 4 cases/.test(await tp.textContent()), 'desired stock not shown');
+    expect(/Minimum: 4 · Desired: 4 cases/.test(await tp.textContent()), 'minimum/desired stock not shown');
     await tp.locator('input').nth(0).fill('2');
     await tp.locator('input').nth(1).fill('30');
     await tp.locator('.save-state', { hasText: /^Saved/ }).waitFor({ timeout: 8000 });
@@ -144,6 +148,35 @@ try {
     }
     await tp.locator('button', { hasText: 'Retry' }).click();
     await tp.locator('.save-state', { hasText: /^Saved/ }).waitFor({ timeout: 8000 });
+  });
+  await check('Cafe count: storage areas in walk-through order with per-area progress, Kitchen + Storage room boxes, amber Low badge', async () => {
+    await page.goto(APP + '#/count/cafe');
+    await page.waitForSelector('.area-head');
+    const heads = await page.locator('.area-head h3').allTextContents();
+    expect(heads.join('|') === 'Frozen|Dry & shelf-stable|Cups, to-go & utensils', 'area order: ' + heads.join('|'));
+    const frozen = page.locator('.area', { hasText: 'Frozen' }).first();
+    expect((await frozen.locator('.sec-count').textContent()) === '0 of 1', 'frozen progress before');
+    const soup = page.locator('.item', { hasText: 'TEST Soup red lentil' });
+    expect(await soup.locator('button', { hasText: 'Report low' }).isVisible(), 'Report low button');
+    await soup.locator('input').first().fill('2'); // minimum is 2
+    await soup.locator('.low-badge').waitFor({ state: 'visible' });
+    await soup.locator('.save-state', { hasText: /^Saved/ }).waitFor({ timeout: 8000 });
+    expect((await frozen.locator('.sec-count').textContent()) === '1 of 1', 'frozen progress after');
+    await page.screenshot({ path: path.join(SHOTS, 'count-cafe-areas-390.png'), fullPage: true });
+    await soup.locator('input').first().fill('5');
+    await soup.locator('.low-badge').waitFor({ state: 'hidden' });
+    const cups = page.locator('.item', { hasText: 'TEST CUP HOT 12OZ' });
+    const places = await cups.locator('.place').allTextContents();
+    expect(places.join('|') === 'Kitchen|Storage room', 'places: ' + places.join('|'));
+    await cups.locator('.count-box').nth(0).locator('input').first().fill('1');
+    await cups.locator('.count-box').nth(1).locator('input').first().fill('2');
+    await cups.locator('.save-state', { hasText: /^Saved/ }).waitFor({ timeout: 8000 });
+    expect(/Total: 3 cases/.test(await cups.locator('.split-total').textContent()), 'split total');
+    await page.screenshot({ path: path.join(SHOTS, 'count-cafe-split-390.png'), fullPage: false });
+    // Leave the soup uncounted again for the next check.
+    await soup.locator('button', { hasText: 'Clear' }).click();
+    await soup.locator('.save-state', { hasText: /^Not counted/ }).waitFor({ timeout: 8000 });
+    await noHScroll(page, 'cafe areas');
   });
   await check('Cafe count: correct heading; incomplete finish warns and is allowed', async () => {
     await page.goto(APP + '#/count/cafe');
@@ -268,11 +301,11 @@ try {
   });
   await check('Ginsberg draft: department headings, below-20 warning, stays a draft until Todd confirms', async () => {
     await admin.goto(APP + '#/admin/orders');
-    await admin.click('button:has-text("Start a draft")');
+    await admin.click('button:has-text("Start a new draft")');
     await admin.waitForSelector('text=Draft order');
     const heads = await admin.locator('h2.dept-heading').allTextContents();
     expect(heads.join('|') === 'Housekeeping|Cafe', 'headings: ' + heads);
-    expect(/below the 20-case minimum/.test(await admin.textContent('body')), 'minimum warning');
+    expect(/short of the 20-case minimum/.test(await admin.textContent('body')), 'minimum warning');
     expect(/#90001/.test(await admin.textContent('pre.export')), 'export has item numbers');
     await admin.screenshot({ path: path.join(SHOTS, 'admin-order-draft-390.png'), fullPage: true });
     await admin.click('button:has-text("Mark as submitted")');
@@ -284,6 +317,23 @@ try {
     await admin.click('button:has-text("Mark as submitted")');
     await admin.waitForSelector('text=Submitted order');
     expect(JSON.parse(JSON.stringify(await hook('mail'))).length === 0, 'no email sent');
+  });
+  await check('Finishing the Cafe count built a draft: case total, progress toward 20, deadline, prices with a running total', async () => {
+    await admin.goto(APP + '#/admin/orders');
+    await admin.waitForSelector('text=Updated from the Cafe count');
+    await admin.locator('.list-item', { hasText: 'Updated from the Cafe count' }).locator('a').first().click();
+    await admin.waitForSelector('.order-summary .min-bar');
+    const sum = await admin.textContent('.order-summary');
+    expect(/Order by .* for .* delivery/.test(sum), 'deadline line: ' + sum);
+    expect(/short of the 20-case minimum/.test(sum), 'minimum warning');
+    expect(/\$66\.66/.test(sum), 'dollar total (3 cases x $22.22): ' + sum);
+    const w = await admin.locator('.min-bar > div').evaluate((e) => e.style.width);
+    expect(w === '15%', 'progress width ' + w);
+    // Editing a quantity updates the totals right away.
+    await admin.locator('tr', { hasText: 'TEST CUP HOT' }).locator('input.line-input').fill('5');
+    expect(/\$111\.10/.test(await admin.textContent('.order-summary')), 'live total after edit');
+    await noHScroll(admin, 'draft');
+    await admin.screenshot({ path: path.join(SHOTS, 'admin-auto-draft-390.png'), fullPage: true });
   });
   await check('Beverage report: graph, table, missing data separate, CSV download', async () => {
     await admin.goto(APP + '#/admin/reports/weekly');
@@ -318,6 +368,23 @@ try {
     await admin.waitForFunction(() => document.querySelectorAll('.list-item').length === 1);
     await admin.locator('.card select').first().selectOption('active');
     await noHScroll(admin, 'catalog remove');
+  });
+  await check('Catalog: "Fill from notes & Ginsberg’s records" shows a preview before changing anything', async () => {
+    await admin.goto(APP + '#/admin/catalog');
+    await admin.click('button:has-text("Fill from notes")');
+    await admin.waitForSelector('text=/Preview \\(nothing saved yet\\)|Nothing to fill/');
+  });
+  await check('Backup: Google refusal shows the one-time steps; then "Turn on weekly backup" works', async () => {
+    await hook('failBackup?on=1');
+    await admin.goto(APP + '#/admin/import');
+    await admin.click('button:has-text("Turn on weekly backup")');
+    await admin.waitForSelector('text=One-time steps instead');
+    expect(/installWeeklyDriveBackup/.test(await admin.textContent('body')), 'manual steps');
+    await hook('failBackup?on=0');
+    await admin.click('button:has-text("Turn on weekly backup")');
+    await admin.waitForSelector('text=/On: a copy of everything/');
+    await admin.waitForSelector('button:has-text("Back up now")');
+    await admin.screenshot({ path: path.join(SHOTS, 'admin-backup-390.png'), fullPage: false });
   });
   for (const [hash, label] of [['#/admin/catalog', 'catalog'], ['#/admin/beverages', 'beverages'], ['#/admin/import', 'import'], ['#/admin/settings', 'settings'], ['#/admin/counts', 'counts']]) {
     await check('Admin ' + label + ' page loads without sideways scroll at 360px', async () => {

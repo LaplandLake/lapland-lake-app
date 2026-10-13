@@ -73,7 +73,7 @@ test('every admin action refuses anonymous and forged tokens', () => {
   const adminActions = ['adminLogout', 'adminChangePassword', 'adminDashboard', 'adminItems', 'adminSaveItem', 'adminCounts', 'adminCountDetail',
     'adminSaveCount', 'adminCompleteCount', 'adminReopenCount', 'adminOrders', 'adminOrder', 'adminCreateDraft', 'adminSaveOrder', 'adminSubmitOrder',
     'adminCancelOrder', 'adminSetDesiredStock', 'adminRequests', 'adminPhoto', 'adminUpdateRequest', 'adminDeleteRequest', 'adminLists', 'adminSaveSupply',
-    'adminRemoveItems', 'adminSaveDrink', 'adminBev', 'adminSaveBevProduct', 'adminSaveDelivery', 'adminDeleteRecord', 'adminSaveSale', 'adminSaveAdjustment', 'adminBevReport',
+    'adminRemoveItems', 'adminFillPreview', 'adminFillCommit', 'adminBackupStatus', 'adminBackupOn', 'adminBackupOff', 'adminBackupNow', 'adminSaveDrink', 'adminBev', 'adminSaveBevProduct', 'adminSaveDelivery', 'adminDeleteRecord', 'adminSaveSale', 'adminSaveAdjustment', 'adminBevReport',
     'adminBevHistory', 'adminSettings', 'adminSaveSettings', 'adminSendReportEmail', 'adminSendTestEmail', 'adminImportGinsbergPreview',
     'adminImportGinsbergCommit', 'adminImportRowsPreview', 'adminImportRowsCommit', 'adminBackup', 'adminSupplierHistory', 'adminAudit'];
   for (const a of adminActions) {
@@ -100,7 +100,7 @@ test('staff count: not counted vs zero, resume, validation, incomplete finish', 
   let sheet = ok(app.call('countSheet', { kind: 'housekeeping' }));
   same(sheet.items.map((i) => i.name).sort(), ['Tissues', 'Toilet paper']);
   assert.equal(sheet.session, null);
-  for (const it of sheet.items) same(Object.keys(it).sort(), ['allowLoose', 'countingUnit', 'desiredStock', 'id', 'looseUnitLabel', 'name', 'unitsPerCase']);
+  for (const it of sheet.items) same(Object.keys(it).sort(), ['allowLoose', 'category', 'countingUnit', 'desiredStock', 'id', 'locations', 'looseUnitLabel', 'minimumStock', 'name', 'unitsPerCase']);
 
   bad(app.call('saveCount', { kind: 'housekeeping', itemId: a.id, fullCases: '-1' }), /whole number/);
   bad(app.call('saveCount', { kind: 'housekeeping', itemId: a.id, fullCases: '1.5' }), /whole number/);
@@ -431,16 +431,16 @@ test('Ginsberg import: inactive candidates, item numbers as text, prices dated, 
   assert.match(hist.basis, /not retail sales/);
 });
 
-test('file import (e.g. Base44 export): preview, validation, duplicates, history keeps its own package sizes', () => {
+test('spreadsheet file import: preview, validation, duplicates, history keeps its own package sizes', () => {
   const app = freshApp();
   const headers = ['id', 'Item Name', 'Department', 'Par Level', 'Item Number', 'Case Pack'];
   const rows = [['b1', 'Paper towels', 'Housekeeping', '6', '070849', '30 x CT'], ['b2', 'Cups', 'Cafe', '3', '', '20 x 50 CT'], ['b2', 'Cups', 'Cafe', '3', '', ''], ['b3', '', 'Cafe', '1', '', '']];
-  const p = ok(app.admin('adminImportRowsPreview', { type: 'items', headers, rows, sourceName: 'Base44 export items.csv', isBase44: true }));
+  const p = ok(app.admin('adminImportRowsPreview', { type: 'items', headers, rows, sourceName: 'old items.csv' }));
   assert.equal(p.valid, 2);
   assert.equal(p.duplicates.length, 1);
   assert.equal(p.invalid.length, 1);
   assert.equal(p.mapping.desiredStock, 3);
-  const c = ok(app.admin('adminImportRowsCommit', { type: 'items', headers, rows, sourceName: 'Base44 export items.csv', isBase44: true }));
+  const c = ok(app.admin('adminImportRowsCommit', { type: 'items', headers, rows, sourceName: 'old items.csv' }));
   assert.equal(c.imported, 2);
   const items = ok(app.admin('adminItems')).items;
   const towels = items.filter((i) => i.legacyId === 'b1')[0];
@@ -465,7 +465,7 @@ test('file import (e.g. Base44 export): preview, validation, duplicates, history
   assert.equal(det.entries[0].snapshot.unitsPerCase, 30);
   assert.equal(det.entries[0].snapshot.imported, true);
   const mig = ok(app.admin('adminSettings')).settings.migration;
-  assert.equal(mig.base44, 'partly imported');
+  same(Object.keys(mig).sort(), ['ginsberg', 'notes']);
   // Order history (one row per line)
   const oh = ['Order ID', 'Date', 'Department', 'Item #', 'Description', 'Cases'];
   const orr = [['o1', '2026-01-08', 'Cafe', '064572', 'CUP HOT', '2'], ['o1', '2026-01-08', 'Housekeeping', '070626', 'TISSUE', '3']];
@@ -531,4 +531,210 @@ test('remove and restore catalog items: hidden, history kept, never on a staff l
   assert.equal(ok(app.call('countSheet', { kind: 'housekeeping' })).items.length, 1);
   // Staff cannot remove items.
   bad(app.call('adminRemoveItems', { ids: [a.id] }), /sign in/);
+});
+
+
+// ---------------------------------------------------------------- minimum stock, auto drafts, prices, backup
+
+function cafeItem(app, extra) {
+  return addItem(app, Object.assign({ department: 'cafe', countingUnit: 'case', countingUnitConfirmed: true, active: true, supplierItemNumber: '1' }, extra));
+}
+
+test('minimum stock: editable, never above desired, importable from a spreadsheet', () => {
+  const app = freshApp();
+  bad(app.admin('adminSaveItem', { item: { name: 'X', desiredStock: 2, minimumStock: 3 } }), /can't be more than desired/);
+  const it = addItem(app, { name: 'Y', desiredStock: 3, minimumStock: 1 });
+  assert.equal(it.minimumStock, 1);
+  const headers = ['Name', 'Department', 'Desired', 'Minimum', 'Notes'];
+  const rows = [['Cups', 'Cafe', '3', '1', 'shelf B'], ['Lids', 'Cafe', '2', '5', '']];
+  const p = ok(app.admin('adminImportRowsPreview', { type: 'items', headers, rows, sourceName: 'items.csv' }));
+  assert.equal(p.valid, 1);
+  assert.match(p.invalid[0].why, /minimum stock is more than desired/);
+  ok(app.admin('adminImportRowsCommit', { type: 'items', headers, rows, sourceName: 'items.csv' }));
+  const cups = ok(app.admin('adminItems')).items.filter((i) => i.name === 'Cups')[0];
+  assert.equal(cups.minimumStock, 1);
+  assert.match(cups.notes, /^shelf B/);
+});
+
+test('reorder rule: at or below minimum orders up to desired; above minimum orders nothing; no minimum is flagged', () => {
+  const app = freshApp();
+  at(app, '2026-10-12T14:00:00Z');
+  const a = cafeItem(app, { name: 'At minimum', desiredStock: 3, minimumStock: 2 });
+  const b = cafeItem(app, { name: 'Above minimum', desiredStock: 3, minimumStock: 2 });
+  const c = cafeItem(app, { name: 'Min equals target', desiredStock: 1, minimumStock: 1 });
+  const d = cafeItem(app, { name: 'No minimum', desiredStock: 4 });
+  const e = cafeItem(app, { name: 'Below, fraction', desiredStock: 5, minimumStock: 2, unitsPerCase: 10, unitsPerCaseConfirmed: true, looseUnitLabel: 'packs' });
+  ok(app.call('saveCount', { kind: 'cafe', itemId: a.id, fullCases: 2 }));
+  ok(app.call('saveCount', { kind: 'cafe', itemId: b.id, fullCases: 3 }));
+  ok(app.call('saveCount', { kind: 'cafe', itemId: c.id, fullCases: 1 }));
+  ok(app.call('saveCount', { kind: 'cafe', itemId: d.id, fullCases: 3 }));
+  ok(app.call('saveCount', { kind: 'cafe', itemId: e.id, fullCases: 1, looseUnits: 5 })); // 1.5 cases
+  const done = ok(app.call('completeCount', { kind: 'cafe' }));
+  assert.equal(done.draft, undefined); // staff don't see order details
+  const orders = ok(app.admin('adminOrders')).orders;
+  assert.equal(orders.length, 1);
+  assert.equal(orders[0].status, 'draft');
+  const o = ok(app.admin('adminOrder', { orderId: orders[0].id }));
+  const L = (id) => o.lines.filter((l) => l.itemId === id)[0];
+  assert.equal(L(a.id).suggestedCases, 1);
+  assert.equal(L(b.id).suggestedCases, 0);
+  assert.equal(L(c.id).suggestedCases, 0); // 1 on hand, target 1
+  assert.equal(L(d.id).suggestedCases, 1);
+  assert.ok(L(d.id).flags.includes('no-minimum'));
+  assert.equal(L(e.id).suggestedCases, 4); // ceil(5 - 1.5)
+  assert.equal(o.summary.totalCases, 6);
+  assert.equal(o.summary.minimumCases, 20);
+  assert.equal(o.summary.deliveryDate, '2026-10-15');
+  assert.equal(o.summary.deadline, '2026-10-14T20:00:00.000Z'); // Wed 4 PM New York
+  assert.equal(o.summary.deadlinePassed, false);
+  assert.ok(o.warnings.some((w) => /below the 20-case minimum/.test(w)));
+  assert.ok(o.warnings.some((w) => /No Housekeeping count is in this draft yet/.test(w)));
+  assert.equal(app.state.sentMail.length, 0);
+});
+
+test('auto draft: one per delivery, each count refreshes its own department, hand edits survive', () => {
+  const app = freshApp();
+  at(app, '2026-10-12T14:00:00Z');
+  const cafe = cafeItem(app, { name: 'Soup', desiredStock: 6, minimumStock: 2 });
+  const hk = addItem(app, { name: 'TP', department: 'housekeeping', countingUnit: 'case', countingUnitConfirmed: true, desiredStock: 4, minimumStock: 2, active: true, supplierItemNumber: '2' });
+  ok(app.call('saveCount', { kind: 'cafe', itemId: cafe.id, fullCases: 1 }));
+  ok(app.call('completeCount', { kind: 'cafe' }));
+  let o = ok(app.admin('adminOrder', { orderId: ok(app.admin('adminOrders')).orders[0].id }));
+  assert.equal(o.lines.length, 1);
+  assert.match(o.order.autoFrom, /Cafe count/);
+  const line = o.lines[0];
+  ok(app.admin('adminSaveOrder', { orderId: o.order.id, lines: [{ id: line.id, finalCases: '8' }] }));
+  at(app, '2026-10-12T16:00:00Z');
+  ok(app.call('saveCount', { kind: 'housekeeping', itemId: hk.id, fullCases: 1 }));
+  ok(app.call('completeCount', { kind: 'housekeeping' }));
+  at(app, '2026-10-13T14:00:00Z');
+  ok(app.call('saveCount', { kind: 'cafe', itemId: cafe.id, fullCases: 0 }));
+  ok(app.call('completeCount', { kind: 'cafe' }));
+  const all = ok(app.admin('adminOrders')).orders;
+  assert.equal(all.length, 1); // still one draft for Thursday
+  o = ok(app.admin('adminOrder', { orderId: all[0].id }));
+  const soup = o.lines.filter((l) => l.itemId === cafe.id)[0];
+  assert.equal(soup.suggestedCases, 6); // recalculated from the new count
+  assert.equal(soup.finalCases, 8); // Todd's number kept
+  assert.equal(o.lines.filter((l) => l.itemId === hk.id)[0].finalCases, 3);
+  assert.equal(o.summary.totalCases, 11);
+  // After the Wednesday deadline, the next count starts a draft for the following Thursday.
+  at(app, '2026-10-14T21:00:00Z');
+  ok(app.call('saveCount', { kind: 'cafe', itemId: cafe.id, fullCases: 1 }));
+  ok(app.call('completeCount', { kind: 'cafe' }));
+  const t2 = ok(app.call('adminLogin', { password: PW })).token; // the 12-hour session expired as the clock moved on
+  const later = ok(app.call('adminOrders', { token: t2 })).orders;
+  assert.equal(later.length, 2);
+  assert.equal(later[0].deliveryDate, '2026-10-22');
+  // A draft past its deadline says so.
+  assert.equal(ok(app.call('adminOrder', { token: t2, orderId: later[1].id })).summary.deadlinePassed, true);
+});
+
+test('prices: own price first, else the newest price for the same item # anywhere in the catalog; running total', () => {
+  const app = freshApp();
+  at(app, '2026-10-12T14:00:00Z');
+  addItem(app, { name: 'Old record', supplierItemNumber: '81266', price: 50, priceDate: '2024-02-22' });
+  addItem(app, { name: 'Guide record', supplierItemNumber: '81266', price: 56.81, priceDate: '2026-10-09' });
+  const soup = cafeItem(app, { name: 'Red lentil', supplierItemNumber: '81266', desiredStock: 3, minimumStock: 1 });
+  const own = cafeItem(app, { name: 'Own price', supplierItemNumber: '9', price: 10, priceDate: '2026-01-01', desiredStock: 2, minimumStock: 1 });
+  const none = cafeItem(app, { name: 'No price', supplierItemNumber: '77', desiredStock: 2, minimumStock: 1 });
+  [soup, own, none].forEach((it) => ok(app.call('saveCount', { kind: 'cafe', itemId: it.id, fullCases: 0 })));
+  ok(app.call('completeCount', { kind: 'cafe' }));
+  const o = ok(app.admin('adminOrder', { orderId: ok(app.admin('adminOrders')).orders[0].id }));
+  const L = (id) => o.lines.filter((l) => l.itemId === id)[0];
+  assert.equal(L(soup.id).price, 56.81);
+  assert.equal(L(soup.id).priceDate, '2026-10-09');
+  assert.equal(L(own.id).price, 10);
+  assert.equal(L(none.id).price, null);
+  assert.equal(o.summary.totalDollars, 190.43); // 3 x 56.81 + 2 x 10
+  assert.equal(o.summary.unpricedLines, 1);
+  assert.ok(!/56\.81/.test(o.exportText)); // the text sent to Ginsberg's has no prices
+});
+
+test('fill from notes & Ginsberg records: preview first, never overwrites, verifies matching item #s', () => {
+  const app = freshApp();
+  ok(app.admin('adminImportGinsbergCommit', { weeklySheet: driveLink(WEEKLY_ID) }));
+  const a = addItem(app, { name: 'Toilet paper', department: 'housekeeping', countingUnit: 'case', countingUnitConfirmed: true, desiredStock: 3, active: true, supplierItemNumber: '90001', supplierNumberStatus: 'unverified', notes: 'Suggested minimum 2, target 3 cases (25/26: 14 cases over 10 orders).' });
+  const b = addItem(app, { name: 'Kept', department: 'cafe', countingUnit: 'case', countingUnitConfirmed: true, desiredStock: 3, minimumStock: 1, active: true, supplierItemNumber: '55555', supplierNumberStatus: 'unverified', notes: 'Suggested minimum 2, target 3 cases.' });
+  const c = addItem(app, { name: 'Too high', department: 'cafe', countingUnit: 'case', countingUnitConfirmed: true, desiredStock: 1, active: true, notes: 'Suggested minimum 4, target 1 cases.' });
+  const prev = ok(app.admin('adminFillPreview'));
+  assert.equal(ok(app.admin('adminItems')).items.filter((i) => i.id === a.id)[0].minimumStock, null); // preview saves nothing
+  const R = (id) => prev.rows.filter((r) => r.id === id)[0];
+  assert.equal(R(a.id).minimumStock, 2);
+  assert.equal(R(a.id).price, 11.11);
+  assert.equal(R(a.id).verified, true);
+  assert.equal(R(b.id).minimumStock, null); // already had one
+  assert.match(R(b.id).notes.join(' '), /not found/);
+  assert.match(R(c.id).notes.join(' '), /above desired stock/);
+  ok(app.admin('adminFillCommit'));
+  const items = ok(app.admin('adminItems')).items;
+  const A = items.filter((i) => i.id === a.id)[0];
+  assert.equal(A.minimumStock, 2);
+  assert.equal(A.price, 11.11);
+  assert.equal(A.priceDate, '2026-10-09');
+  assert.equal(A.supplierNumberStatus, 'from-supplier-records');
+  assert.equal(A.purchaseHistory.cases2025_26, 14);
+  assert.equal(items.filter((i) => i.id === b.id)[0].minimumStock, 1);
+  assert.equal(items.filter((i) => i.id === c.id)[0].minimumStock, null);
+  bad(app.call('adminFillCommit'), /sign in/);
+});
+
+test('split locations: Kitchen + Storage room counted separately and added up', () => {
+  const app = freshApp();
+  const cups = cafeItem(app, { name: 'Hot cups', category: 'Cups, to-go & utensils', desiredStock: 3, minimumStock: 1, unitsPerCase: 20, unitsPerCaseConfirmed: true, looseUnitLabel: 'sleeves' });
+  const soup = cafeItem(app, { name: 'Soup', category: 'Frozen', desiredStock: 3, minimumStock: 1 });
+  const sheet = ok(app.call('countSheet', { kind: 'cafe' }));
+  same(sheet.items.filter((i) => i.id === cups.id)[0].locations, ['Kitchen', 'Storage room']);
+  assert.equal(sheet.items.filter((i) => i.id === soup.id)[0].locations, null);
+  bad(app.call('saveCount', { kind: 'cafe', itemId: cups.id, parts: [{ fullCases: '1.5' }, {}] }), /whole number/);
+  const r = ok(app.call('saveCount', { kind: 'cafe', itemId: cups.id, parts: [{ fullCases: '1', looseUnits: '4' }, { fullCases: '2', looseUnits: '' }] }));
+  assert.equal(r.entry.fullCases, 3);
+  assert.equal(r.entry.looseUnits, 4);
+  same(r.entry.parts.map((p) => p.location), ['Kitchen', 'Storage room']);
+  const back = ok(app.call('countSheet', { kind: 'cafe' })).entries[cups.id];
+  assert.equal(back.parts[1].fullCases, 2);
+  ok(app.call('saveCount', { kind: 'cafe', itemId: cups.id, parts: [{}, { fullCases: '0' }] })); // explicit zero in one place only
+  assert.equal(ok(app.call('countSheet', { kind: 'cafe' })).entries[cups.id].fullCases, 0);
+});
+
+test('home status for staff: next delivery and count progress, nothing private', () => {
+  const app = freshApp();
+  at(app, '2026-10-12T14:00:00Z');
+  const a = cafeItem(app, { name: 'Soup', desiredStock: 3, minimumStock: 1, price: 50 });
+  cafeItem(app, { name: 'Bread', desiredStock: 3, minimumStock: 1 });
+  ok(app.call('saveCount', { kind: 'cafe', itemId: a.id, fullCases: 1 }));
+  const h = ok(app.call('homeStatus'));
+  assert.equal(h.nextDelivery.deliveryDate, '2026-10-15');
+  assert.equal(h.counts.cafe.open.counted, 1);
+  assert.equal(h.counts.cafe.total, 2);
+  assert.equal(h.counts.housekeeping.open, null);
+  assert.ok(!/price|50|supplier|Soup/.test(JSON.stringify(h)));
+  ok(app.call('completeCount', { kind: 'cafe' }));
+  const h2 = ok(app.call('homeStatus'));
+  assert.equal(h2.counts.cafe.open, null);
+  assert.equal(h2.counts.cafe.lastFinished.counted, 1);
+});
+
+test('weekly backup button: turns on, saves a first backup, can be turned off; a refusal is reported', () => {
+  const app = freshApp();
+  let s = ok(app.admin('adminBackupStatus'));
+  assert.equal(s.enabled, false);
+  app.state.failBackupInstall = true;
+  s = ok(app.admin('adminBackupOn'));
+  assert.equal(s.turnedOn, false);
+  assert.match(s.error, /refused/);
+  assert.equal(s.enabled, false);
+  app.state.failBackupInstall = false;
+  s = ok(app.admin('adminBackupOn'));
+  assert.equal(s.turnedOn, true);
+  assert.equal(s.enabled, true);
+  assert.equal(s.triggerInstalled, true);
+  assert.equal(app.state.backupFiles.length, 1);
+  assert.ok(s.lastBackupAt);
+  s = ok(app.admin('adminBackupNow'));
+  assert.equal(app.state.backupFiles.length, 2);
+  s = ok(app.admin('adminBackupOff'));
+  assert.equal(s.enabled, false);
+  assert.equal(s.triggerInstalled, false);
+  for (const a of ['adminBackupOn', 'adminBackupOff', 'adminBackupNow', 'adminBackupStatus']) bad(app.call(a), /sign in/);
 });

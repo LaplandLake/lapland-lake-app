@@ -16,7 +16,7 @@
    The same file runs in Node for automated tests (see supply/test). Everything that
    touches Google services goes through the "platform" object at the bottom. */
 
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.1.0';
 const TZ = 'America/New_York';
 const DATA_SPREADSHEET_NAME = 'Lapland Lake Supply Manager Data';
 const DRIVE_FOLDER_NAME = 'Lapland Lake Supply Manager';
@@ -35,6 +35,9 @@ const KIND_LABEL = { housekeeping: 'Housekeeping', cafe: 'Cafe', beverage: 'Beer
 const STATUS_LABEL = { shopping: 'On shopping list', ordered: 'Ordered' };
 const BEV_TYPES = ['beer', 'cider', 'wine', 'craft soda', 'other'];
 const ADJUSTMENT_TYPES = ['waste', 'transfer', 'return', 'other'];
+// Categories stored in more than one place: staff count each place and the app adds them up.
+const SPLIT_LOCATIONS = { 'cups, to-go & utensils': ['Kitchen', 'Storage room'] };
+function splitLocationsFor_(category) { return SPLIT_LOCATIONS[String(category || '').trim().toLowerCase()] || null; }
 
 /* ---------------------------------------------------------------- schema */
 
@@ -44,7 +47,7 @@ const TABLES = {
     supplierItemNumber: 's', supplierNumberStatus: 's', description: 's', brand: 's',
     casePackRaw: 's', packsPerCase: 'n', packSize: 's',
     countingUnit: 's', countingUnitConfirmed: 'b', unitsPerCase: 'n', unitsPerCaseConfirmed: 'b', looseUnitLabel: 's',
-    desiredStock: 'n', archived: 'b', supplierStatus: 's', replacementNote: 's', replacementCandidate: 's',
+    desiredStock: 'n', minimumStock: 'n', archived: 'b', supplierStatus: 's', replacementNote: 's', replacementCandidate: 's',
     replacementApproved: 'b', price: 'n', priceDate: 's', priceSource: 's',
     priceHistory: 'j', purchaseHistory: 'j', sourceRefs: 'j', notes: 's',
     origin: 's', legacyId: 's', legacy: 'j', sortOrder: 'n', createdAt: 's', updatedAt: 's',
@@ -56,18 +59,19 @@ const TABLES = {
   },
   entries: {
     id: 's', sessionId: 's', kind: 's', itemId: 's', fullCases: 'n', looseUnits: 'n',
-    flag: 's', note: 's', countedAt: 's', snapshot: 'j', origin: 's', legacyId: 's',
+    flag: 's', note: 's', countedAt: 's', snapshot: 'j', parts: 'j', origin: 's', legacyId: 's',
     createdAt: 's', updatedAt: 's',
   },
   orders: {
     id: 's', supplier: 's', status: 's', deliveryDate: 's', deadline: 's', note: 's',
-    basedOn: 'j', totalCases: 'n', submittedAt: 's', submittedMethod: 's', submittedNote: 's',
+    basedOn: 'j', totalCases: 'n', autoFrom: 's', submittedAt: 's', submittedMethod: 's', submittedNote: 's',
     origin: 's', legacyId: 's', legacy: 'j', createdAt: 's', updatedAt: 's',
   },
   orderLines: {
     id: 's', orderId: 's', itemId: 's', department: 's', supplierItemNumber: 's',
     description: 's', casePackRaw: 's', onHandCases: 'n', desiredStock: 'n',
     suggestedCases: 'n', finalCases: 'n', flags: 'j', snapshot: 'j', sortOrder: 'n', note: 's',
+    category: 's', minimumStock: 'n', price: 'n', priceDate: 's', edited: 'b',
   },
   requests: {
     id: 's', kind: 's', itemName: 's', optionId: 's', quantity: 'n', quantityUnit: 's',
@@ -139,6 +143,7 @@ function jsonOut_(obj) {
 const ACTIONS = {
   // staff (no sign-in)
   publicConfig: { role: 'staff', fn: (b) => publicConfig_() },
+  homeStatus: { role: 'staff', fn: () => homeStatus_() },
   countSheet: { role: 'staff', fn: (b) => countSheet_(b) },
   saveCount: { role: 'staff', write: true, fn: (b) => saveCount_(b, 'staff') },
   completeCount: { role: 'staff', write: true, fn: (b) => completeCount_(b, 'staff') },
@@ -156,6 +161,8 @@ const ACTIONS = {
   adminItems: { role: 'admin', fn: () => ({ items: sortItems_(db_().all('items')) }) },
   adminSaveItem: { role: 'admin', write: true, fn: (b) => adminSaveItem_(b) },
   adminRemoveItems: { role: 'admin', write: true, fn: (b) => adminRemoveItems_(b) },
+  adminFillPreview: { role: 'admin', fn: () => fillFromRecords_(false) },
+  adminFillCommit: { role: 'admin', write: true, fn: () => fillFromRecords_(true) },
   adminCounts: { role: 'admin', fn: (b) => adminCounts_(b) },
   adminCountDetail: { role: 'admin', fn: (b) => adminCountDetail_(b) },
   adminSaveCount: { role: 'admin', write: true, fn: (b) => saveCount_(b, 'admin') },
@@ -192,6 +199,10 @@ const ACTIONS = {
   adminImportRowsPreview: { role: 'admin', fn: (b) => importRows_(b, false) },
   adminImportRowsCommit: { role: 'admin', write: true, fn: (b) => importRows_(b, true) },
   adminBackup: { role: 'admin', fn: () => backup_() },
+  adminBackupStatus: { role: 'admin', fn: () => backupStatus_() },
+  adminBackupOn: { role: 'admin', write: true, fn: () => backupOn_() },
+  adminBackupOff: { role: 'admin', write: true, fn: () => backupOff_() },
+  adminBackupNow: { role: 'admin', write: true, fn: () => backupNowAction_() },
   adminSupplierHistory: { role: 'admin', fn: () => supplierHistory_() },
   adminAudit: { role: 'admin', fn: () => ({ audit: db_().all('audit').slice(-300).reverse() }) },
 };
@@ -468,8 +479,8 @@ const DEFAULT_SETTINGS = {
     orderingNotes: '',
   },
   email: { recipient: '', enabled: false },
-  backup: { driveBackupEnabled: false, lastBackupAt: '' },
-  migration: { base44: 'not-imported', ginsberg: 'not-imported', notes: '' },
+  backup: { driveBackupEnabled: false, lastBackupAt: '', lastError: '' },
+  migration: { ginsberg: 'not-imported', notes: '' },
 };
 
 function allSettings_() {
@@ -477,6 +488,8 @@ function allSettings_() {
   Object.keys(DEFAULT_SETTINGS).forEach((k) => {
     out[k] = Object.assign({}, DEFAULT_SETTINGS[k], setting_(k, {}));
   });
+  // Old records may carry keys from the retired migration tracker; they are not used.
+  Object.keys(out.migration).forEach((k) => { if (k !== 'ginsberg' && k !== 'notes') delete out.migration[k]; });
   return out;
 }
 
@@ -547,6 +560,9 @@ function staffItem_(it) {
     looseUnitLabel: loose ? (it.looseUnitLabel || 'units') : '',
     allowLoose: loose,
     desiredStock: it.desiredStock,
+    minimumStock: it.minimumStock === undefined ? null : it.minimumStock,
+    category: it.category || '',
+    locations: splitLocationsFor_(it.category),
   };
 }
 
@@ -556,6 +572,7 @@ function itemSnapshot_(it) {
     countingUnit: it.countingUnit || 'case', countingUnitConfirmed: !!it.countingUnitConfirmed,
     unitsPerCase: it.unitsPerCase, unitsPerCaseConfirmed: !!it.unitsPerCaseConfirmed,
     looseUnitLabel: it.looseUnitLabel || '', desiredStock: it.desiredStock, department: it.department,
+    minimumStock: it.minimumStock === undefined ? null : it.minimumStock, category: it.category || '',
   };
 }
 
@@ -590,7 +607,7 @@ function countSheet_(b) {
   const entries = {};
   if (session) {
     db_().all('entries').filter((e) => e.sessionId === session.id).forEach((e) => {
-      entries[e.itemId] = { fullCases: e.fullCases, looseUnits: e.looseUnits, flag: e.flag, countedAt: e.countedAt };
+      entries[e.itemId] = { fullCases: e.fullCases, looseUnits: e.looseUnits, flag: e.flag, countedAt: e.countedAt, parts: e.parts || null };
     });
   }
   const items = b.kind === 'beverage'
@@ -641,6 +658,19 @@ function saveCount_(b, actor) {
   }
   const clear = !!b.clear;
   const v = clear ? null : validateCount_(b.kind, it, b);
+  // Items kept in two places: each place is counted separately and the total is saved.
+  let parts = null;
+  const locs = b.kind !== 'beverage' ? splitLocationsFor_(it.category) : null;
+  if (!clear && locs && Array.isArray(b.parts)) {
+    parts = locs.map((loc, i) => {
+      const p = b.parts[i] || {};
+      const pv = validateCount_(b.kind, it, { fullCases: p.fullCases, looseUnits: p.looseUnits, flag: '' });
+      return { location: loc, fullCases: pv.fullCases, looseUnits: pv.looseUnits };
+    });
+    const sum = (k) => (parts.some((p) => p[k] !== null) ? round2_(parts.reduce((t, p) => t + (p[k] || 0), 0)) : null);
+    v.fullCases = sum('fullCases');
+    v.looseUnits = sum('looseUnits');
+  }
   if (!clear && v.fullCases === null && v.looseUnits === null && !v.flag) {
     fail_('Enter a count, or use "Clear" to mark the item as not counted.');
   }
@@ -663,14 +693,14 @@ function saveCount_(b, actor) {
   const snap = b.kind === 'beverage' ? bevSnapshot_(it) : itemSnapshot_(it);
   const rec = {
     sessionId: session.id, kind: b.kind, itemId: it.id, fullCases: v.fullCases, looseUnits: v.looseUnits,
-    flag: v.flag, note: str_(b.note, 300), countedAt: now, snapshot: snap, updatedAt: now,
+    flag: v.flag, note: str_(b.note, 300), countedAt: now, snapshot: snap, parts, updatedAt: now,
   };
   if (existing) db_().update('entries', existing.id, rec);
   else db_().insert('entries', Object.assign({ id: newId_('e'), origin: actor === 'admin' ? 'admin' : 'app', legacyId: '', createdAt: now }, rec));
   return {
     saved: true,
     session: { id: session.id, startedAt: session.startedAt, weekPeriod: session.weekPeriod },
-    entry: { fullCases: v.fullCases, looseUnits: v.looseUnits, flag: v.flag, countedAt: now },
+    entry: { fullCases: v.fullCases, looseUnits: v.looseUnits, flag: v.flag, countedAt: now, parts },
   };
 }
 
@@ -696,6 +726,15 @@ function completeCount_(b, actor) {
   });
   audit_(actor, 'count-completed', { kind: b.kind, sessionId: session.id, missing });
   const out = { completed: true, notCounted: missing, total: countables.length };
+  if (b.kind !== 'beverage') {
+    // Build or refresh the draft Ginsberg's order. Nothing is sent; Todd reviews it in Admin.
+    try {
+      const d = autoDraft_(b.kind, session.id);
+      if (actor === 'admin') out.draft = d;
+    } catch (err) {
+      platform_().log('Auto draft failed: ' + (err && err.stack ? err.stack : err));
+    }
+  }
   if (b.kind === 'beverage') {
     // Staff only learn that the count is done; the email result is shown to Todd in Admin.
     const res = sendWeeklyReport_(session.id, 'auto', false);
@@ -757,48 +796,121 @@ function latestSession_(kind) {
     .sort((a, b) => String(b.startedAt).localeCompare(String(a.startedAt)))[0] || null;
 }
 
+// Reorder rule: when what's on hand is at or below the minimum, order back up to the desired
+// stock in whole cases. Items with no minimum are ordered whenever they're below desired stock,
+// and flagged so Todd can set one. Missing counts or settings get no suggestion at all.
 function suggestLine_(it, e) {
   const r = onHandFromEntry_(e);
   const flags = r.flags.slice();
   if (e && e.flag) flags.push('reported-' + e.flag);
   if (!it.countingUnitConfirmed) flags.push('counting-unit-unconfirmed');
-  if (it.desiredStock === null || it.desiredStock === undefined) flags.push('no-desired-stock');
+  const desired = it.desiredStock;
+  const min = it.minimumStock;
+  const hasDesired = desired !== null && desired !== undefined;
+  const hasMin = min !== null && min !== undefined;
+  if (!hasDesired) flags.push('no-desired-stock');
+  else if (!hasMin) flags.push('no-minimum');
   if (it.supplierStatus && /suspend|restrict|not in guide/i.test(it.supplierStatus)) flags.push('supplier-status');
   if (!it.supplierItemNumber || it.supplierNumberStatus === 'unverified') flags.push('item-number-unverified');
   let suggested = null;
-  if (r.onHand !== null && it.desiredStock !== null && it.desiredStock !== undefined) {
-    suggested = Math.max(0, Math.ceil(it.desiredStock - r.onHand - 1e-9));
+  if (r.onHand !== null && hasDesired) {
+    const reorder = hasMin ? r.onHand <= min + 1e-9 : r.onHand < desired - 1e-9;
+    suggested = reorder ? Math.max(0, Math.ceil(desired - r.onHand - 1e-9)) : 0;
   }
   return { onHand: r.onHand, suggested, flags };
 }
 
-function adminCreateDraft_(b) {
-  const now = nowIso_();
-  const nd = nextDelivery_(platform_().now());
-  const order = {
+// Last known case price per supplier item number, from any catalog record (newest date wins).
+function priceIndex_() {
+  const idx = {};
+  db_().all('items').forEach((x) => {
+    if (!x.supplierItemNumber || x.price === null || x.price === undefined) return;
+    const cur = idx[x.supplierItemNumber];
+    if (!cur || String(x.priceDate || '') > String(cur.priceDate || '')) idx[x.supplierItemNumber] = { price: x.price, priceDate: x.priceDate || '' };
+  });
+  return idx;
+}
+function priceFor_(it, idx) {
+  if (it.price !== null && it.price !== undefined) return { price: it.price, priceDate: it.priceDate || '' };
+  return (it.supplierItemNumber && idx[it.supplierItemNumber]) || { price: null, priceDate: '' };
+}
+
+function newOrder_(nd, now) {
+  return {
     id: newId_('o'), supplier: 'ginsbergs', status: 'draft', deliveryDate: nd ? nd.deliveryDate : '',
-    deadline: nd ? nd.deadline : '', note: '', basedOn: {}, totalCases: 0, submittedAt: '',
+    deadline: nd ? nd.deadline : '', note: '', basedOn: {}, totalCases: 0, autoFrom: '', submittedAt: '',
     submittedMethod: '', submittedNote: '', origin: 'app', legacyId: '', legacy: null,
     createdAt: now, updatedAt: now,
   };
-  const lines = [];
-  let sort = 0;
+}
+
+// Works out one department's lines. Quantities Todd already changed by hand are kept.
+function deptLines_(order, dept, session, existing, idx) {
+  const entries = session ? db_().all('entries').filter((e) => e.sessionId === session.id) : [];
+  const old = {};
+  existing.forEach((l) => { old[l.itemId] = l; });
+  const keep = [], add = [], seen = {};
+  activeCountables_(dept).forEach((it) => {
+    const e = entries.filter((x) => x.itemId === it.id)[0] || null;
+    const sug = suggestLine_(it, e);
+    if (session && session.status === 'open') sug.flags.push('count-not-finished');
+    const pr = priceFor_(it, idx);
+    const fields = {
+      department: dept, supplierItemNumber: it.supplierItemNumber || '', description: it.description || it.name,
+      casePackRaw: it.casePackRaw || '', category: it.category || '', onHandCases: sug.onHand,
+      desiredStock: it.desiredStock, minimumStock: it.minimumStock === undefined ? null : it.minimumStock,
+      suggestedCases: sug.suggested, flags: sug.flags, snapshot: itemSnapshot_(it), price: pr.price, priceDate: pr.priceDate,
+    };
+    const qty = sug.suggested === null ? 0 : sug.suggested;
+    seen[it.id] = true;
+    const o = old[it.id];
+    if (o) keep.push({ id: o.id, fields: o.edited ? fields : Object.assign(fields, { finalCases: qty }) });
+    else add.push(Object.assign({ id: newId_('l'), orderId: order.id, itemId: it.id, finalCases: qty, edited: false, sortOrder: 0, note: '' }, fields));
+  });
+  return { keep, add, drop: existing.filter((l) => !seen[l.itemId] && !l.edited) };
+}
+
+function orderTotal_(orderId) {
+  return db_().all('orderLines').filter((l) => l.orderId === orderId).reduce((t, l) => t + (l.finalCases || 0), 0);
+}
+
+// Called when a Housekeeping or Cafe count is finished: one draft per upcoming Thursday
+// delivery; finishing a count refreshes only that department's lines.
+function autoDraft_(dept, sessionId) {
+  const nd = nextDelivery_(platform_().now());
+  if (!nd) return null;
+  const now = nowIso_();
+  let order = db_().all('orders').filter((o) => o.status === 'draft' && o.supplier === 'ginsbergs' && o.deliveryDate === nd.deliveryDate)
+    .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))[0];
+  if (!order) {
+    order = newOrder_(nd, now);
+    db_().insert('orders', order);
+  }
+  const session = db_().get('sessions', sessionId);
+  const existing = db_().all('orderLines').filter((l) => l.orderId === order.id && l.department === dept);
+  const r = deptLines_(order, dept, session, existing, priceIndex_());
+  r.keep.forEach((k) => db_().update('orderLines', k.id, k.fields));
+  db_().insertMany('orderLines', r.add);
+  r.drop.forEach((l) => db_().remove('orderLines', l.id));
+  const basedOn = Object.assign({}, order.basedOn || {});
+  basedOn[dept] = { sessionId: session.id, status: session.status, startedAt: session.startedAt, completedAt: session.completedAt };
+  db_().update('orders', order.id, {
+    basedOn, deadline: nd.deadline, totalCases: orderTotal_(order.id), updatedAt: now,
+    autoFrom: 'Updated from the ' + KIND_LABEL[dept] + ' count finished ' + fmtNy_(session.completedAt || now),
+  });
+  audit_('system', 'order-draft-auto', { orderId: order.id, dept, sessionId });
+  return { orderId: order.id };
+}
+
+function adminCreateDraft_(b) {
+  const now = nowIso_();
+  const order = newOrder_(nextDelivery_(platform_().now()), now);
+  const idx = priceIndex_();
+  let lines = [];
   DEPARTMENTS.forEach((dept) => {
     const s = latestSession_(dept);
     order.basedOn[dept] = s ? { sessionId: s.id, status: s.status, startedAt: s.startedAt, completedAt: s.completedAt } : null;
-    const entries = s ? db_().all('entries').filter((e) => e.sessionId === s.id) : [];
-    activeCountables_(dept).forEach((it) => {
-      const e = entries.filter((x) => x.itemId === it.id)[0] || null;
-      const sug = suggestLine_(it, e);
-      if (s && s.status === 'open') sug.flags.push('count-not-finished');
-      lines.push({
-        id: newId_('l'), orderId: order.id, itemId: it.id, department: dept,
-        supplierItemNumber: it.supplierItemNumber || '', description: it.description || it.name,
-        casePackRaw: it.casePackRaw || '', onHandCases: sug.onHand, desiredStock: it.desiredStock,
-        suggestedCases: sug.suggested, finalCases: sug.suggested === null ? 0 : sug.suggested,
-        flags: sug.flags, snapshot: itemSnapshot_(it), sortOrder: sort++, note: '',
-      });
-    });
+    lines = lines.concat(deptLines_(order, dept, s, [], idx).add);
   });
   order.totalCases = lines.reduce((t, l) => t + (l.finalCases || 0), 0);
   db_().insert('orders', order);
@@ -813,15 +925,12 @@ function orderWarnings_(order, lines) {
   const total = lines.reduce((t, l) => t + (l.finalCases || 0), 0);
   if (total < min) w.push('This order is ' + total + ' case(s), below the ' + min + '-case minimum. You can still send it.');
   const flagged = lines.filter((l) => (l.flags || []).length).length;
-  if (flagged) w.push(flagged + ' line(s) have flags (missing count, unconfirmed package size, etc.). Check them before sending.');
+  if (flagged) w.push(flagged + ' line(s) have flags (missing count, no minimum set, etc.). Check them before sending.');
   ['housekeeping', 'cafe'].forEach((d) => {
     const bo = order.basedOn && order.basedOn[d];
-    if (!bo) w.push('No ' + KIND_LABEL[d] + ' count was found.');
+    if (!bo) w.push('No ' + KIND_LABEL[d] + ' count is in this draft yet.');
     else if (bo.status === 'open') w.push('The ' + KIND_LABEL[d] + ' count was not marked finished when this draft was made.');
   });
-  if (order.status === 'draft' && order.deadline && platform_().now().getTime() > new Date(order.deadline).getTime()) {
-    w.push('The Wednesday 4:00 PM deadline for this delivery has passed.');
-  }
   return { warnings: w, totalCases: total };
 }
 
@@ -830,7 +939,23 @@ function adminOrder_(orderId) {
   if (!order) fail_('Order not found.');
   const lines = db_().all('orderLines').filter((l) => l.orderId === order.id).sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
   const w = orderWarnings_(order, lines);
-  return { order, lines, warnings: w.warnings, totalCases: w.totalCases, supplier: allSettings_().supplier, exportText: orderExportText_(order, lines) };
+  const supplier = allSettings_().supplier;
+  const ordered = lines.filter((l) => l.finalCases > 0);
+  const now = platform_().now();
+  return {
+    order, lines, warnings: w.warnings, totalCases: w.totalCases, supplier,
+    summary: {
+      totalCases: w.totalCases,
+      minimumCases: supplier.minimumCases,
+      totalDollars: round2_(ordered.reduce((t, l) => t + (l.price !== null && l.price !== undefined ? l.price * l.finalCases : 0), 0)),
+      unpricedLines: ordered.filter((l) => l.price === null || l.price === undefined).length,
+      deliveryDate: order.deliveryDate,
+      deadline: order.deadline,
+      deadlinePassed: !!(order.status === 'draft' && order.deadline && now.getTime() > new Date(order.deadline).getTime()),
+      nextDelivery: nextDelivery_(now),
+    },
+    exportText: orderExportText_(order, lines),
+  };
 }
 
 function adminOrders_() {
@@ -855,9 +980,10 @@ function adminSaveOrder_(b) {
     if (!l) fail_('Order line not found.');
     const q = num_(u.finalCases);
     if (q === null || isNaN(q) || q < 0 || Math.floor(q) !== q || q > 9999) fail_('Order quantities must be whole numbers of cases, 0 or more.');
-    db_().update('orderLines', l.id, { finalCases: q, note: str_(u.note, 300) });
+    // A quantity that differs from the suggestion counts as Todd's choice and survives later refreshes.
+    db_().update('orderLines', l.id, { finalCases: q, note: str_(u.note, 300), edited: l.edited || q !== l.suggestedCases });
   });
-  db_().update('orders', order.id, { note: str_(b.note, 2000), updatedAt: nowIso_() });
+  db_().update('orders', order.id, { note: str_(b.note, 2000), totalCases: orderTotal_(order.id), updatedAt: nowIso_() });
   return adminOrder_(order.id);
 }
 
@@ -1128,7 +1254,7 @@ function adminSaveItem_(b) {
     if (['', 'housekeeping', 'cafe'].indexOf(f.department) < 0) fail_('Unknown department.');
     next.department = f.department;
   }
-  ['packsPerCase', 'unitsPerCase', 'desiredStock', 'price', 'sortOrder'].forEach((k) => {
+  ['packsPerCase', 'unitsPerCase', 'desiredStock', 'minimumStock', 'price', 'sortOrder'].forEach((k) => {
     if (f[k] === undefined) return;
     const v = num_(f[k]);
     if (v !== null && (isNaN(v) || v < 0)) fail_('Numbers must be 0 or more.');
@@ -1142,6 +1268,8 @@ function adminSaveItem_(b) {
   });
   if (!next.name) fail_('Item name is required.');
   if (next.unitsPerCaseConfirmed && !(next.unitsPerCase > 0)) fail_('Enter units per case before confirming it.');
+  if (next.minimumStock !== null && next.minimumStock !== undefined && next.desiredStock !== null && next.desiredStock !== undefined &&
+    next.minimumStock > next.desiredStock) fail_('Minimum stock can\'t be more than desired stock.');
   if (next.archived && next.active) fail_('Restore this item before making it active.');
   if (next.active) {
     const missing = [];
@@ -1181,6 +1309,119 @@ function adminRemoveItems_(b) {
   });
   audit_('admin', restore ? 'items-restored' : 'items-removed', { count: changed, ids: ids.slice(0, 50) });
   return { changed, items: sortItems_(db_().all('items')) };
+}
+
+// One-time helper for items added from a spreadsheet: takes the minimum from notes like
+// "Suggested minimum 2, target 3 cases" and copies price/history from the matching imported
+// Ginsberg's record (same item #). Never overwrites anything Todd has already filled in.
+function fillFromRecords_(commit) {
+  const items = db_().all('items');
+  const src = {};
+  items.forEach((x) => { if (x.origin === 'ginsberg-import' && x.supplierItemNumber) src[x.supplierItemNumber] = x; });
+  const rows = [];
+  items.filter((it) => it.active && !it.archived).forEach((it) => {
+    const ch = {};
+    const notes = [];
+    const m = String(it.notes || '').match(/Suggested minimum\s+(\d+(?:\.\d+)?)/i);
+    if ((it.minimumStock === null || it.minimumStock === undefined) && m) {
+      const v = Number(m[1]);
+      if (it.desiredStock !== null && it.desiredStock !== undefined && v > it.desiredStock) notes.push('Minimum in note (' + v + ') is above desired stock; left blank.');
+      else ch.minimumStock = v;
+    }
+    const g = it.supplierItemNumber ? src[it.supplierItemNumber] : null;
+    if (g && g.id !== it.id) {
+      if ((it.price === null || it.price === undefined) && g.price !== null && g.price !== undefined) {
+        Object.assign(ch, { price: g.price, priceDate: g.priceDate, priceSource: g.priceSource, priceHistory: g.priceHistory || [] });
+      }
+      if ((!it.purchaseHistory || !Object.keys(it.purchaseHistory).length) && g.purchaseHistory && Object.keys(g.purchaseHistory).length) ch.purchaseHistory = g.purchaseHistory;
+      if (it.supplierNumberStatus === 'unverified') ch.supplierNumberStatus = 'from-supplier-records';
+    } else if (it.supplierNumberStatus === 'unverified' && it.supplierItemNumber) {
+      notes.push('Item #' + it.supplierItemNumber + ' was not found in the imported Ginsberg\'s records, so it stays unverified.');
+    }
+    if (Object.keys(ch).length || notes.length) rows.push({ it, ch, notes });
+  });
+  const now = nowIso_();
+  if (commit) {
+    rows.forEach((r) => { if (Object.keys(r.ch).length) db_().update('items', r.it.id, Object.assign({ updatedAt: now }, r.ch)); });
+    audit_('admin', 'items-filled-from-records', { count: rows.filter((r) => Object.keys(r.ch).length).length });
+  }
+  return {
+    committed: !!commit,
+    changed: rows.filter((r) => Object.keys(r.ch).length).length,
+    rows: rows.map((r) => ({
+      id: r.it.id, name: r.it.name, supplierItemNumber: r.it.supplierItemNumber || '',
+      minimumStock: r.ch.minimumStock === undefined ? null : r.ch.minimumStock, desiredStock: r.it.desiredStock,
+      price: r.ch.price === undefined ? null : r.ch.price, priceDate: r.ch.priceDate || '',
+      verified: r.ch.supplierNumberStatus === 'from-supplier-records', history: !!r.ch.purchaseHistory, notes: r.notes,
+    })),
+  };
+}
+
+// Staff home card: next delivery and this week's Housekeeping/Cafe count status. No private data.
+function homeStatus_() {
+  const entries = db_().all('entries');
+  const counted = {};
+  entries.forEach((e) => { if (isCounted_(e)) counted[e.sessionId] = (counted[e.sessionId] || 0) + 1; });
+  const sessions = db_().all('sessions');
+  const counts = {};
+  DEPARTMENTS.forEach((d) => {
+    const open = openSession_(d);
+    const last = sessions.filter((s) => s.kind === d && s.status === 'completed')
+      .sort((a, b) => String(b.completedAt).localeCompare(String(a.completedAt)))[0];
+    counts[d] = {
+      total: activeCountables_(d).length,
+      open: open ? { startedAt: open.startedAt, counted: counted[open.id] || 0 } : null,
+      lastFinished: last ? { completedAt: last.completedAt, counted: counted[last.id] || 0, total: last.totalAtCompletion } : null,
+    };
+  });
+  return { nextDelivery: nextDelivery_(platform_().now()), counts };
+}
+
+/* ---------------------------------------------------------------- weekly Drive backup */
+
+function backupStatus_() {
+  const b = allSettings_().backup;
+  let installed = null, folderUrl = '';
+  try { installed = platform_().backup.isInstalled(); } catch (e) { installed = null; }
+  try { folderUrl = platform_().backup.folderUrl(); } catch (e) { folderUrl = ''; }
+  return { enabled: !!b.driveBackupEnabled, lastBackupAt: b.lastBackupAt || '', lastError: b.lastError || '', triggerInstalled: installed, folderUrl };
+}
+function backupNow_() {
+  const name = 'supply-backup-' + nowIso_().slice(0, 10) + '.json';
+  platform_().backup.save(name, JSON.stringify(backup_()));
+  putSetting_('backup', Object.assign(allSettings_().backup, { lastBackupAt: nowIso_(), lastError: '' }));
+  return name;
+}
+function backupOn_() {
+  try {
+    platform_().backup.install();
+  } catch (err) {
+    // Google can refuse to create the weekly timer from the web app; Todd then does it once in the editor.
+    return Object.assign(backupStatus_(), { turnedOn: false, error: String(err && err.message ? err.message : err).slice(0, 300) });
+  }
+  putSetting_('backup', Object.assign(allSettings_().backup, { driveBackupEnabled: true }));
+  let first = '';
+  try { first = backupNow_(); } catch (err) {
+    putSetting_('backup', Object.assign(allSettings_().backup, { lastError: String(err && err.message ? err.message : err).slice(0, 300) }));
+  }
+  audit_('admin', 'backup-turned-on', { first });
+  return Object.assign(backupStatus_(), { turnedOn: true, firstBackup: first });
+}
+function backupOff_() {
+  try { platform_().backup.remove(); } catch (err) {
+    return Object.assign(backupStatus_(), { error: String(err && err.message ? err.message : err).slice(0, 300) });
+  }
+  putSetting_('backup', Object.assign(allSettings_().backup, { driveBackupEnabled: false }));
+  audit_('admin', 'backup-turned-off', null);
+  return backupStatus_();
+}
+function backupNowAction_() {
+  try {
+    const name = backupNow_();
+    return Object.assign(backupStatus_(), { saved: name });
+  } catch (err) {
+    return Object.assign(backupStatus_(), { error: String(err && err.message ? err.message : err).slice(0, 300) });
+  }
 }
 
 /* ---------------------------------------------------------------- beverages */
@@ -1545,6 +1786,10 @@ function adminDashboard_() {
       unassignedDrinks: reqs.filter((r) => r.kind === 'drink' && r.status === 'shopping' && effectiveRouting_(r, drinks) === 'unassigned').length,
     },
     drafts: db_().all('orders').filter((o) => o.status === 'draft').length,
+    latestDraft: (function () {
+      const d = db_().all('orders').filter((o) => o.status === 'draft').sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)))[0];
+      return d ? { id: d.id, deliveryDate: d.deliveryDate, autoFrom: d.autoFrom || '', updatedAt: d.updatedAt } : null;
+    })(),
     beverages: { active: bev.filter((p) => p.active).length, needsReview: bev.filter((p) => !p.packageConfirmed).length },
     nextDelivery: nextDelivery_(platform_().now()),
     checklist: {
@@ -1555,7 +1800,6 @@ function adminDashboard_() {
       emailRecipient: !!settings.email.recipient,
       supplierInfo: !!settings.supplier.customerNumber,
       ginsbergImported: settings.migration.ginsberg !== 'not-imported',
-      base44Imported: settings.migration.base44 !== 'not-imported',
       driveBackup: !!settings.backup.driveBackupEnabled,
     },
     migration: settings.migration,
@@ -1962,7 +2206,7 @@ function supplierHistory_() {
   };
 }
 
-/* ---------------------------------------------------------------- generic import (Base44 or other exports) */
+/* ---------------------------------------------------------------- spreadsheet import (CSV/JSON exports) */
 
 const IMPORT_TYPES = {
   items: {
@@ -1977,6 +2221,8 @@ const IMPORT_TYPES = {
       countingUnit: ['counting unit', 'unit', 'count unit', 'uom'],
       unitsPerCase: ['units per case', 'per case', 'case size', 'qty per case'],
       desiredStock: ['desired stock', 'par', 'par level', 'target', 'desired', 'target stock', 'desired amount'],
+      minimumStock: ['minimum stock', 'minimum', 'min', 'min stock', 'reorder point', 'reorder at', 'minimum cases'],
+      notes: ['notes', 'note', 'comments'],
       active: ['active', 'is active', 'enabled'],
       category: ['category', 'type', 'group'],
     },
@@ -2084,6 +2330,11 @@ function importRows_(b, commit) {
       ['fullCases', 'looseUnits'].forEach((f) => { const v = num_(val(row, f)); if (v !== null && (isNaN(v) || v < 0)) why.push(f + ' is not a number 0 or more'); });
       if (val(row, 'countedAt') && isNaN(new Date(val(row, 'countedAt')).getTime())) why.push('date not readable');
     }
+    if (type === 'items') {
+      const mn = num_(val(row, 'minimumStock')), ds = num_(val(row, 'desiredStock'));
+      if (mn !== null && (isNaN(mn) || mn < 0)) why.push('minimum stock is not a number 0 or more');
+      else if (mn !== null && ds !== null && !isNaN(ds) && mn > ds) why.push('minimum stock is more than desired stock');
+    }
     if (type === 'requests') { const q = num_(val(row, 'quantity')); if (q !== null && (isNaN(q) || q < 0)) why.push('quantity not readable'); }
     if (type === 'orders') { const q = num_(val(row, 'cases')); if (q === null || isNaN(q) || q < 0) why.push('cases not readable'); }
     if (why.length) { out.invalid.push({ row: i + 2, why: why.join(', ') }); return; }
@@ -2113,9 +2364,15 @@ function importRows_(b, commit) {
         unitsPerCase: (function () { const v = num_(val(r, 'unitsPerCase')); return v === null || isNaN(v) ? null : v; })(),
         looseUnitLabel: '', unitsPerCaseConfirmed: false,
         desiredStock: (function () { const v = num_(val(r, 'desiredStock')); return v === null || isNaN(v) ? null : v; })(),
+        minimumStock: (function () {
+          const v = num_(val(r, 'minimumStock'));
+          const d = num_(val(r, 'desiredStock'));
+          if (v === null || isNaN(v) || v < 0) return null;
+          return d !== null && !isNaN(d) && v > d ? null : v;
+        })(),
         supplierStatus: '', replacementNote: '', replacementCandidate: '', replacementApproved: false, price: null, priceDate: '', priceSource: '',
         priceHistory: [], purchaseHistory: {}, sourceRefs: [source + ' row ' + (g.i + 2)],
-        notes: 'Imported from ' + source + '. Was ' + (bool_(val(r, 'active')) ? 'active' : 'not marked active') + ' there. Item number (if any) is unverified until matched to the supplier guide.',
+        notes: [val(r, 'notes'), 'Imported from ' + source + '. Was ' + (bool_(val(r, 'active')) ? 'active' : 'not marked active') + ' there. Item number (if any) is unverified until matched to the supplier guide.'].filter(Boolean).join('\n'),
         origin: tag, legacyId: val(r, 'legacyId'), legacy: raw(r), sortOrder: 0, createdAt: now, updatedAt: now,
       };
     }));
@@ -2189,12 +2446,6 @@ function importRows_(b, commit) {
       };
     }));
   }
-  if (/base44/i.test(source) || b.isBase44) {
-    const mig = allSettings_().migration;
-    mig.base44 = 'partly imported';
-    mig.base44Log = (mig.base44Log || []).concat([{ at: now, type, rows: good.length, source }]);
-    putSetting_('migration', mig);
-  }
   audit_('admin', 'rows-import', { type, rows: good.length, source });
   return Object.assign(out, { imported: good.length });
 }
@@ -2207,20 +2458,18 @@ function backup_() {
   return out;
 }
 
-// Optional: run "installWeeklyDriveBackup" once in the editor to save a JSON backup to Drive weekly.
+// Same as the "Turn on weekly backup" button in Admin, for running from the Apps Script editor.
 function installWeeklyDriveBackup() {
-  ScriptApp.getProjectTriggers().filter((t) => t.getHandlerFunction() === 'driveBackup').forEach((t) => ScriptApp.deleteTrigger(t));
-  ScriptApp.newTrigger('driveBackup').timeBased().onWeekDay(ScriptApp.WeekDay.MONDAY).atHour(5).create();
   db_().reset();
-  putSetting_('backup', Object.assign(allSettings_().backup, { driveBackupEnabled: true }));
-  driveBackup();
+  const r = backupOn_();
+  platform_().log(r.turnedOn ? 'Weekly backup is on (Mondays about 5 AM).' : 'Could not turn on weekly backup: ' + r.error);
 }
+// The weekly timer runs this.
 function driveBackup() {
   db_().reset();
-  const data = JSON.stringify(backup_());
-  const folder = gasFolder_(['Backups']);
-  folder.createFile('supply-backup-' + nowIso_().slice(0, 10) + '.json', data, 'application/json');
-  putSetting_('backup', Object.assign(allSettings_().backup, { lastBackupAt: nowIso_() }));
+  try { backupNow_(); } catch (err) {
+    putSetting_('backup', Object.assign(allSettings_().backup, { lastError: String(err && err.message ? err.message : err).slice(0, 300) }));
+  }
 }
 
 /* ---------------------------------------------------------------- data store */
@@ -2406,6 +2655,16 @@ function gasPlatform_() {
         to: m.to, subject: m.subject, htmlBody: m.html, name: 'Lapland Lake Supply Manager',
         attachments: (m.attachments || []).map((a) => Utilities.newBlob(a.content, a.mimeType, a.name)),
       }),
+    },
+    backup: {
+      install: () => {
+        ScriptApp.getProjectTriggers().filter((t) => t.getHandlerFunction() === 'driveBackup').forEach((t) => ScriptApp.deleteTrigger(t));
+        ScriptApp.newTrigger('driveBackup').timeBased().onWeekDay(ScriptApp.WeekDay.MONDAY).atHour(5).create();
+      },
+      remove: () => ScriptApp.getProjectTriggers().filter((t) => t.getHandlerFunction() === 'driveBackup').forEach((t) => ScriptApp.deleteTrigger(t)),
+      isInstalled: () => ScriptApp.getProjectTriggers().some((t) => t.getHandlerFunction() === 'driveBackup'),
+      save: (name, text) => gasFolder_(['Backups']).createFile(name, text, 'application/json').getId(),
+      folderUrl: () => gasFolder_(['Backups']).getUrl(),
     },
     drive: {
       readSpreadsheet: (id) => SpreadsheetApp.openById(id).getSheets().map((sh) => ({ name: sh.getName(), values: sh.getDataRange().getDisplayValues() })),

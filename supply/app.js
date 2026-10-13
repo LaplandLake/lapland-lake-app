@@ -152,6 +152,22 @@
   }
 
   /* ------------------------------------------------------------ home */
+  function fmtDay(ymd) {
+    if (!ymd) return '';
+    return new Date(ymd + 'T12:00:00Z').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', timeZone: 'UTC' });
+  }
+  function fmtWhen(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'America/New_York' }) + ', ' + fmtTime(iso);
+  }
+  function countStatusText(c) {
+    if (!c) return '';
+    if (c.open) return 'In progress · ' + c.open.counted + ' of ' + c.total + ' counted';
+    if (c.lastFinished) return 'Finished ' + fmtWhen(c.lastFinished.completedAt);
+    return 'Not counted yet';
+  }
+
   function renderHome() {
     const buttons = [
       ['#/count/housekeeping', 'broom', 'Housekeeping Orders'],
@@ -160,6 +176,7 @@
       ['#/request/drink', 'cooler', 'Drink Cooler'],
       ['#/count/beverage', 'bottle', 'Beer / Cider / Wine'],
     ];
+    const live = h('div', { class: 'status-live' });
     mount(
       h('div', { class: 'home-head' },
         h('img', { class: 'logo', src: 'assets/logo-horizontal.svg', alt: 'Lapland Lake', width: 440, height: 95 }),
@@ -169,13 +186,66 @@
         !API_URL ? h('div', { class: 'notice warn' }, 'Not connected yet: Todd needs to finish the one-time setup before counts and requests can be saved.') : null,
         h('nav', { class: 'home-buttons', 'aria-label': 'Sections' },
           buttons.map((b) => h('a', { class: 'home-btn', href: b[0] }, icon(b[1]), h('span', null, b[2])))),
-        h('div', { class: 'delivery', role: 'note' },
-          h('b', null, "Ginsberg's Foods"), DELIVERY_TEXT[0], h('br'), DELIVERY_TEXT[1]),
+        h('section', { class: 'status-card', 'aria-label': "Ginsberg's delivery and this week's counts" },
+          h('h2', null, "Ginsberg's Foods"),
+          live,
+          h('p', { class: 'delivery' }, DELIVERY_TEXT[0], h('br'), DELIVERY_TEXT[1])),
         h('div', { style: 'text-align:center' }, h('a', { class: 'admin-link', href: '#/admin' }, 'Todd — Admin'))));
+    if (!API_URL) return;
+    api('homeStatus').then((s) => {
+      const nd = s.nextDelivery;
+      live.append(
+        nd ? h('dl', { class: 'status-dates' },
+          h('dt', null, 'Next delivery'), h('dd', null, fmtDay(nd.deliveryDate)),
+          h('dt', null, 'Order deadline'), h('dd', null, fmtWhen(nd.deadline))) : null,
+        h('ul', { class: 'status-counts' },
+          ['housekeeping', 'cafe'].map((d) => {
+            const c = s.counts[d];
+            const cls = c.open ? 'progress' : c.lastFinished ? 'done' : 'none';
+            return h('li', { class: cls }, h('span', { class: 'dot', 'aria-hidden': 'true' }), h('b', null, KIND_HEADING[d] + ' count: '), countStatusText(c));
+          })));
+    }).catch(() => { /* the card still shows the delivery rules */ });
+  }
+
+  /* ------------------------------------------------------------ storage areas (count sections) */
+  // Walk-through order. Each area has its own color and icon; unknown categories go last.
+  const AREAS = [
+    { re: /^frozen/i, color: '#1f5fae', tint: '#e8f0fb', icon: 'snow' },
+    { re: /^(refrig|cooler|fridge)/i, color: '#0f766e', tint: '#e4f4f1', icon: 'thermo' },
+    { re: /^produce/i, color: '#3d7a1f', tint: '#ecf6e4', icon: 'leaf' },
+    { re: /^dry/i, color: '#86652a', tint: '#f6efe0', icon: 'box' },
+    { re: /^kitchen/i, color: '#b14f17', tint: '#fbeee3', icon: 'whisk' },
+    { re: /^(cups|to-go)/i, color: '#7a3d6e', tint: '#f6e9f3', icon: 'cup' },
+    { re: /^paper/i, color: '#56616b', tint: '#eef1f3', icon: 'roll' },
+    { re: /^(trash|clean)/i, color: '#37505e', tint: '#e7eef1', icon: 'spray' },
+  ];
+  const OTHER_AREA = { color: '#4a5a5e', tint: '#eef2f3', icon: 'box' };
+  Object.assign(ICONS, {
+    snow: '<path d="M12 2v20M4.5 6.5l15 11M19.5 6.5l-15 11M9 3.5l3 2.5 3-2.5M9 20.5l3-2.5 3 2.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+    thermo: '<path d="M10 4a2 2 0 0 1 4 0v10.3a4 4 0 1 1-4 0V4z M12 9v8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+    leaf: '<path d="M5 19c0-8 5-14 15-15-1 10-7 15-15 15zM5 19l7-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+    box: '<path d="M3 7l9-4 9 4v10l-9 4-9-4V7zM3 7l9 4 9-4M12 11v10" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>',
+    whisk: '<path d="M12 21v-7M9 14h6M12 14c-4-3-5-8-3-10 1.5-1.5 3.5-1 3 2 0-3 2-3.5 3-2 2 2 1 7-3 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+    roll: '<ellipse cx="8" cy="8" rx="4" ry="5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 3h9c2.2 0 4 2.2 4 5v11H8M8 13v6" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="8" cy="8" r="1.4" fill="currentColor"/>',
+    spray: '<path d="M8 8h6v13H8zM9 8V5h4l3 2M16 4h2M16 7h3M16 10h2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+  });
+  function areaFor(category) {
+    const i = AREAS.findIndex((a) => a.re.test(String(category || '').trim()));
+    return i >= 0 ? Object.assign({ order: i }, AREAS[i]) : Object.assign({ order: AREAS.length }, OTHER_AREA);
+  }
+  function groupByArea(items) {
+    const groups = {};
+    items.forEach((it) => {
+      const name = (it.category || '').trim() || 'Other items';
+      if (!groups[name]) groups[name] = Object.assign({ name, items: [] }, areaFor(it.category));
+      groups[name].items.push(it);
+    });
+    return Object.values(groups).sort((a, b) => a.order - b.order || a.name.localeCompare(b.name))
+      .map((g) => Object.assign(g, { items: g.items.slice().sort((a, b) => a.name.localeCompare(b.name)) }));
   }
 
   /* ------------------------------------------------------------ count screens */
-  function validateLocal(kind, item, full, loose) {
+  function validateLocal(kind, full, loose) {
     if (full !== '' && !/^\d+$/.test(full)) return 'Full cases must be a whole number (0 or more).';
     if (loose !== '') {
       if (kind === 'beverage' ? !/^\d+$/.test(loose) : !/^\d+(\.\d{1,2})?$/.test(loose)) {
@@ -187,7 +257,7 @@
 
   function renderCount(kind) {
     const draftKey = 'sm-draft-' + kind;
-    const state = { items: [], rows: {}, session: null, finishing: false };
+    const state = { items: [], rows: {}, session: null, finishing: false, sections: [] };
     const body = h('div', { class: 'wrap' }, h('p', null, 'Loading the list…'));
     const progressText = h('span');
     const progressBar = h('div');
@@ -197,29 +267,63 @@
       h('a', { class: 'btn secondary', href: '#/' }, 'Save & leave'), finishBtn));
     mount(topbar(KIND_TITLE[kind]), body, finishBar);
 
-    let unloadWarn = null;
     function pendingCount() { return Object.values(state.rows).filter((r) => r.status === 'saving' || r.status === 'pending' || r.status === 'error' || r.status === 'invalid').length; }
-    unloadWarn = (e) => { if (pendingCount()) { e.preventDefault(); e.returnValue = ''; } };
+    const unloadWarn = (e) => { if (pendingCount()) { e.preventDefault(); e.returnValue = ''; } };
+    // Section headers stick just below the overall progress bar.
+    const placeHeaders = () => { document.documentElement.style.setProperty('--section-top', (64 + progress.offsetHeight) + 'px'); };
     window.addEventListener('beforeunload', unloadWarn);
-    const off = () => { window.removeEventListener('beforeunload', unloadWarn); window.removeEventListener('hashchange', off); };
+    window.addEventListener('resize', placeHeaders);
+    const off = () => { window.removeEventListener('beforeunload', unloadWarn); window.removeEventListener('resize', placeHeaders); window.removeEventListener('hashchange', off); };
     window.addEventListener('hashchange', off);
 
+    function isCounted(r) { return r && r.saved && (r.saved.fullCases !== null || r.saved.looseUnits !== null); }
     function updateProgress() {
       const total = state.items.length;
       const counted = state.items.filter((it) => isCounted(state.rows[it.id])).length;
       const pend = pendingCount();
       progressText.textContent = counted + ' of ' + total + ' counted' + (pend ? ' · ' + plural(pend, 'item', 'items') + ' not saved yet' : ' · all entries saved');
       progressBar.style.width = total ? Math.round(100 * counted / total) + '%' : '0';
+      state.sections.forEach((s) => {
+        const n = s.items.filter((it) => isCounted(state.rows[it.id])).length;
+        s.countEl.textContent = n + ' of ' + s.items.length;
+        s.barEl.style.width = Math.round(100 * n / s.items.length) + '%';
+        s.el.classList.toggle('done', n === s.items.length);
+      });
     }
-    function isCounted(r) { return r && r.saved && (r.saved.fullCases !== null || r.saved.looseUnits !== null); }
+
+    // Each item has one or more count boxes (two for items kept in the Kitchen and the Storage room).
+    function boxValues(r) { return r.boxes.map((b) => ({ full: b.full.value.trim(), loose: b.loose ? b.loose.value.trim() : '' })); }
+    function isBlank(vals) { return vals.every((v) => v.full === '' && v.loose === ''); }
 
     function saveDraft() {
       const d = {};
       Object.keys(state.rows).forEach((id) => {
         const r = state.rows[id];
-        if (r.status === 'pending' || r.status === 'saving' || r.status === 'error') d[id] = { full: r.full.value, loose: r.loose ? r.loose.value : '', flag: r.flag, clear: r.wantClear };
+        if (r.status === 'pending' || r.status === 'saving' || r.status === 'error') d[id] = { boxes: boxValues(r), flag: r.flag, clear: r.wantClear };
       });
       if (Object.keys(d).length) store.set(draftKey, d); else store.del(draftKey);
+    }
+
+    // Amber "Low" badge while counting: the entered amount is at or below the item's minimum.
+    function updateDerived(r) {
+      const vals = boxValues(r);
+      const it = r.item;
+      let full = 0, loose = 0, valid = true;
+      vals.forEach((v) => {
+        if (validateLocal(kind, v.full, v.loose)) valid = false;
+        full += v.full === '' ? 0 : Number(v.full);
+        loose += v.loose === '' ? 0 : Number(v.loose);
+      });
+      const entered = !isBlank(vals) && valid;
+      const onHand = full + (it.allowLoose && it.unitsPerCase ? loose / it.unitsPerCase : 0);
+      const low = entered && it.minimumStock !== null && it.minimumStock !== undefined && onHand <= it.minimumStock + 1e-9;
+      r.lowBadge.classList.toggle('hidden', !low);
+      r.el.classList.toggle('is-low', low);
+      if (r.totalEl) {
+        r.totalEl.textContent = entered
+          ? 'Total: ' + plural(Math.round(full * 100) / 100, 'case', 'cases') + (it.allowLoose && loose ? ' + ' + (Math.round(loose * 100) / 100) + ' ' + (it.looseUnitLabel || 'units') : '')
+          : 'Total: not counted yet';
+      }
     }
 
     function setStatus(r, status, msg) {
@@ -239,6 +343,7 @@
       r.retry.classList.toggle('hidden', status !== 'error');
       r.lowBtn.setAttribute('aria-pressed', r.flag === 'low' ? 'true' : 'false');
       r.outBtn.setAttribute('aria-pressed', r.flag === 'out' ? 'true' : 'false');
+      updateDerived(r);
       updateProgress();
       saveDraft();
     }
@@ -256,7 +361,7 @@
     }
     function schedule(r, delay) {
       clearTimeout(r.timer);
-      const err = validateLocal(kind, r.item, r.full.value.trim(), r.loose ? r.loose.value.trim() : '');
+      const err = boxValues(r).map((v) => validateLocal(kind, v.full, v.loose)).filter(Boolean)[0];
       if (err) { setStatus(r, 'invalid', err); return; }
       if (r.status !== 'saving') setStatus(r, 'pending');
       r.timer = setTimeout(() => {
@@ -266,13 +371,15 @@
       }, delay === undefined ? 700 : delay);
     }
     async function doSave(r) {
-      const full = r.full.value.trim();
-      const loose = r.loose ? r.loose.value.trim() : '';
-      const clear = full === '' && loose === '' && !r.flag;
+      const vals = boxValues(r);
+      const clear = isBlank(vals) && !r.flag;
+      const body = { kind, itemId: r.item.id, flag: r.flag, clear };
+      if (r.item.locations) body.parts = vals.map((v) => ({ fullCases: v.full, looseUnits: v.loose }));
+      else { body.fullCases = vals[0].full; body.looseUnits = vals[0].loose; }
       r.inflight = true;
       setStatus(r, 'saving');
       try {
-        const res = await api('saveCount', { kind, itemId: r.item.id, fullCases: full, looseUnits: loose, flag: r.flag, clear });
+        const res = await api('saveCount', body);
         if (res.session) state.session = res.session;
         r.saved = clear ? null : res.entry;
         r.inflight = false;
@@ -290,27 +397,50 @@
       input.dispatchEvent(new Event('input'));
     }
 
-    function itemCard(it, saved) {
-      const r = { item: it, saved, flag: saved ? saved.flag || '' : '', status: 'none' };
-      const fullId = 'f-' + it.id, looseId = 'l-' + it.id;
-      r.full = h('input', { type: 'text', inputmode: 'numeric', pattern: '[0-9]*', id: fullId, autocomplete: 'off', value: saved && saved.fullCases !== null ? String(saved.fullCases) : '', 'aria-label': 'Full cases of ' + it.name });
-      r.loose = it.allowLoose ? h('input', { type: 'text', inputmode: kind === 'beverage' ? 'numeric' : 'decimal', id: looseId, autocomplete: 'off', value: saved && saved.looseUnits !== null ? String(saved.looseUnits) : '', 'aria-label': 'Loose ' + (it.looseUnitLabel || 'units') + ' of ' + it.name }) : null;
-      [r.full, r.loose].forEach((inp) => {
+    function countBox(r, it, label, saved, n) {
+      const sfx = it.id + '-' + n;
+      const box = {};
+      const lbl = (t) => (label ? label + ': ' : '') + t;
+      box.full = h('input', { type: 'text', inputmode: 'numeric', pattern: '[0-9]*', id: 'f-' + sfx, autocomplete: 'off', value: saved && saved.fullCases !== null && saved.fullCases !== undefined ? String(saved.fullCases) : '', 'aria-label': lbl('Full cases of ' + it.name) });
+      box.loose = it.allowLoose ? h('input', { type: 'text', inputmode: kind === 'beverage' ? 'numeric' : 'decimal', id: 'l-' + sfx, autocomplete: 'off', value: saved && saved.looseUnits !== null && saved.looseUnits !== undefined ? String(saved.looseUnits) : '', 'aria-label': lbl('Loose ' + (it.looseUnitLabel || 'units') + ' of ' + it.name) }) : null;
+      [box.full, box.loose].forEach((inp) => {
         if (!inp) return;
         inp.addEventListener('input', () => { r.wantClear = false; schedule(r); });
         inp.addEventListener('blur', () => { if (r.status === 'pending') schedule(r, 0); });
       });
+      box.el = h('div', { class: 'count-box' },
+        label ? h('div', { class: 'place' }, label) : null,
+        h('div', { class: 'qty' + (box.loose ? '' : ' one') },
+          h('div', null, h('label', { for: 'f-' + sfx }, 'Full cases'),
+            h('div', { class: 'stepper' },
+              h('button', { type: 'button', 'aria-label': lbl('One fewer case'), onclick: () => stepper(box.full, -1) }, '−'),
+              box.full,
+              h('button', { type: 'button', 'aria-label': lbl('One more case'), onclick: () => stepper(box.full, 1) }, '+'))),
+          box.loose ? h('div', null, h('label', { for: 'l-' + sfx }, 'Loose ' + (it.looseUnitLabel || 'units')), box.loose) : null));
+      return box;
+    }
+
+    function itemCard(it, saved) {
+      const r = { item: it, saved, flag: saved ? saved.flag || '' : '', status: 'none' };
+      if (it.locations) {
+        const parts = (saved && saved.parts) || [];
+        r.boxes = it.locations.map((loc, i) => countBox(r, it, loc, parts[i] || null, i));
+        r.totalEl = h('p', { class: 'split-total' });
+      } else {
+        r.boxes = [countBox(r, it, null, saved, 0)];
+      }
       r.stateEl = h('span', { class: 'save-state none' }, 'Not counted');
       r.retry = h('button', { class: 'btn small secondary hidden', type: 'button', onclick: () => schedule(r, 0) }, 'Retry');
-      r.lowBtn = h('button', { class: 'flagbtn low', type: 'button', 'aria-pressed': 'false', onclick: () => { r.flag = r.flag === 'low' ? '' : 'low'; schedule(r, 0); } }, 'Low');
+      r.lowBtn = h('button', { class: 'flagbtn low', type: 'button', 'aria-pressed': 'false', onclick: () => { r.flag = r.flag === 'low' ? '' : 'low'; schedule(r, 0); } }, 'Report low');
       r.outBtn = h('button', {
         class: 'flagbtn out', type: 'button', 'aria-pressed': 'false', onclick: () => {
           if (r.flag === 'out') r.flag = '';
-          else { r.flag = 'out'; r.full.value = '0'; if (r.loose) r.loose.value = '0'; }
+          else { r.flag = 'out'; r.boxes.forEach((b) => { b.full.value = '0'; if (b.loose) b.loose.value = '0'; }); }
           schedule(r, 0);
         },
       }, 'Out');
-      const clearBtn = h('button', { class: 'btn small secondary', type: 'button', onclick: () => { r.full.value = ''; if (r.loose) r.loose.value = ''; r.flag = ''; r.wantClear = true; schedule(r, 0); } }, 'Clear');
+      const clearBtn = h('button', { class: 'btn small secondary', type: 'button', onclick: () => { r.boxes.forEach((b) => { b.full.value = ''; if (b.loose) b.loose.value = ''; }); r.flag = ''; r.wantClear = true; schedule(r, 0); } }, 'Clear');
+      r.lowBadge = h('span', { class: 'low-badge hidden', title: 'At or below the minimum' }, 'Low');
       const meta = [];
       if (kind === 'beverage') {
         meta.push(it.unitsPerCase + ' ' + (it.looseUnitLabel || 'bottles/cans') + ' per case');
@@ -318,22 +448,34 @@
       } else {
         meta.push('Count in: ' + (it.countingUnit || 'cases'));
         if (it.allowLoose) meta.push(it.unitsPerCase + ' ' + it.looseUnitLabel + ' per case');
-        if (it.desiredStock !== null && it.desiredStock !== undefined) meta.push('Desired stock: ' + it.desiredStock + ' ' + (it.desiredStock === 1 ? 'case' : 'cases'));
+        if (it.minimumStock !== null && it.minimumStock !== undefined) meta.push('Minimum: ' + it.minimumStock);
+        if (it.desiredStock !== null && it.desiredStock !== undefined) meta.push('Desired: ' + it.desiredStock + ' ' + (it.desiredStock === 1 ? 'case' : 'cases'));
       }
-      r.el = h('section', { class: 'item', 'aria-label': it.name },
-        h('p', { class: 'name' }, it.name),
+      r.el = h('section', { class: 'item' + (it.locations ? ' split' : ''), 'aria-label': it.name },
+        h('div', { class: 'name-row' }, h('p', { class: 'name' }, it.name), r.lowBadge),
         h('p', { class: 'meta' }, meta.join(' · ')),
-        h('div', { class: 'qty' + (r.loose ? '' : ' one') },
-          h('div', null, h('label', { for: fullId }, 'Full cases'),
-            h('div', { class: 'stepper' },
-              h('button', { type: 'button', 'aria-label': 'One fewer case', onclick: () => stepper(r.full, -1) }, '−'),
-              r.full,
-              h('button', { type: 'button', 'aria-label': 'One more case', onclick: () => stepper(r.full, 1) }, '+'))),
-          r.loose ? h('div', null, h('label', { for: looseId }, 'Loose ' + (it.looseUnitLabel || 'units')), r.loose) : null),
+        r.boxes.map((b) => b.el),
+        r.totalEl || null,
         h('div', { class: 'item-foot' }, r.lowBtn, r.outBtn, clearBtn, r.stateEl, r.retry));
       state.rows[it.id] = r;
       setStatus(r, saved ? 'saved' : 'none');
       return r.el;
+    }
+
+    function sectionEl(g) {
+      const countEl = h('span', { class: 'sec-count' });
+      const barEl = h('div');
+      const split = g.items.some((it) => it.locations);
+      const el = h('section', { class: 'area', style: '--area:' + g.color + ';--area-tint:' + g.tint, 'aria-label': g.name },
+        h('header', { class: 'area-head' },
+          icon(g.icon),
+          h('h3', null, g.name),
+          countEl,
+          h('div', { class: 'sec-bar', 'aria-hidden': 'true' }, barEl)),
+        split ? h('p', { class: 'area-note' }, 'These are kept in two places. Count the Kitchen and the Storage room separately; the app adds them up.') : null,
+        h('div', { class: 'area-items' }, g.items.map((it) => itemCard(it, state.entries[it.id] || null))));
+      state.sections.push({ el, countEl, barEl, items: g.items });
+      return el;
     }
 
     async function load() {
@@ -347,6 +489,7 @@
       }
       state.items = data.items;
       state.session = data.session;
+      state.entries = data.entries;
       body.innerHTML = '';
       body.append(h('h2', { class: 'dept-heading' }, KIND_HEADING[kind] + ' count'));
       if (!data.items.length) {
@@ -359,19 +502,24 @@
       body.append(h('p', { class: 'muted small' }, data.session
         ? 'Count started ' + fmtDateTime(data.session.startedAt) + '. Each entry saves on its own; you can leave and come back.'
         : 'Each entry saves as you type. You can leave and come back; saved counts stay. Blank means "not counted"; enter 0 if there are none.'));
-      data.items.forEach((it) => body.append(itemCard(it, data.entries[it.id] || null)));
+      if (kind === 'beverage') data.items.forEach((it) => body.append(itemCard(it, data.entries[it.id] || null)));
+      else groupByArea(data.items).forEach((g) => body.append(sectionEl(g)));
       const draft = store.get(draftKey) || {};
       Object.keys(draft).forEach((id) => {
         const r = state.rows[id];
         if (!r) return;
-        r.full.value = draft[id].full || '';
-        if (r.loose) r.loose.value = draft[id].loose || '';
+        const boxes = draft[id].boxes || [{ full: draft[id].full || '', loose: draft[id].loose || '' }];
+        r.boxes.forEach((b, i) => {
+          b.full.value = (boxes[i] && boxes[i].full) || '';
+          if (b.loose) b.loose.value = (boxes[i] && boxes[i].loose) || '';
+        });
         r.flag = draft[id].flag || '';
         r.wantClear = !!draft[id].clear;
         schedule(r, 300);
       });
       finishBar.classList.remove('hidden');
       updateProgress();
+      placeHeaders();
     }
 
     async function finish() {
@@ -652,5 +800,5 @@
   window.addEventListener('hashchange', route);
   window.addEventListener('DOMContentLoaded', route);
 
-  window.SM = { h, mount, ask, tell, api, apiUpload, ApiError, store, fmtTime, fmtDateTime, plural, topbar, API_URL, KIND_HEADING };
+  window.SM = { h, mount, ask, tell, fmtDay, fmtWhen, areaFor, AREAS, api, apiUpload, ApiError, store, fmtTime, fmtDateTime, plural, topbar, API_URL, KIND_HEADING };
 })();

@@ -19,11 +19,11 @@ export function seedDemo(backend, env) {
   });
   const items = call('adminItems', { token }).items;
   const byNum = (n) => items.filter((i) => i.supplierItemNumber === n)[0];
-  call('adminSaveItem', { token, id: byNum('90001').id, item: { department: 'housekeeping', countingUnit: 'case', unitsPerCase: 96, looseUnitLabel: 'rolls', countingUnitConfirmed: true, unitsPerCaseConfirmed: true, desiredStock: 4, active: true } });
-  call('adminSaveItem', { token, id: byNum('90002').id, item: { department: 'cafe', countingUnit: 'case', unitsPerCase: 20, looseUnitLabel: 'sleeves (50 cups each)', countingUnitConfirmed: true, unitsPerCaseConfirmed: true, desiredStock: 3, active: true } });
-  call('adminSaveItem', { token, id: byNum('90003').id, item: { department: 'cafe', countingUnit: 'case', countingUnitConfirmed: true, desiredStock: 6, active: true } });
-  call('adminSaveItem', { token, id: byNum('00412').id, item: { department: 'cafe', countingUnit: 'case', countingUnitConfirmed: true, desiredStock: 2, active: true } });
-  call('adminSaveItem', { token, item: { name: 'TEST Hand soap refills', department: 'housekeeping', countingUnit: 'case', countingUnitConfirmed: true, desiredStock: 2, active: true } });
+  call('adminSaveItem', { token, id: byNum('90001').id, item: { department: 'housekeeping', category: 'Paper products', countingUnit: 'case', unitsPerCase: 96, looseUnitLabel: 'rolls', countingUnitConfirmed: true, unitsPerCaseConfirmed: true, desiredStock: 4, minimumStock: 4, active: true } });
+  call('adminSaveItem', { token, id: byNum('90002').id, item: { department: 'cafe', category: 'Cups, to-go & utensils', countingUnit: 'case', unitsPerCase: 20, looseUnitLabel: 'sleeves (50 cups each)', countingUnitConfirmed: true, unitsPerCaseConfirmed: true, desiredStock: 3, minimumStock: 1, active: true } });
+  call('adminSaveItem', { token, id: byNum('90003').id, item: { department: 'cafe', category: 'Frozen', countingUnit: 'case', countingUnitConfirmed: true, desiredStock: 6, minimumStock: 2, active: true } });
+  call('adminSaveItem', { token, id: byNum('00412').id, item: { department: 'cafe', category: 'Dry & shelf-stable', countingUnit: 'case', countingUnitConfirmed: true, desiredStock: 2, minimumStock: 1, active: true } });
+  call('adminSaveItem', { token, item: { name: 'TEST Hand soap refills', department: 'housekeeping', category: 'Trash & cleaning', countingUnit: 'case', countingUnitConfirmed: true, desiredStock: 2, active: true } });
   call('adminSaveSupply', { token, name: 'TEST Batteries AA', defaultUnit: 'packs' });
   call('adminSaveSupply', { token, name: 'TEST Light bulbs', defaultUnit: 'each' });
   call('adminSaveBevProduct', { token, product: { name: 'TEST IPA 12 oz can', type: 'beer', container: 'can', unitsPerCase: 24, packageConfirmed: true, active: true } });
