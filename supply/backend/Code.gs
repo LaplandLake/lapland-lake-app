@@ -2533,7 +2533,7 @@ function backup_() {
 function installWeeklyDriveBackup() {
   db_().reset();
   const r = backupOn_();
-  platform_().log(r.turnedOn ? 'Weekly backup is on (Mondays about 5 AM).' : 'Could not turn on weekly backup: ' + r.error);
+  platform_().log(r.turnedOn ? 'Weekly backup is on (Wednesdays about 5 AM).' : 'Could not turn on weekly backup: ' + r.error);
 }
 // The weekly timer runs this.
 function driveBackup() {
@@ -2730,7 +2730,7 @@ function gasPlatform_() {
     backup: {
       install: () => {
         ScriptApp.getProjectTriggers().filter((t) => t.getHandlerFunction() === 'driveBackup').forEach((t) => ScriptApp.deleteTrigger(t));
-        ScriptApp.newTrigger('driveBackup').timeBased().onWeekDay(ScriptApp.WeekDay.MONDAY).atHour(5).create();
+        ScriptApp.newTrigger('driveBackup').timeBased().onWeekDay(ScriptApp.WeekDay.WEDNESDAY).atHour(5).create();
       },
       remove: () => ScriptApp.getProjectTriggers().filter((t) => t.getHandlerFunction() === 'driveBackup').forEach((t) => ScriptApp.deleteTrigger(t)),
       isInstalled: () => ScriptApp.getProjectTriggers().some((t) => t.getHandlerFunction() === 'driveBackup'),

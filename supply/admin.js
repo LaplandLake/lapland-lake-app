@@ -1134,7 +1134,7 @@
         st.turnedOn === false ? manualSteps() : null,
         st.error && st.turnedOn !== false ? errBox(new Error(st.error)) : null,
         st.saved ? okBox('Saved ' + st.saved + ' to Drive.') : null,
-        h('p', null, working ? '✅ On: a copy of everything is saved every Monday around 5 AM to your Drive folder "Lapland Lake Supply Manager" > Backups.'
+        h('p', null, working ? '✅ On: a copy of everything is saved every Wednesday around 5 AM to your Drive folder "Lapland Lake Supply Manager" > Backups.'
           : st.enabled ? '⚠ Marked on, but Google’s weekly timer is missing. Press "Turn on weekly backup" again.' : 'Off.'),
         st.lastBackupAt ? h('p', { class: 'small muted' }, 'Last backup: ' + fmtDateTime(st.lastBackupAt) + '.') : null,
         st.lastError ? h('p', { class: 'small', style: 'color:var(--err)' }, 'Last backup problem: ' + st.lastError) : null,
