@@ -157,7 +157,8 @@ try {
     const frozen = page.locator('.area', { hasText: 'Frozen' }).first();
     expect((await frozen.locator('.sec-count').textContent()) === '0 of 1', 'frozen progress before');
     const soup = page.locator('.item', { hasText: 'TEST Soup red lentil' });
-    expect(await soup.locator('button', { hasText: 'Report low' }).isVisible(), 'Report low button');
+    expect(await soup.locator('button', { hasText: 'Suggest…' }).isVisible(), 'Suggest button');
+    expect((await soup.locator('button', { hasText: /^(Out|Report low)$/ }).count()) === 0, 'Out and Report low are gone');
     await soup.locator('input').first().fill('2'); // minimum is 2
     await soup.locator('.low-badge').waitFor({ state: 'visible' });
     await soup.locator('.save-state', { hasText: /^Saved/ }).waitFor({ timeout: 8000 });
@@ -184,7 +185,9 @@ try {
     expect((await page.textContent('.dept-heading')) === 'Cafe count', 'heading');
     const cups = page.locator('.item', { hasText: 'TEST CUP HOT 12OZ' });
     expect(/20 sleeves \(50 cups each\) per case/.test(await cups.textContent()), 'pack text: ' + await cups.textContent());
-    await cups.locator('button', { hasText: 'Out' }).click();
+    // Sold out: staff just type 0 (in both places).
+    await cups.locator('.count-box').nth(0).locator('input').first().fill('0');
+    await cups.locator('.count-box').nth(1).locator('input').first().fill('0');
     await cups.locator('.save-state', { hasText: /^Saved/ }).waitFor({ timeout: 8000 });
     await page.click('text=Finish count');
     await page.waitForSelector('.modal');
@@ -194,6 +197,34 @@ try {
     await page.waitForSelector('.notice.ok');
     expect(/not been counted/.test(dialogText), 'warning dialog: ' + dialogText);
     expect(/2 items were left uncounted/.test(await page.textContent('.notice.ok')), 'finish message');
+  });
+  await check('After Finish: staff fix a number, ask for an extra, report an item not on the list; Todd sees it all', async () => {
+    await page.goto(APP + '#/');
+    await page.goto(APP + '#/count/cafe');
+    await page.waitForSelector('.finished-note');
+    expect(!(await page.locator('button', { hasText: 'Finish count' }).isVisible()), 'no Finish button once finished');
+    const soup = page.locator('.item', { hasText: 'TEST Soup red lentil' });
+    await soup.locator('input').first().fill('1');
+    await soup.locator('.save-state', { hasText: /^Saved/ }).waitFor({ timeout: 8000 });
+    const sugar = page.locator('.item', { hasText: 'TEST Sugar packets' });
+    await sugar.locator('button', { hasText: 'Suggest…' }).click();
+    await page.waitForSelector('.modal .choice');
+    await page.screenshot({ path: path.join(SHOTS, 'staff-suggest-390.png') });
+    await page.click('.modal .choice:has-text("+ Extra for this week")');
+    await page.click('.modal .stepper button[aria-label="One more"]');
+    await page.fill('#sg-note', 'group coming Friday');
+    await page.click('.modal button:has-text("Send")');
+    await page.waitForSelector('.modal-msg');
+    const extraMsg = await page.textContent('.modal-msg');
+    expect(/Added: 2 extra cases of TEST Sugar packets/.test(extraMsg), 'extra message: ' + extraMsg);
+    await page.click('.modal button:has-text("OK")');
+    await page.click('button:has-text("Item not on this list?")');
+    await page.fill('#nl-name', 'TEST Oat milk');
+    await page.click('.modal button:has-text("Send to Todd")');
+    await page.waitForSelector('.modal-msg');
+    expect(/add "TEST Oat milk"/.test(await page.textContent('.modal-msg')), 'not-listed message');
+    await page.click('.modal button:has-text("OK")');
+    await noHScroll(page, 'finished count');
   });
   await check('Other Supply request: quantity check, 3 photos with previews, remove one, upload failure keeps everything, retry succeeds', async () => {
     await page.goto(APP + '#/request/supply');
@@ -284,6 +315,27 @@ try {
     await noHScroll(admin, 'admin overview');
     await admin.screenshot({ path: path.join(SHOTS, 'admin-overview-390.png'), fullPage: true });
   });
+  await check('Todd sees the count fix and the extra on the draft, and the item to add on the Overview', async () => {
+    // Todd: the draft shows the fix and the extra.
+    await admin.goto(APP + '#/admin/orders');
+    await admin.locator('.list-item', { hasText: 'Draft' }).locator('a').first().click();
+    await admin.waitForSelector('.order-summary');
+    const soupRow = await admin.locator('tr', { hasText: 'TEST Soup red lentil' }).first().textContent();
+    expect(/Count changed .*\(not counted → 1\)/.test(soupRow), 'count change note: ' + soupRow);
+    const sugarRow = await admin.locator('tr', { hasText: 'TEST Sugar packets' }).first().textContent();
+    expect(/\+2 extra \(staff: group coming Friday\)/.test(sugarRow), 'extra note: ' + sugarRow);
+    await admin.screenshot({ path: path.join(SHOTS, 'admin-draft-staff-notes-390.png'), fullPage: true });
+    // Overview: the item to add, with Find in catalog.
+    await admin.goto(APP + '#/admin/home');
+    await admin.waitForSelector('.staff-card');
+    expect(/TEST Oat milk/.test(await admin.textContent('.staff-card')), 'from staff card');
+    await admin.click('.staff-card button:has-text("Find in catalog")');
+    await admin.waitForFunction(() => location.hash === '#/admin/catalog');
+    await admin.goto(APP + '#/admin/requests/add');
+    await admin.waitForSelector('.staff-card');
+    await admin.click('.staff-card button:has-text("Done")');
+    await admin.waitForSelector('.staff-card .chip:has-text("Done")');
+  });
   await check('Admin sees every photo and changes status; staff then see "Ordered"', async () => {
     await admin.goto(APP + '#/admin/requests/supply');
     const card = admin.locator('.card', { hasText: 'TEST Paper towels for tupa 3' });
@@ -332,14 +384,32 @@ try {
     const sum = await admin.textContent('.order-summary');
     expect(/Order by .* for .* delivery/.test(sum), 'deadline line: ' + sum);
     expect(/short of the 20-case minimum/.test(sum), 'minimum warning');
-    expect(/\$66\.66/.test(sum), 'dollar total (3 cases x $22.22): ' + sum);
+    expect(/\$242\.19/.test(sum), 'dollar total (cups 3 x $22.22 + soup 5 x $33.33 + sugar 2 extra x $4.44): ' + sum);
     const w = await admin.locator('.min-bar > div').evaluate((e) => e.style.width);
-    expect(w === '15%', 'progress width ' + w);
+    expect(w === '50%', 'progress width ' + w);
     // Editing a quantity updates the totals right away.
     await admin.locator('tr', { hasText: 'TEST CUP HOT' }).locator('input.line-input').fill('5');
-    expect(/\$111\.10/.test(await admin.textContent('.order-summary')), 'live total after edit');
+    expect(/\$286\.63/.test(await admin.textContent('.order-summary')), 'live total after edit');
     await noHScroll(admin, 'draft');
     await admin.screenshot({ path: path.join(SHOTS, 'admin-auto-draft-390.png'), fullPage: true });
+  });
+  await check('Pause ordering: home says "Ordering paused"; turning it back on restores the deadline', async () => {
+    await admin.goto(APP + '#/admin/settings');
+    await admin.waitForSelector('text=Pause ordering');
+    await admin.check('label:has-text("Pause ordering") input');
+    await admin.click('.card:has-text("Pause ordering") button:has-text("Save")');
+    await admin.waitForSelector('text=Ordering is paused. Counts continue');
+    await page.goto(APP + '#/');
+    await page.waitForSelector('.paused-note');
+    expect(!(await page.locator('.status-card .delivery').isVisible()), 'deadline text hidden while paused');
+    await page.screenshot({ path: path.join(SHOTS, 'home-paused-390.png') });
+    await admin.uncheck('label:has-text("Pause ordering") input');
+    await admin.click('.card:has-text("Pause ordering") button:has-text("Save")');
+    await admin.waitForSelector('text=Ordering is on');
+    await page.goto(APP + '#/count/cafe');
+    await page.goto(APP + '#/');
+    await page.waitForSelector('.status-dates');
+    expect(!(await page.locator('.paused-note').count()), 'paused note gone');
   });
   await check('Beverage report: graph, table, missing data separate, CSV download', async () => {
     await admin.goto(APP + '#/admin/reports/weekly');
@@ -355,6 +425,7 @@ try {
   await check('Catalog: remove several unused items, find them under Removed items, restore one', async () => {
     await admin.goto(APP + '#/admin/catalog');
     await admin.waitForSelector('.card select');
+    await admin.fill('input[placeholder^="Search name"]', ''); // "Find in catalog" earlier left a search
     await admin.locator('.card select').first().selectOption('candidates');
     await admin.waitForSelector('text=Select all shown');
     const before = await admin.locator('.list-item').count();
