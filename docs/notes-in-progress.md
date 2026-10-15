@@ -7,6 +7,7 @@ Last updated: 2026-10-05. These are notes from working with the owner's team, so
 - Drafts go on a separate branch; publishing = merging into `main` (every push to `main` republishes the site).
 - Ask before making visible changes. Don't fill placeholders or add features without checking first.
 - Todd has final say on anything design-related (looks, wording, images, layout, share previews, QR styles). Describe it, show a preview, and wait for a yes. Behind-the-scenes fixes (speed, reliability, safety) can go ahead; tell him afterward.
+- `main` is protected (2026-10-15, GitHub Settings → Rules → Rulesets → "Protect main"): nobody can delete it or force-push (rewrite its history). Pull requests are NOT required, on purpose: the trail report bot in `.github/workflows/site.yml` saves straight to `main`, and requiring pull requests would block it. Open question: confirm the bot still saves fine the next time the trail report changes.
 - Live app: https://laplandlake.github.io/lapland-lake-app/ (GitHub user renamed from Tssngs75 to LaplandLake on 2026-10-05; old address no longer works).
 
 ## Lodge Map (not built yet)
