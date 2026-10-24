@@ -446,7 +446,7 @@ function todayString() {
 }
 
 async function renderMenu(view) {
-  view.innerHTML = `<h1>Café Menu</h1>${loading}`;
+  view.innerHTML = `<h1>Upstairs Café</h1>${loading}`;
   try {
     const [soup, menu] = await Promise.all([loadContent('soup.json'), loadContent('menu.json')]);
     // titleNote in menu.json (e.g. "Closed until Ski Season") means the café is closed:
@@ -458,7 +458,7 @@ async function renderMenu(view) {
     // show the notice, hide cooked-to-order items, and say the soup is heat-it-yourself.
     const grabAndGo = Boolean(soup.grabAndGo) && soup.date === todayString();
     view.innerHTML = `
-      ${closed ? `<h1>Café Menu · <span class="title-note">${esc(menu.titleNote)}</span></h1>` : '<h1>Café Menu</h1>'}
+      ${closed ? `<h1>Upstairs Café · <span class="title-note">${esc(menu.titleNote)}</span></h1>` : '<h1>Upstairs Café</h1>'}
       ${grabAndGo ? `
         <div class="card grab-and-go" role="note">
           <div class="label">Grab &amp; Go Today</div>
@@ -489,7 +489,7 @@ async function renderMenu(view) {
         </section>`).join('')}
       ${menu.note ? `<p class="meta">${esc(menu.note)}</p>` : ''}`;
   } catch {
-    view.innerHTML = `<h1>Café Menu</h1>${errorCard('the menu')}`;
+    view.innerHTML = `<h1>Upstairs Café</h1>${errorCard('the menu')}`;
   }
 }
 
