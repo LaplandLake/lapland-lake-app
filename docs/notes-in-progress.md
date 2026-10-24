@@ -175,3 +175,13 @@ Readable prices (last season; owner said menu prices may change):
 - Change the Trail Maps home button subtitle from "Zoom in and tap a trail" to something covering both maps (suggested: "Trail map & live trail status"). Todd asked to wait until the live map is confirmed working on a phone.
 - App stores (Oct 24): Todd decided to launch as a web app only (link/QR + "Add this app to your phone"). Google Play / Galaxy Store / Apple are optional for later, if guests ask or usage is high. No D-U-N-S needed for now.
 - Live map (Oct 24): two switches, Ski/Snowshoe and Open/Closed / Difficulty; opens on Ski + Difficulty. Open/Closed key is just green Open / red Closed (Lapland closes trails rather than flagging issues). The "trailstyle=difficulty" setting name is unconfirmed: Todd to check that Difficulty shows green/blue/black lines on his phone; if not, get the difficulty embed code from Trailforks.
+
+## Lodging dashboard (built Oct 24, for Todd only)
+- A private claude.ai dashboard, not part of this repo or the live app: https://claude.ai/artifact/Jp8Du1mR1gvoZ2QCA981Zz. Only Todd can open it unless he shares it.
+- Tabs: Seasons, This winter so far, Inflation-adjusted, Snow, Guests, Calendar.
+- It reads two Google Sheets in Todd's Drive, live, with his own Google access:
+  - "Lodging History 2011–2027" (RezStream numbers). The dashboard reads fixed cell ranges on its tabs, so if rows or tabs move there, the dashboard needs its ranges updated.
+  - "Inflation (CPI) for dashboard" (new, made Oct 24). Its cell A1 pulls the official monthly inflation index from FRED by itself. Don't delete or move it. Todd clicked "Allow access" once so the formula can reach FRED.
+- Revenue figures stay out of this repo (it's public); they live only in the Sheets and the private dashboard.
+- Where guests heard about Lapland isn't shown: the Sheet says it isn't recorded for most bookings since 2016.
+- Open question: share the dashboard with Hendrick or Mark? Todd said just him for now.

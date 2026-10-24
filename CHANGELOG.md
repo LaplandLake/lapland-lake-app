@@ -2,6 +2,7 @@
 
 Newest first. One plain-English line per change.
 
+- 2026-10-24: Running notes: added the private lodging dashboard and the new inflation Sheet in Todd's Drive.
 - 2026-10-24: Updated Bob's instructions (CLAUDE.md): Colvin is no longer on the team; Todd writes instructions and app specs for now.
 - 2026-10-24: Trail Maps: live map now has an Open/Closed / Difficulty switch with a matching color key; opens on Ski trails + Difficulty.
 - 2026-10-24: Trail Maps: live map starts loading as soon as the page opens and retries on its own if it stalls.
