@@ -342,9 +342,7 @@ async function renderTrailMap(view) {
         title="Live Lapland Lake ski trail map from Trailforks"></iframe>
     </div>
     <ul class="status-legend" data-for="status" aria-label="What the live map colors mean">
-      <li><span class="swatch" style="background:#2e9d3f"></span>Open, all clear</li>
-      <li><span class="swatch" style="background:#f2c230"></span>Open, minor issue</li>
-      <li><span class="swatch" style="background:#f08a24"></span>Significant issue</li>
+      <li><span class="swatch" style="background:#2e9d3f"></span>Open</li>
       <li><span class="swatch" style="background:#d33a2c"></span>Closed</li>
     </ul>
     <ul class="status-legend" data-for="difficulty" aria-label="What the live map colors mean" hidden>
