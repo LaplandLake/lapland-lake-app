@@ -169,6 +169,7 @@ Readable prices (last season; owner said menu prices may change):
 - The app launches **after the new laplandlake.com website is done** (someone else is building it).
 - When the new site is live: point the trail report reader (`scripts/update-trail-report.mjs`, `trailReportUrl` in `content/settings.json`) at the new Trails and Current Conditions page and test it; set up app.laplandlake.com (CNAME to laplandlake.github.io + GitHub Pages custom domain); ask for a "Get the App" button on the site.
 - Then: beta test with 5-10 people, then launch.
+- **When switching to app.laplandlake.com:** the old github.io link keeps working (GitHub redirects it), but beta testers who saved the app to their home screen need to delete it and re-add it from the new address. Add a "We've moved! Tap here to add the new Lapland Lake app" message for anyone still on the old address. Also make a new QR code and update the share preview, photo email/review page links (REVIEW_PAGE in scripts/photo-inbox.gs), and README.
 
 ## To do once the live Trailforks map is confirmed working (Oct 24)
 - Change the Trail Maps home button subtitle from "Zoom in and tap a trail" to something covering both maps (suggested: "Trail map & live trail status"). Todd asked to wait until the live map is confirmed working on a phone.
