@@ -337,6 +337,12 @@ async function renderTrailMap(view) {
       <iframe width="100%" height="420" frameborder="0" allowfullscreen
         title="Live Lapland Lake ski trail map from Trailforks"></iframe>
     </div>
+    <ul class="status-legend" aria-label="What the live map colors mean">
+      <li><span class="swatch" style="background:#2e9d3f"></span>Open, all clear</li>
+      <li><span class="swatch" style="background:#f2c230"></span>Open, minor issue</li>
+      <li><span class="swatch" style="background:#f08a24"></span>Significant issue</li>
+      <li><span class="swatch" style="background:#d33a2c"></span>Closed</li>
+    </ul>
     <p class="live-credit"><a href="https://www.trailforks.com/region/lapland-lake-cross-country-ski-center/" target="_blank" rel="noopener">Lapland Lake Cross Country Ski Center trails</a></p>
     <p class="meta">The live map needs a data connection. There’s no cell service on most of the property.</p>
 

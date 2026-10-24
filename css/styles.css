@@ -485,3 +485,6 @@ button.trail-row { cursor: pointer; }
 .map-switch { display: flex; gap: 8px; margin-bottom: 10px; }
 .map-switch-btn { flex: 1; min-height: 52px; border: 2px solid var(--brand); border-radius: 12px; background: var(--card); color: var(--brand); font: inherit; font-size: 18px; font-weight: 700; cursor: pointer; }
 .map-switch-btn[aria-pressed="true"] { background: var(--brand); color: #fff; }
+.status-legend { list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; margin: 10px 0 4px; padding: 0; font-size: 16px; }
+.status-legend li { display: flex; align-items: center; gap: 8px; }
+.status-legend .swatch { flex: none; width: 26px; height: 6px; border-radius: 3px; }
