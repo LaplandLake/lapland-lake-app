@@ -458,7 +458,7 @@ async function renderMenu(view) {
     // show the notice, hide cooked-to-order items, and say the soup is heat-it-yourself.
     const grabAndGo = Boolean(soup.grabAndGo) && soup.date === todayString();
     view.innerHTML = `
-      ${closed ? `<h1>Upstairs Café · <span class="title-note">${esc(menu.titleNote)}</span></h1>` : '<h1>Upstairs Café</h1>'}
+      <h1 class="cafe-title">Upstairs Café${closed ? `<span class="title-note">${esc(menu.titleNote)}</span>` : ''}</h1>
       ${grabAndGo ? `
         <div class="card grab-and-go" role="note">
           <div class="label">Grab &amp; Go Today</div>
