@@ -324,10 +324,10 @@ async function renderTrailMap(view) {
 
     <h2>Live trail status</h2>
     <div class="live-map">
-      <iframe src="https://www.trailforks.com/widgets/region_map/?rid=47922&amp;activitytype=13&amp;trailstyle=status&amp;w=100%25&amp;h=420px&amp;controls=1&amp;list=0"
-        title="Live Lapland Lake trail map from Trailforks" loading="lazy" frameborder="0" scrolling="no"></iframe>
+      <iframe src="https://www.trailforks.com/widgets/region_map/?rid=47922&amp;w=100%&amp;h=420px&amp;activitytype=13&amp;maptype=trailforks&amp;trailstyle=status&amp;controls=1&amp;list=0&amp;basicmap=0"
+        title="Live Lapland Lake trail map from Trailforks" loading="lazy" frameborder="0" allowfullscreen></iframe>
     </div>
-    <p class="live-credit"><a href="https://www.trailforks.com/region/lapland-lake-cross-country-ski-center/" target="_blank" rel="noopener">Lapland Lake trails</a> on <a href="https://www.trailforks.com/" target="_blank" rel="noopener">Trailforks</a></p>
+    <p class="live-credit"><a href="https://www.trailforks.com/region/lapland-lake-cross-country-ski-center/" target="_blank" rel="noopener">Lapland Lake Cross Country Ski Center Nordic skiing trails</a></p>
     <p class="meta">The live map needs a data connection. There’s no cell service on most of the property.</p>
 
     <h2>Track yourself on the trails</h2>
