@@ -174,3 +174,4 @@ Readable prices (last season; owner said menu prices may change):
 ## To do once the live Trailforks map is confirmed working (Oct 24)
 - Change the Trail Maps home button subtitle from "Zoom in and tap a trail" to something covering both maps (suggested: "Trail map & live trail status"). Todd asked to wait until the live map is confirmed working on a phone.
 - App stores (Oct 24): Todd decided to launch as a web app only (link/QR + "Add this app to your phone"). Google Play / Galaxy Store / Apple are optional for later, if guests ask or usage is high. No D-U-N-S needed for now.
+- Live map (Oct 24): two switches, Ski/Snowshoe and Open/Closed / Difficulty; opens on Ski + Difficulty. Open/Closed key is just green Open / red Closed (Lapland closes trails rather than flagging issues). The "trailstyle=difficulty" setting name is unconfirmed: Todd to check that Difficulty shows green/blue/black lines on his phone; if not, get the difficulty embed code from Trailforks.
