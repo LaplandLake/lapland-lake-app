@@ -2,6 +2,7 @@
 
 Newest first. One plain-English line per change.
 
+- 2026-10-24: Trail Maps button subtitle now reads "Trail map & live trail status" (Difficulty colors confirmed working on Todd's phone).
 - 2026-10-24: Trail Maps: live map now has an Open/Closed / Difficulty switch with a matching color key; opens on Ski trails + Difficulty.
 - 2026-10-24: Trail Maps: live map starts loading as soon as the page opens and retries on its own if it stalls.
 - 2026-10-24: Café page heading: "Upstairs Café" with "Closed until Ski Season" stacked underneath; home button renamed "Upstairs Café".
