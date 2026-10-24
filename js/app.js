@@ -28,7 +28,7 @@ const SCREENS = [
   { path: 'trails',  title: 'Trail Conditions',  sub: 'Grooming, snow depth & km open',                       icon: 'snow',   render: renderConditions },
   { path: 'tickets', title: 'Buy Tickets',       sub: 'Trail passes, equipment rentals, lessons, season passes', icon: 'ticket', render: renderTickets },
   { path: 'lessons', title: 'Lessons',           sub: 'Already have a ticket, season pass, or lodging with us?', icon: 'skier',  render: renderLessons },
-  { path: 'map',     title: 'Trail Map',         sub: 'Zoom in and tap a trail',                              icon: 'map',    render: renderTrailMap },
+  { path: 'map',     title: 'Trail Maps',        sub: 'Zoom in and tap a trail',                              icon: 'map',    render: renderTrailMap },
   { path: 'menu',    title: 'Café Menu',         sub: "Today's soup, food & drinks",                          icon: 'soup',   render: renderMenu },
   { path: 'stay',    title: 'Lodge With Us',     sub: 'Our cottages, studios & farmhouse',                    icon: 'bed',    render: renderLodging },
   { path: 'photos',  title: 'Guest Photos',      sub: 'Share your Lapland Lake adventures',                 icon: 'camera', render: renderPhotos },
@@ -278,12 +278,12 @@ function loadScript(src) {
 }
 
 async function renderTrailMap(view) {
-  view.innerHTML = `<h1>Trail Map</h1>${loading}`;
+  view.innerHTML = `<h1>Trail Maps</h1>${loading}`;
   let data;
   try {
     [data] = await Promise.all([loadContent('trails.json'), loadScript('js/vendor/panzoom.min.js')]);
   } catch {
-    view.innerHTML = `<h1>Trail Map</h1>${errorCard('the trail map')}`;
+    view.innerHTML = `<h1>Trail Maps</h1>${errorCard('the trail map')}`;
     return;
   }
 
@@ -305,7 +305,7 @@ async function renderTrailMap(view) {
     </button></li>`;
 
   view.innerHTML = `
-    <h1>Trail Map</h1>
+    <h1>Trail Maps</h1>
     <p class="meta">Pinch or use the + and − buttons to zoom. Tap a symbol for trail details.</p>
     <div class="legend">${Object.keys(DIFFICULTY).map(diffBadge).join('')}</div>
     <div class="map-frame">
