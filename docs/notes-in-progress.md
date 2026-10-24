@@ -172,3 +172,4 @@ Readable prices (last season; owner said menu prices may change):
 
 ## To do once the live Trailforks map is confirmed working (Oct 24)
 - Change the Trail Maps home button subtitle from "Zoom in and tap a trail" to something covering both maps (suggested: "Trail map & live trail status"). Todd asked to wait until the live map is confirmed working on a phone.
+- App stores (Oct 24): Todd decided to launch as a web app only (link/QR + "Add this app to your phone"). Google Play / Galaxy Store / Apple are optional for later, if guests ask or usage is high. No D-U-N-S needed for now.
