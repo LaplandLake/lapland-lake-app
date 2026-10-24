@@ -277,11 +277,11 @@ function loadScript(src) {
   });
 }
 
-// Live Trailforks maps (open/closed trail colors): Nordic ski and snowshoe
-const LIVE_MAPS = {
-  ski: 'https://www.trailforks.com/widgets/region_map/?rid=47922&w=100%&h=420px&activitytype=13&maptype=trailforks&trailstyle=status&controls=1&list=0&basicmap=0',
-  snowshoe: 'https://www.trailforks.com/widgets/region_map/?rid=47922&w=100%&h=420px&activitytype=10&maptype=trailforks&trailstyle=status&controls=1&list=0&basicmap=0',
-};
+// Live Trailforks maps: Nordic ski (13) or snowshoe (10), colored by
+// open/closed status or by difficulty
+const LIVE_ACTIVITY = { ski: 13, snowshoe: 10 };
+const liveMapUrl = (activity, style) => 'https://www.trailforks.com/widgets/region_map/?rid=47922&w=100%&h=420px'
+  + `&activitytype=${LIVE_ACTIVITY[activity]}&maptype=trailforks&trailstyle=${style}&controls=1&list=0&basicmap=0`;
 
 async function renderTrailMap(view) {
   view.innerHTML = `<h1>Trail Maps</h1>${loading}`;
@@ -333,15 +333,24 @@ async function renderTrailMap(view) {
       <button type="button" class="map-switch-btn" data-live="ski" aria-pressed="true">Ski trails</button>
       <button type="button" class="map-switch-btn" data-live="snowshoe" aria-pressed="false">Snowshoe trails</button>
     </div>
+    <div class="map-switch style-switch" role="group" aria-label="Color the trails by">
+      <button type="button" class="map-switch-btn" data-style="status" aria-pressed="true">Open/Closed</button>
+      <button type="button" class="map-switch-btn" data-style="difficulty" aria-pressed="false">Difficulty</button>
+    </div>
     <div class="live-map">
       <iframe width="100%" height="420" frameborder="0" allowfullscreen
         title="Live Lapland Lake ski trail map from Trailforks"></iframe>
     </div>
-    <ul class="status-legend" aria-label="What the live map colors mean">
+    <ul class="status-legend" data-for="status" aria-label="What the live map colors mean">
       <li><span class="swatch" style="background:#2e9d3f"></span>Open, all clear</li>
       <li><span class="swatch" style="background:#f2c230"></span>Open, minor issue</li>
       <li><span class="swatch" style="background:#f08a24"></span>Significant issue</li>
       <li><span class="swatch" style="background:#d33a2c"></span>Closed</li>
+    </ul>
+    <ul class="status-legend" data-for="difficulty" aria-label="What the live map colors mean" hidden>
+      <li><span class="sym sym-easiest" aria-hidden="true"></span>Easiest</li>
+      <li><span class="sym sym-more-difficult" aria-hidden="true"></span>More Difficult</li>
+      <li><span class="sym sym-most-difficult" aria-hidden="true"></span>Most Difficult</li>
     </ul>
     <p class="live-credit"><a href="https://www.trailforks.com/region/lapland-lake-cross-country-ski-center/" target="_blank" rel="noopener">Lapland Lake Cross Country Ski Center trails</a></p>
     <p class="meta">The live map needs a data connection. There’s no cell service on most of the property.</p>
@@ -376,12 +385,11 @@ async function renderTrailMap(view) {
   // The Trailforks map sometimes doesn't load on the first try (slow or patchy signal).
   // Load it as soon as the page opens, and if it hasn't finished within a few
   // seconds, quietly try again (up to 3 tries), and again when the app is reopened.
-  let liveWanted = 'ski', liveLoaded = false, liveTries = 0, liveTimer = null;
-  const loadLive = (which = liveWanted) => {
-    liveWanted = which;
+  let liveActivity = 'ski', liveStyle = 'status', liveLoaded = false, liveTries = 0, liveTimer = null;
+  const loadLive = () => {
     liveLoaded = false;
     clearTimeout(liveTimer);
-    liveFrame.src = LIVE_MAPS[which];
+    liveFrame.src = liveMapUrl(liveActivity, liveStyle);
     liveTimer = setTimeout(() => {
       if (!liveLoaded && liveTries < 3 && liveFrame.isConnected) { liveTries++; loadLive(); }
     }, 10000);
@@ -393,14 +401,20 @@ async function renderTrailMap(view) {
     if (document.visibilityState === 'visible' && liveFrame.src && !liveLoaded) { liveTries = 0; loadLive(); }
   };
   document.addEventListener('visibilitychange', onReturn);
-  view.querySelector('.map-switch').addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-live]');
+  // Ski trails / Snowshoe trails, and Open/Closed / Difficulty
+  view.querySelectorAll('.map-switch').forEach((group) => group.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-live], [data-style]');
     if (!btn || btn.getAttribute('aria-pressed') === 'true') return;
-    view.querySelectorAll('.map-switch-btn').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+    group.querySelectorAll('.map-switch-btn').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+    if (btn.dataset.live) liveActivity = btn.dataset.live;
+    if (btn.dataset.style) {
+      liveStyle = btn.dataset.style;
+      view.querySelectorAll('.status-legend').forEach((l) => { l.hidden = l.dataset.for !== liveStyle; });
+    }
     liveTries = 0;
-    loadLive(btn.dataset.live);
-    liveFrame.title = `Live Lapland Lake ${btn.dataset.live === 'ski' ? 'ski' : 'snowshoe'} trail map from Trailforks`;
-  });
+    loadLive();
+    liveFrame.title = `Live Lapland Lake ${liveActivity} trail map from Trailforks`;
+  }));
 
   // ----- Zooming and panning -----
   const frame = view.querySelector('.map-frame');

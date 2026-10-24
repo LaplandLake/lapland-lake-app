@@ -488,3 +488,6 @@ button.trail-row { cursor: pointer; }
 .status-legend { list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; margin: 10px 0 4px; padding: 0; font-size: 16px; }
 .status-legend li { display: flex; align-items: center; gap: 8px; }
 .status-legend .swatch { flex: none; width: 26px; height: 6px; border-radius: 3px; }
+.style-switch .map-switch-btn { min-height: 44px; font-size: 16px; }
+.status-legend[hidden] { display: none; }
+.status-legend .sym { flex: none; }
