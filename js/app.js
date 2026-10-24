@@ -334,8 +334,8 @@ async function renderTrailMap(view) {
       <button type="button" class="map-switch-btn" data-live="snowshoe" aria-pressed="false">Snowshoe trails</button>
     </div>
     <div class="live-map">
-      <iframe width="100%" height="420" frameborder="0" allowfullscreen src="${LIVE_MAPS.ski}"
-        title="Live Lapland Lake ski trail map from Trailforks" loading="lazy"></iframe>
+      <iframe width="100%" height="420" frameborder="0" allowfullscreen
+        title="Live Lapland Lake ski trail map from Trailforks"></iframe>
     </div>
     <p class="live-credit"><a href="https://www.trailforks.com/region/lapland-lake-cross-country-ski-center/" target="_blank" rel="noopener">Lapland Lake Cross Country Ski Center trails</a></p>
     <p class="meta">The live map needs a data connection. There’s no cell service on most of the property.</p>
@@ -367,11 +367,36 @@ async function renderTrailMap(view) {
 
   // ----- Live map: Ski trails / Snowshoe trails -----
   const liveFrame = view.querySelector('.live-map iframe');
+  // The Trailforks map sometimes doesn't load on the first try (slow or patchy signal).
+  // Load it when the guest scrolls near it, and if it hasn't finished within a few
+  // seconds, quietly try again (up to 3 tries), and again when the app is reopened.
+  let liveWanted = 'ski', liveLoaded = false, liveTries = 0, liveTimer = null;
+  const loadLive = (which = liveWanted) => {
+    liveWanted = which;
+    liveLoaded = false;
+    clearTimeout(liveTimer);
+    liveFrame.src = LIVE_MAPS[which];
+    liveTimer = setTimeout(() => {
+      if (!liveLoaded && liveTries < 3 && liveFrame.isConnected) { liveTries++; loadLive(); }
+    }, 10000);
+  };
+  liveFrame.addEventListener('load', () => { if (liveFrame.src) { liveLoaded = true; clearTimeout(liveTimer); } });
+  const nearView = new IntersectionObserver((entries) => {
+    if (entries.some((en) => en.isIntersecting)) { nearView.disconnect(); loadLive(); }
+  }, { rootMargin: '400px 0px' });
+  nearView.observe(liveFrame);
+  const onReturn = () => {
+    if (!liveFrame.isConnected) { document.removeEventListener('visibilitychange', onReturn); return; }
+    if (document.visibilityState === 'visible' && liveFrame.src && !liveLoaded) { liveTries = 0; loadLive(); }
+  };
+  document.addEventListener('visibilitychange', onReturn);
   view.querySelector('.map-switch').addEventListener('click', (e) => {
     const btn = e.target.closest('[data-live]');
     if (!btn || btn.getAttribute('aria-pressed') === 'true') return;
     view.querySelectorAll('.map-switch-btn').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
-    liveFrame.src = LIVE_MAPS[btn.dataset.live];
+    nearView.disconnect();
+    liveTries = 0;
+    loadLive(btn.dataset.live);
     liveFrame.title = `Live Lapland Lake ${btn.dataset.live === 'ski' ? 'ski' : 'snowshoe'} trail map from Trailforks`;
   });
 
