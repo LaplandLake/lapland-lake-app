@@ -474,3 +474,9 @@ button.trail-row { cursor: pointer; }
   100% { transform: translate(var(--drift), 260px) rotate(200deg); opacity: 0; }
 }
 .camera-shutter:disabled { opacity: .6; }
+
+/* Trail Map: live Trailforks map */
+.live-map { border-radius: var(--radius); overflow: hidden; border: 2px solid var(--line); background: var(--card); }
+.live-map iframe { display: block; width: 100%; height: 420px; border: 0; }
+.live-credit { margin: 6px 0 4px; font-size: 14px; color: var(--ink-soft); }
+.track-btn { margin-top: 10px; }

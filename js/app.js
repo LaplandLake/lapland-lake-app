@@ -322,6 +322,19 @@ async function renderTrailMap(view) {
 
     <div class="info-card" id="map-info" role="region" aria-label="Trail details" aria-live="polite" hidden></div>
 
+    <h2>Live trail status</h2>
+    <div class="live-map">
+      <iframe src="https://www.trailforks.com/widgets/region_map/?rid=47922&amp;activitytype=13&amp;trailstyle=status&amp;w=100%25&amp;h=420px&amp;controls=1&amp;list=0"
+        title="Live Lapland Lake trail map from Trailforks" loading="lazy" frameborder="0" scrolling="no"></iframe>
+    </div>
+    <p class="live-credit"><a href="https://www.trailforks.com/region/lapland-lake-cross-country-ski-center/" target="_blank" rel="noopener">Lapland Lake trails</a> on <a href="https://www.trailforks.com/" target="_blank" rel="noopener">Trailforks</a></p>
+    <p class="meta">The live map needs a data connection. There’s no cell service on most of the property.</p>
+
+    <h2>Track yourself on the trails</h2>
+    <p>Download the free Trailforks app and save the Lapland Lake area while you have signal or Wi-Fi. Out on the trails, it shows where you are by GPS, even with no cell service.</p>
+    <a class="btn" href="https://www.trailforks.com/download" target="_blank" rel="noopener">Get the Trailforks app ${svg('ext')}</a>
+    <a class="btn btn-secondary track-btn" href="https://www.trailforks.com/region/lapland-lake-cross-country-ski-center/" target="_blank" rel="noopener">Lapland Lake on Trailforks ${svg('ext')}</a>
+
     ${Object.keys(DIFFICULTY).map((d) => `
       <h2 class="list-head">${diffBadge(d)}</h2>
       <ul class="trail-list">${items.filter((it) => it.kind === 'trail' && it.difficulty === d).map(listRow).join('')}</ul>`).join('')}

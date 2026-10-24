@@ -35,7 +35,7 @@
     { "name": "Ungroomed Snowshoe Trails (West Side)", "length": "8.5 km" }
   ],
   "places": [
-    { "name": "Ski Lodge & Snack Bar", "icon": "lodge", "spots": [[843, 1298]] },
+    { "name": "Ski Lodge & Upstairs Café", "icon": "lodge", "spots": [[843, 1298]] },
     { "name": "Parking", "icon": "parking", "spots": [[867, 1244]] },
     { "name": "Rental Cottages", "icon": "cottage", "spots": [[990, 1030]] },
     { "name": "Giant Pine", "icon": "rest", "description": "Hanging seat rest station.", "spots": [[235, 1335]] },
