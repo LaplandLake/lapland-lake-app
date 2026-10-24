@@ -374,7 +374,7 @@ button.trail-row { cursor: pointer; }
 .btn-secondary { background: var(--brand); color: #fff; font-size: 18px; min-height: 56px; }
 .btn-secondary:active { background: var(--brand-dark); }
 .title-note { color: var(--brand); }
-.cafe-title { text-align: center; }
+
 .cafe-title .title-note { display: block; font-size: 22px; margin-top: 4px; }
 .tip-line { margin: 14px 0 6px; }
 .updated { margin: -4px 0 16px; }
