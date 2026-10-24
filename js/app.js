@@ -334,18 +334,18 @@ async function renderTrailMap(view) {
       <button type="button" class="map-switch-btn" data-live="snowshoe" aria-pressed="false">Snowshoe trails</button>
     </div>
     <div class="map-switch style-switch" role="group" aria-label="Color the trails by">
-      <button type="button" class="map-switch-btn" data-style="status" aria-pressed="true">Open/Closed</button>
-      <button type="button" class="map-switch-btn" data-style="difficulty" aria-pressed="false">Difficulty</button>
+      <button type="button" class="map-switch-btn" data-style="status" aria-pressed="false">Open/Closed</button>
+      <button type="button" class="map-switch-btn" data-style="difficulty" aria-pressed="true">Difficulty</button>
     </div>
     <div class="live-map">
       <iframe width="100%" height="420" frameborder="0" allowfullscreen
         title="Live Lapland Lake ski trail map from Trailforks"></iframe>
     </div>
-    <ul class="status-legend" data-for="status" aria-label="What the live map colors mean">
+    <ul class="status-legend" data-for="status" aria-label="What the live map colors mean" hidden>
       <li><span class="swatch" style="background:#2e9d3f"></span>Open</li>
       <li><span class="swatch" style="background:#d33a2c"></span>Closed</li>
     </ul>
-    <ul class="status-legend" data-for="difficulty" aria-label="What the live map colors mean" hidden>
+    <ul class="status-legend" data-for="difficulty" aria-label="What the live map colors mean">
       <li><span class="sym sym-easiest" aria-hidden="true"></span>Easiest</li>
       <li><span class="sym sym-more-difficult" aria-hidden="true"></span>More Difficult</li>
       <li><span class="sym sym-most-difficult" aria-hidden="true"></span>Most Difficult</li>
@@ -383,7 +383,7 @@ async function renderTrailMap(view) {
   // The Trailforks map sometimes doesn't load on the first try (slow or patchy signal).
   // Load it as soon as the page opens, and if it hasn't finished within a few
   // seconds, quietly try again (up to 3 tries), and again when the app is reopened.
-  let liveActivity = 'ski', liveStyle = 'status', liveLoaded = false, liveTries = 0, liveTimer = null;
+  let liveActivity = 'ski', liveStyle = 'difficulty', liveLoaded = false, liveTries = 0, liveTimer = null;
   const loadLive = () => {
     liveLoaded = false;
     clearTimeout(liveTimer);
