@@ -368,7 +368,7 @@ async function renderTrailMap(view) {
   // ----- Live map: Ski trails / Snowshoe trails -----
   const liveFrame = view.querySelector('.live-map iframe');
   // The Trailforks map sometimes doesn't load on the first try (slow or patchy signal).
-  // Load it when the guest scrolls near it, and if it hasn't finished within a few
+  // Load it as soon as the page opens, and if it hasn't finished within a few
   // seconds, quietly try again (up to 3 tries), and again when the app is reopened.
   let liveWanted = 'ski', liveLoaded = false, liveTries = 0, liveTimer = null;
   const loadLive = (which = liveWanted) => {
@@ -381,10 +381,7 @@ async function renderTrailMap(view) {
     }, 10000);
   };
   liveFrame.addEventListener('load', () => { if (liveFrame.src) { liveLoaded = true; clearTimeout(liveTimer); } });
-  const nearView = new IntersectionObserver((entries) => {
-    if (entries.some((en) => en.isIntersecting)) { nearView.disconnect(); loadLive(); }
-  }, { rootMargin: '400px 0px' });
-  nearView.observe(liveFrame);
+  loadLive(); // start right away, as soon as the Trail Maps page opens
   const onReturn = () => {
     if (!liveFrame.isConnected) { document.removeEventListener('visibilitychange', onReturn); return; }
     if (document.visibilityState === 'visible' && liveFrame.src && !liveLoaded) { liveTries = 0; loadLive(); }
@@ -394,7 +391,6 @@ async function renderTrailMap(view) {
     const btn = e.target.closest('[data-live]');
     if (!btn || btn.getAttribute('aria-pressed') === 'true') return;
     view.querySelectorAll('.map-switch-btn').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
-    nearView.disconnect();
     liveTries = 0;
     loadLive(btn.dataset.live);
     liveFrame.title = `Live Lapland Lake ${btn.dataset.live === 'ski' ? 'ski' : 'snowshoe'} trail map from Trailforks`;
