@@ -28,7 +28,7 @@ const SCREENS = [
   { path: 'trails',  title: 'Trail Conditions',  sub: 'Grooming, snow depth & km open',                       icon: 'snow',   render: renderConditions },
   { path: 'tickets', title: 'Buy Tickets',       sub: 'Trail passes, equipment rentals, lessons, season passes', icon: 'ticket', render: renderTickets },
   { path: 'lessons', title: 'Lessons',           sub: 'Already have a ticket, season pass, or lodging with us?', icon: 'skier',  render: renderLessons },
-  { path: 'map',     title: 'Trail Maps',        sub: 'Zoom in and tap a trail',                              icon: 'map',    render: renderTrailMap },
+  { path: 'map',     title: 'Trail Maps',        sub: 'Trail map & live trail status',                        icon: 'map',    render: renderTrailMap },
   { path: 'menu',    title: 'Upstairs Café',     sub: "Today's soup, food & drinks",                          icon: 'soup',   render: renderMenu },
   { path: 'stay',    title: 'Lodge With Us',     sub: 'Our cottages, studios & farmhouse',                    icon: 'bed',    render: renderLodging },
   { path: 'photos',  title: 'Guest Photos',      sub: 'Share your Lapland Lake adventures',                 icon: 'camera', render: renderPhotos },
