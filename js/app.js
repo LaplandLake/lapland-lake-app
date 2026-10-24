@@ -521,7 +521,7 @@ const shareButton = () => `
     ${svg('photos')} ${canUseCamera() ? 'Choose from Gallery' : 'Share a Photo'}
     <input type="file" accept="image/*" multiple class="visually-hidden">
   </label>
-  <p class="meta share-note">We check every photo before it appears here. By sharing, you allow Lapland Lake to post your photos.</p>`;
+  <p class="meta share-note">By sharing, you confirm it's your photo and let Lapland Lake use it in our app, website &amp; social media.</p>`;
 
 // Full-screen camera: live view, a shutter button, then Retake or Use Photo.
 // Resolves with the photo, or null if the guest closes it.
