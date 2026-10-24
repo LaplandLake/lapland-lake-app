@@ -28,7 +28,7 @@ const SCREENS = [
   { path: 'trails',  title: 'Trail Conditions',  sub: 'Grooming, snow depth & km open',                       icon: 'snow',   render: renderConditions },
   { path: 'tickets', title: 'Buy Tickets',       sub: 'Trail passes, equipment rentals, lessons, season passes', icon: 'ticket', render: renderTickets },
   { path: 'lessons', title: 'Lessons',           sub: 'Already have a ticket, season pass, or lodging with us?', icon: 'skier',  render: renderLessons },
-  { path: 'map',     title: 'Trail Map',         sub: 'Zoom in and tap a trail',                              icon: 'map',    render: renderTrailMap },
+  { path: 'map',     title: 'Trail Maps',        sub: 'Zoom in and tap a trail',                              icon: 'map',    render: renderTrailMap },
   { path: 'menu',    title: 'Café Menu',         sub: "Today's soup, food & drinks",                          icon: 'soup',   render: renderMenu },
   { path: 'stay',    title: 'Lodge With Us',     sub: 'Our cottages, studios & farmhouse',                    icon: 'bed',    render: renderLodging },
   { path: 'photos',  title: 'Guest Photos',      sub: 'Share your Lapland Lake adventures',                 icon: 'camera', render: renderPhotos },
@@ -277,13 +277,19 @@ function loadScript(src) {
   });
 }
 
+// Live Trailforks maps (open/closed trail colors): Nordic ski and snowshoe
+const LIVE_MAPS = {
+  ski: 'https://www.trailforks.com/widgets/region_map/?rid=47922&w=100%&h=420px&activitytype=13&maptype=trailforks&trailstyle=status&controls=1&list=0&basicmap=0',
+  snowshoe: 'https://www.trailforks.com/widgets/region_map/?rid=47922&w=100%&h=420px&activitytype=10&maptype=trailforks&trailstyle=status&controls=1&list=0&basicmap=0',
+};
+
 async function renderTrailMap(view) {
-  view.innerHTML = `<h1>Trail Map</h1>${loading}`;
+  view.innerHTML = `<h1>Trail Maps</h1>${loading}`;
   let data;
   try {
     [data] = await Promise.all([loadContent('trails.json'), loadScript('js/vendor/panzoom.min.js')]);
   } catch {
-    view.innerHTML = `<h1>Trail Map</h1>${errorCard('the trail map')}`;
+    view.innerHTML = `<h1>Trail Maps</h1>${errorCard('the trail map')}`;
     return;
   }
 
@@ -305,7 +311,7 @@ async function renderTrailMap(view) {
     </button></li>`;
 
   view.innerHTML = `
-    <h1>Trail Map</h1>
+    <h1>Trail Maps</h1>
     <p class="meta">Pinch or use the + and − buttons to zoom. Tap a symbol for trail details.</p>
     <div class="legend">${Object.keys(DIFFICULTY).map(diffBadge).join('')}</div>
     <div class="map-frame">
@@ -321,6 +327,23 @@ async function renderTrailMap(view) {
     </div>
 
     <div class="info-card" id="map-info" role="region" aria-label="Trail details" aria-live="polite" hidden></div>
+
+    <h2>Live trail status</h2>
+    <div class="map-switch" role="group" aria-label="Choose a live map">
+      <button type="button" class="map-switch-btn" data-live="ski" aria-pressed="true">Ski trails</button>
+      <button type="button" class="map-switch-btn" data-live="snowshoe" aria-pressed="false">Snowshoe trails</button>
+    </div>
+    <div class="live-map">
+      <iframe width="100%" height="420" frameborder="0" allowfullscreen src="${LIVE_MAPS.ski}"
+        title="Live Lapland Lake ski trail map from Trailforks" loading="lazy"></iframe>
+    </div>
+    <p class="live-credit"><a href="https://www.trailforks.com/region/lapland-lake-cross-country-ski-center/" target="_blank" rel="noopener">Lapland Lake Cross Country Ski Center trails</a></p>
+    <p class="meta">The live map needs a data connection. There’s no cell service on most of the property.</p>
+
+    <h2>Track yourself on the trails</h2>
+    <p>Download the free Trailforks app and save the Lapland Lake area while you have signal or Wi-Fi. Out on the trails, it shows where you are by GPS, even with no cell service.</p>
+    <a class="btn" href="https://www.trailforks.com/download" target="_blank" rel="noopener">Get the Trailforks app ${svg('ext')}</a>
+    <a class="btn btn-secondary track-btn" href="https://www.trailforks.com/region/lapland-lake-cross-country-ski-center/" target="_blank" rel="noopener">Lapland Lake on Trailforks ${svg('ext')}</a>
 
     ${Object.keys(DIFFICULTY).map((d) => `
       <h2 class="list-head">${diffBadge(d)}</h2>
@@ -341,6 +364,16 @@ async function renderTrailMap(view) {
           <span class="trail-len">${esc(r.length)}</span>
         </div></li>`).join('')}</ul>` : ''}
     ${data.footnote ? `<p class="meta">${esc(data.footnote)}</p>` : ''}`;
+
+  // ----- Live map: Ski trails / Snowshoe trails -----
+  const liveFrame = view.querySelector('.live-map iframe');
+  view.querySelector('.map-switch').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-live]');
+    if (!btn || btn.getAttribute('aria-pressed') === 'true') return;
+    view.querySelectorAll('.map-switch-btn').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+    liveFrame.src = LIVE_MAPS[btn.dataset.live];
+    liveFrame.title = `Live Lapland Lake ${btn.dataset.live === 'ski' ? 'ski' : 'snowshoe'} trail map from Trailforks`;
+  });
 
   // ----- Zooming and panning -----
   const frame = view.querySelector('.map-frame');
