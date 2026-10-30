@@ -401,7 +401,8 @@ try {
     await admin.waitForSelector('text=Ordering is paused. Counts continue');
     await page.goto(APP + '#/');
     await page.waitForSelector('.paused-note');
-    expect(!(await page.locator('.status-card .delivery').isVisible()), 'deadline text hidden while paused');
+    expect(await page.locator('.status-card .delivery').isVisible(), 'Thursday / 20-case note stays while paused');
+    expect(!/null/.test(await page.textContent('.status-card')), 'no "null" on the home card');
     await page.screenshot({ path: path.join(SHOTS, 'home-paused-390.png') });
     await admin.uncheck('label:has-text("Pause ordering") input');
     await admin.click('.card:has-text("Pause ordering") button:has-text("Save")');

@@ -229,9 +229,9 @@
     cachedApi('homeStatus', null, (s) => {
       const nd = s.nextDelivery;
       live.innerHTML = '';
-      const rules = document.querySelector('.status-card .delivery');
-      if (rules) rules.classList.toggle('hidden', !!s.paused);
-      live.append(
+      // The Thursday / 20-case note always stays. (DOM append() would print "null" for empty parts,
+      // so empty parts are dropped first.)
+      live.append(...[
         s.paused ? h('p', { class: 'paused-note' }, h('b', null, 'Ordering paused. '), 'Keep counting as usual.') : null,
         nd && !s.paused ? h('dl', { class: 'status-dates' },
           h('dt', null, 'Next delivery'), h('dd', null, fmtDay(nd.deliveryDate)),
@@ -241,7 +241,7 @@
             const c = s.counts[d];
             const cls = c.open ? 'progress' : c.lastFinished ? 'done' : 'none';
             return h('li', { class: cls }, h('span', { class: 'dot', 'aria-hidden': 'true' }), h('b', null, KIND_HEADING[d] + ' count: '), countStatusText(c));
-          })));
+          }))].filter(Boolean));
     }).then(() => { ['housekeeping', 'cafe'].forEach((k) => warm('countSheet', { kind: k })); })
       .catch(() => { /* the card still shows the delivery rules */ });
   }
