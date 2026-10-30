@@ -16,7 +16,7 @@
    The same file runs in Node for automated tests (see supply/test). Everything that
    touches Google services goes through the "platform" object at the bottom. */
 
-const APP_VERSION = '1.2.1';
+const APP_VERSION = '1.2.4';
 const TZ = 'America/New_York';
 const DATA_SPREADSHEET_NAME = 'Lapland Lake Supply Manager Data';
 const DRIVE_FOLDER_NAME = 'Lapland Lake Supply Manager';
@@ -24,7 +24,7 @@ const SESSION_HOURS = 12;
 const LOGIN_MAX_FAILS = 5;
 const LOGIN_LOCK_MINUTES = 15;
 const PBKDF2_ITERATIONS = 3000;
-const MIN_PASSWORD_LENGTH = 10;
+const MIN_PASSWORD_LENGTH = 6;
 const MAX_PHOTO_BYTES = 4 * 1024 * 1024;
 const MAX_PHOTOS_PER_REQUEST = 6;
 const STAFF_LIMITS = { request: 40, photo: 120, count: 3000 }; // per hour, whole app

@@ -39,7 +39,7 @@ test('admin setup, sign-in, wrong passwords and lockout', () => {
   bad(app.call('adminLogin', { password: 'x' }), /not been set up/);
   bad(app.call('adminSetup', { setupCode: 'WRONG', newPassword: PW, confirmPassword: PW }), /not valid/);
   const code = app.backend.createAdminSetupCode();
-  bad(app.call('adminSetup', { setupCode: code, newPassword: 'short', confirmPassword: 'short' }), /at least 10/);
+  bad(app.call('adminSetup', { setupCode: code, newPassword: 'short', confirmPassword: 'short' }), /at least 6/);
   ok(app.call('adminSetup', { setupCode: code, newPassword: PW, confirmPassword: PW }));
   bad(app.call('adminSetup', { setupCode: code, newPassword: PW, confirmPassword: PW }), /not valid/); // single use
   // Plain password is never stored.
