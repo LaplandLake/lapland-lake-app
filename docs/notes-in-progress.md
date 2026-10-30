@@ -12,7 +12,9 @@ Last updated: 2026-10-05. These are notes from working with the owner's team, so
 
 ## Supply Manager: open items (2026-10-30)
 - **To do (Todd):** fill the two request drop-downs. Admin → Requests → "Supply & drink lists": add the regular non-Ginsberg's supplies (Other Supply Requests) and the Drink Cooler drinks. Both lists are empty, so staff only see "type it in". Todd will add them later; remind him.
-- Fixes requested 2026-10-30, one at a time: 1) home card "null" (done on branch), 2) request drop-downs (not a bug: lists empty, see above), 3) logo goes home + "Loading…" on count pages, 4) "Admin" link and Ginsberg's box look like buttons: on purpose?
+- Fixes requested 2026-10-30, all published: 1) home card "null" fixed, Thursday / 20-case note always shows; 2) request drop-downs: not a bug, lists empty (calendar reminder for Todd, Mon Nov 16, 9 AM); 3) top-bar logo goes home, count pages show "Loading…"; 4) "Admin" link works; the Ginsberg's box is information only, on purpose.
+- Decided 2026-10-30: the top-bar logo stays hidden on phones (Todd: no).
+- Note: Todd once opened a copy of the app saved to his desktop (file:///…/Lapland Lake Supply Manager.htm). It never updates; told him to delete it and use the live address.
 
 ## Lodge Map (not built yet)
 Decided: a simple labeled **diagram** of the lodge (Lounge, Café upstairs, Bathrooms, Sauna, Rentals, Wax Room, etc.); tapping an area shows a **photo** of it. The app currently uses no photos besides the logo and trail map. Owner is taking inside photos.
