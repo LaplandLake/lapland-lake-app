@@ -225,7 +225,7 @@
       h('li', null, 'Open the Apps Script project for this app (script.google.com).'),
       h('li', null, 'Choose the function ', h('b', null, 'createAdminSetupCode'), ' and press Run.'),
       h('li', null, 'Open the Execution log and copy the one-time code (valid 30 minutes).'),
-      h('li', null, 'Enter it below with a new password only you know (at least 10 characters).')),
+      h('li', null, 'Enter it below with a new password only you know (at least 6 characters).')),
     h('p', { class: 'small muted' }, 'Your password is checked on the server and stored only as a salted hash in your Google account. Never paste it into a chat or email.'),
     msg, field('One-time setup code', code), field('New password', p1), field('New password again', p2), btn));
   }
@@ -1377,7 +1377,7 @@
         field('Deadline', sf.deadlineText), field('Preferred', sf.preferredText),
         field('Contacts (sales consultant, customer solutions)', sf.contactsText), field('How to order / notes', sf.orderingNotes),
         h('div', { class: 'row', style: 'margin-top:10px' }, supSave), supMsg),
-      h('div', { class: 'card' }, h('h2', null, 'Change password'), field('Current password', cur), field('New password (10+ characters)', n1), field('New password again', n2),
+      h('div', { class: 'card' }, h('h2', null, 'Change password'), field('Current password', cur), field('New password (6+ characters)', n1), field('New password again', n2),
         h('div', { class: 'row', style: 'margin-top:10px' }, pwBtn), pwMsg));
   }
 
