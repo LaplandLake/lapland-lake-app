@@ -182,7 +182,7 @@
     return h('header', { class: 'topbar' },
       h('a', { class: 'back', href: backHref || '#/', 'aria-label': 'Back' }, '‹ Back'),
       h('h1', null, title),
-      h('img', { src: 'assets/logo-horizontal.svg', alt: '' }));
+      h('a', { class: 'logo-home', href: '#/', 'aria-label': 'Home' }, h('img', { src: 'assets/logo-horizontal.svg', alt: '' })));
   }
 
   /* ------------------------------------------------------------ home */
@@ -403,7 +403,7 @@
   function renderCount(kind) {
     const draftKey = 'sm-draft-' + kind;
     const state = { items: [], rows: {}, session: null, finishing: false, sections: [] };
-    const body = h('div', { class: 'wrap' }, h('p', null, 'Loading the list…'));
+    const body = h('div', { class: 'wrap' }, h('p', { class: 'loading' }, 'Loading…'));
     const progressText = h('span');
     const progressBar = h('div');
     const progress = h('div', { class: 'progress' }, progressText, h('div', { class: 'bar' }, progressBar));
@@ -696,8 +696,8 @@
       // Unsent typing from last time is restored onto the fresh list only.
       const hasDraft = Object.keys(store.get(draftKey) || {}).length > 0;
       const key = 'sm-c:countSheet:' + JSON.stringify({ kind });
-      const old = hasDraft ? null : store.get(key);
-      if (old) { paint(old); lock(true); }
+      // Show "Loading…" until the fresh list arrives (no greyed-out old copy).
+      const old = null;
       let data;
       try {
         data = await api('countSheet', { kind });
