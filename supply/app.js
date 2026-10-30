@@ -182,7 +182,7 @@
     return h('header', { class: 'topbar' },
       h('a', { class: 'back', href: backHref || '#/', 'aria-label': 'Back' }, '‹ Back'),
       h('h1', null, title),
-      h('img', { src: 'assets/logo-horizontal.svg', alt: '' }));
+      h('a', { class: 'logo-home', href: '#/', 'aria-label': 'Home' }, h('img', { src: 'assets/logo-horizontal.svg', alt: '' })));
   }
 
   /* ------------------------------------------------------------ home */
@@ -229,9 +229,9 @@
     cachedApi('homeStatus', null, (s) => {
       const nd = s.nextDelivery;
       live.innerHTML = '';
-      const rules = document.querySelector('.status-card .delivery');
-      if (rules) rules.classList.toggle('hidden', !!s.paused);
-      live.append(
+      // The Thursday / 20-case note always stays. (DOM append() would print "null" for empty parts,
+      // so empty parts are dropped first.)
+      live.append(...[
         s.paused ? h('p', { class: 'paused-note' }, h('b', null, 'Ordering paused. '), 'Keep counting as usual.') : null,
         nd && !s.paused ? h('dl', { class: 'status-dates' },
           h('dt', null, 'Next delivery'), h('dd', null, fmtDay(nd.deliveryDate)),
@@ -241,7 +241,7 @@
             const c = s.counts[d];
             const cls = c.open ? 'progress' : c.lastFinished ? 'done' : 'none';
             return h('li', { class: cls }, h('span', { class: 'dot', 'aria-hidden': 'true' }), h('b', null, KIND_HEADING[d] + ' count: '), countStatusText(c));
-          })));
+          }))].filter(Boolean));
     }).then(() => { ['housekeeping', 'cafe'].forEach((k) => warm('countSheet', { kind: k })); })
       .catch(() => { /* the card still shows the delivery rules */ });
   }
@@ -403,7 +403,7 @@
   function renderCount(kind) {
     const draftKey = 'sm-draft-' + kind;
     const state = { items: [], rows: {}, session: null, finishing: false, sections: [] };
-    const body = h('div', { class: 'wrap' }, h('p', null, 'Loading the list…'));
+    const body = h('div', { class: 'wrap' }, h('p', { class: 'loading' }, 'Loading…'));
     const progressText = h('span');
     const progressBar = h('div');
     const progress = h('div', { class: 'progress' }, progressText, h('div', { class: 'bar' }, progressBar));
@@ -696,8 +696,8 @@
       // Unsent typing from last time is restored onto the fresh list only.
       const hasDraft = Object.keys(store.get(draftKey) || {}).length > 0;
       const key = 'sm-c:countSheet:' + JSON.stringify({ kind });
-      const old = hasDraft ? null : store.get(key);
-      if (old) { paint(old); lock(true); }
+      // Show "Loading…" until the fresh list arrives (no greyed-out old copy).
+      const old = null;
       let data;
       try {
         data = await api('countSheet', { kind });

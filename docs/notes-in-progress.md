@@ -10,6 +10,12 @@ Last updated: 2026-10-05. These are notes from working with the owner's team, so
 - `main` is protected (2026-10-15, GitHub Settings → Rules → Rulesets → "Protect main"): nobody can delete it or force-push (rewrite its history). Pull requests are NOT required, on purpose: the trail report bot in `.github/workflows/site.yml` saves straight to `main`, and requiring pull requests would block it. Open question: confirm the bot still saves fine the next time the trail report changes.
 - Live app: https://laplandlake.github.io/lapland-lake-app/ (GitHub user renamed from Tssngs75 to LaplandLake on 2026-10-05; old address no longer works).
 
+## Supply Manager: open items (2026-10-30)
+- **To do (Todd):** fill the two request drop-downs. Admin → Requests → "Supply & drink lists": add the regular non-Ginsberg's supplies (Other Supply Requests) and the Drink Cooler drinks. Both lists are empty, so staff only see "type it in". Todd will add them later; remind him.
+- Fixes requested 2026-10-30, all published: 1) home card "null" fixed, Thursday / 20-case note always shows; 2) request drop-downs: not a bug, lists empty (calendar reminder for Todd, Mon Nov 16, 9 AM); 3) top-bar logo goes home, count pages show "Loading…"; 4) "Admin" link works; the Ginsberg's box is information only, on purpose.
+- Decided 2026-10-30: the top-bar logo stays hidden on phones (Todd: no).
+- Note: Todd once opened a copy of the app saved to his desktop (file:///…/Lapland Lake Supply Manager.htm). It never updates; told him to delete it and use the live address.
+
 ## Lodge Map (not built yet)
 Decided: a simple labeled **diagram** of the lodge (Lounge, Café upstairs, Bathrooms, Sauna, Rentals, Wax Room, etc.); tapping an area shows a **photo** of it. The app currently uses no photos besides the logo and trail map. Owner is taking inside photos.
 

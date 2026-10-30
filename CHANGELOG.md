@@ -2,6 +2,11 @@
 
 Newest first. One plain-English line per change.
 
+- 2026-10-30: Supply Manager: the top-bar logo goes to the home page; count pages show "Loading…" while they load.
+- 2026-10-30: Supply Manager: home card no longer shows "null"; the Thursday / 20-case note always stays, even while ordering is paused.
+- 2026-10-30: Bob's instructions (CLAUDE.md): Colvin removed; the crew (Claude, ChatGPT, Muse) writes instructions, and nothing changes without Todd's yes.
+- 2026-10-30: Supply Manager: Admin password minimum lowered to 6 characters.
+- 2026-10-13: Supply Manager: "Special request" button with a note on when to use it; no personal names on any screen; Wednesday weekly backup; pause ordering; count fixes after Finish; staff extras and "item not on this list".
 - 2026-10-24: Trail Maps button subtitle now reads "Trail map & live trail status" (Difficulty colors confirmed working on Todd's phone).
 - 2026-10-24: Trail Maps: live map now has an Open/Closed / Difficulty switch with a matching color key; opens on Ski trails + Difficulty.
 - 2026-10-24: Trail Maps: live map starts loading as soon as the page opens and retries on its own if it stalls.
