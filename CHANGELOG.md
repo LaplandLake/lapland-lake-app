@@ -2,6 +2,7 @@
 
 Newest first. One plain-English line per change.
 
+- 2026-10-30: Bob's instructions (CLAUDE.md): three Gotchas added (no personal names in apps; answer questions without changing things; get Todd's yes on exact wording).
 - 2026-10-30: Supply Manager: the top-bar logo goes to the home page; count pages show "Loading…" while they load.
 - 2026-10-30: Supply Manager: home card no longer shows "null"; the Thursday / 20-case note always stays, even while ordering is paused.
 - 2026-10-30: Bob's instructions (CLAUDE.md): Colvin removed; the crew (Claude, ChatGPT, Muse) writes instructions, and nothing changes without Todd's yes.

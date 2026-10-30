@@ -67,3 +67,6 @@ Todd decides anything visible: looks, wording, images, layout, share previews. S
 ## Gotchas
 
 - (Add a line here each time Bob repeats a mistake.)
+- Never put a person's name (Todd's or anyone's) in a business app's text, labels or messages unless Todd asks for it. Use "Admin" or neutral wording.
+- When Todd asks a question, answer it. Don't start changing anything until he says to.
+- Show Todd the exact wording of any new or changed text in the app and get his yes before adding it. Don't add things he didn't ask for.
