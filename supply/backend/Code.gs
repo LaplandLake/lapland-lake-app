@@ -47,7 +47,7 @@ const TABLES = {
     supplierItemNumber: 's', supplierNumberStatus: 's', description: 's', brand: 's',
     casePackRaw: 's', packsPerCase: 'n', packSize: 's',
     countingUnit: 's', countingUnitConfirmed: 'b', unitsPerCase: 'n', unitsPerCaseConfirmed: 'b', looseUnitLabel: 's',
-    desiredStock: 'n', minimumStock: 'n', archived: 'b', supplierStatus: 's', replacementNote: 's', replacementCandidate: 's',
+    desiredStock: 'n', minimumStock: 'n', archived: 'b', supplier: 's', storeName: 's', otherOrderedAt: 's', supplierStatus: 's', replacementNote: 's', replacementCandidate: 's',
     replacementApproved: 'b', price: 'n', priceDate: 's', priceSource: 's',
     priceHistory: 'j', purchaseHistory: 'j', sourceRefs: 'j', notes: 's',
     origin: 's', legacyId: 's', legacy: 'j', sortOrder: 'n', createdAt: 's', updatedAt: 's',
@@ -72,7 +72,7 @@ const TABLES = {
     description: 's', casePackRaw: 's', onHandCases: 'n', desiredStock: 'n',
     suggestedCases: 'n', finalCases: 'n', flags: 'j', snapshot: 'j', sortOrder: 'n', note: 's',
     category: 's', minimumStock: 'n', price: 'n', priceDate: 's', edited: 'b',
-    extraCases: 'n', staffNotes: 'j', countChange: 's',
+    extraCases: 'n', staffNotes: 'j', countChange: 's', countNote: 's',
   },
   // From staff: one-time extras, "need more / have too many" and items missing from a count list.
   suggestions: {
@@ -186,6 +186,8 @@ const ACTIONS = {
   adminSetDesiredStock: { role: 'admin', write: true, fn: (b) => adminSetDesiredStock_(b) },
   adminRequests: { role: 'admin', fn: () => adminRequests_() },
   adminSuggestions: { role: 'admin', fn: () => ({ suggestions: suggestionList_() }) },
+  adminOtherList: { role: 'admin', fn: () => ({ rows: otherList_() }) },
+  adminOtherOrdered: { role: 'admin', write: true, fn: (b) => adminOtherOrdered_(b) },
   adminHandleSuggestion: { role: 'admin', write: true, fn: (b) => adminHandleSuggestion_(b) },
   adminPhoto: { role: 'admin', fn: (b) => adminPhoto_(b) },
   adminUpdateRequest: { role: 'admin', write: true, fn: (b) => adminUpdateRequest_(b) },
@@ -649,8 +651,9 @@ function countSheet_(b) {
 function validateCount_(kind, it, b) {
   const fc = num_(b.fullCases);
   const lu = num_(b.looseUnits);
-  if (fc !== null && (isNaN(fc) || fc < 0 || Math.floor(fc) !== fc || fc > 9999)) {
-    fail_('Full cases must be a whole number, 0 or more.');
+  // Part cases are allowed (for example 0.6 or 4.33), up to two decimal places.
+  if (fc !== null && (isNaN(fc) || fc < 0 || round2_(fc) !== fc || fc > 9999)) {
+    fail_('Full cases must be 0 or more, with at most two decimal places.');
   }
   if (lu !== null && (isNaN(lu) || lu < 0 || lu > 99999)) fail_('Loose units must be 0 or more.');
   if (lu !== null && kind === 'beverage' && Math.floor(lu) !== lu) fail_('Loose bottles/cans must be a whole number.');
@@ -887,6 +890,7 @@ function lineFields_(it, sug, e, pr) {
     casePackRaw: it.casePackRaw || '', category: it.category || '', onHandCases: sug.onHand,
     desiredStock: it.desiredStock, minimumStock: it.minimumStock === undefined ? null : it.minimumStock,
     suggestedCases: sug.suggested, flags: sug.flags, snapshot: itemSnapshot_(it), price: pr.price, priceDate: pr.priceDate,
+    countNote: e && e.note ? e.note : '',
     countChange: ch ? 'Count changed ' + fmtNyShort_(ch.at) + ' (' + countText_(ch.from) + ' → ' + countText_(e) + ')' : '',
   };
 }
@@ -897,7 +901,7 @@ function deptLines_(order, dept, session, existing, idx) {
   const old = {};
   existing.forEach((l) => { old[l.itemId] = l; });
   const keep = [], add = [], seen = {};
-  activeCountables_(dept).forEach((it) => {
+  activeCountables_(dept).filter(isGinsbergs_).forEach((it) => {
     const e = entries.filter((x) => x.itemId === it.id)[0] || null;
     const sug = suggestLine_(it, e);
     if (session && session.status === 'open') sug.flags.push('count-not-finished');
@@ -1090,6 +1094,57 @@ function orderExportText_(order, lines) {
 /* ---------------------------------------------------------------- pause, count fixes, staff suggestions */
 
 function orderingPaused_() { return !!allSettings_().ordering.paused; }
+// Items without a supplier set are Ginsberg's (everything imported from Ginsberg's files).
+function isGinsbergs_(it) { return it.supplier !== 'other'; }
+
+// "To research & order": counted items from other suppliers that are at or below their minimum
+// (or below desired stock when no minimum is set), plus staff extras for them. After "Ordered"
+// an item stays off the list until a later count shows it restocked above its minimum.
+function latestCountFor_(itemId) {
+  const done = {};
+  db_().all('sessions').forEach((x) => { done[x.id] = x; });
+  return db_().all('entries').filter((e) => e.itemId === itemId && done[e.sessionId] && (isCounted_(e) || e.note))
+    .sort((a, b) => String(b.countedAt).localeCompare(String(a.countedAt)));
+}
+function otherList_() {
+  const extras = db_().all('suggestions').filter((g) => g.status === 'open' && g.kind === 'extra' && g.detail && g.detail.reason === 'other');
+  const rows = [];
+  db_().all('items').filter((it) => !it.archived && it.active && !isGinsbergs_(it)).forEach((it) => {
+    const all = latestCountFor_(it.id);
+    const counted = all.filter(isCounted_);
+    const last = counted[0] || null;
+    const r = onHandFromEntry_(last);
+    const min = it.minimumStock, desired = it.desiredStock;
+    const hasMin = min !== null && min !== undefined, hasDesired = desired !== null && desired !== undefined;
+    let low = r.onHand !== null && (hasMin ? r.onHand <= min + 1e-9 : hasDesired && r.onHand < desired - 1e-9);
+    if (low && it.otherOrderedAt) {
+      // Ordered: hidden until a later count shows it above its minimum, then low again.
+      const after = counted.filter((e) => String(e.countedAt) > it.otherOrderedAt);
+      const restocked = after.some((e) => { const o = onHandFromEntry_(e).onHand; return o !== null && (hasMin ? o > min + 1e-9 : hasDesired && o >= desired - 1e-9); });
+      if (!restocked) low = false;
+    }
+    const ex = extras.filter((g) => g.itemId === it.id);
+    if (!low && !ex.length) return;
+    rows.push({
+      itemId: it.id, name: it.name, department: it.department, storeName: it.storeName || '',
+      onHand: r.onHand, countedAt: last ? last.countedAt : '', minimumStock: hasMin ? min : null, desiredStock: hasDesired ? desired : null,
+      toGet: low && hasDesired && r.onHand !== null ? Math.max(0, Math.ceil(desired - r.onHand - 1e-9)) : null,
+      note: all[0] && all[0].note ? all[0].note : '',
+      extras: ex.map((g) => ({ id: g.id, cases: g.cases, note: g.note, createdAt: g.createdAt })),
+    });
+  });
+  return rows.sort((a, b) => (a.storeName || '~').localeCompare(b.storeName || '~') || a.name.localeCompare(b.name));
+}
+function adminOtherOrdered_(b) {
+  const it = db_().get('items', str_(b.itemId, 60));
+  if (!it) fail_('Item not found.');
+  const now = nowIso_();
+  db_().update('items', it.id, { otherOrderedAt: now, updatedAt: now });
+  db_().all('suggestions').filter((g) => g.status === 'open' && g.kind === 'extra' && g.itemId === it.id && g.detail && g.detail.reason === 'other')
+    .forEach((g) => db_().update('suggestions', g.id, { status: 'done', handledAt: now, updatedAt: now }));
+  audit_('admin', 'other-item-ordered', { itemId: it.id });
+  return { rows: otherList_() };
+}
 
 function fmtNyShort_(iso) {
   if (!iso) return '';
@@ -1206,8 +1261,8 @@ function addExtraToOrder_(order, it, cases, note) {
 // and late count changes are noted on its lines. Extras from a paused period are not carried.
 function carryOver_(order) {
   const now = platform_().now().getTime();
-  db_().all('suggestions').filter((g) => g.status === 'open' && (g.kind === 'extra' || g.kind === 'late') &&
-    g.detail && g.detail.reason !== 'paused' && g.deliveryDate && g.deliveryDate < order.deliveryDate &&
+  db_().all('suggestions').filter((g) => g.status === 'open' && (g.kind === 'late' || (g.kind === 'extra' && g.detail && g.detail.reason === 'sent')) &&
+    g.detail && g.deliveryDate && g.deliveryDate < order.deliveryDate &&
     (!g.detail.deadline || new Date(g.detail.deadline).getTime() < now)).forEach((g) => {
     const it = db_().get('items', g.itemId);
     if (!it || !it.active || it.archived) return;
@@ -1262,6 +1317,12 @@ function staffSuggest_(b) {
     const n = num_(b.cases);
     if (n === null || isNaN(n) || n < 1 || n > 50 || Math.floor(n) !== n) fail_('Extra cases must be a whole number from 1 to 50.');
     g.cases = n;
+    if (!isGinsbergs_(it)) {
+      // Not a Ginsberg's item: it goes on the "To research & order" list instead of the draft.
+      g.detail = { reason: 'other' };
+      db_().insert('suggestions', g);
+      return { saved: true, message: 'Sent ✓' };
+    }
     const nd = orderingPaused_() ? null : nextDelivery_(platform_().now());
     const sent = nd ? sentWithoutDraft_(nd.deliveryDate) : null;
     if (!nd) {
@@ -1520,6 +1581,11 @@ function adminSaveItem_(b) {
     if (['', 'housekeeping', 'cafe'].indexOf(f.department) < 0) fail_('Unknown department.');
     next.department = f.department;
   }
+  if (f.supplier !== undefined) {
+    if (['', 'ginsbergs', 'other'].indexOf(f.supplier) < 0) fail_('Unknown supplier.');
+    next.supplier = f.supplier;
+  }
+  if (f.storeName !== undefined) next.storeName = str_(f.storeName, 120, 'Store name');
   ['packsPerCase', 'unitsPerCase', 'desiredStock', 'minimumStock', 'price', 'sortOrder'].forEach((k) => {
     if (f[k] === undefined) return;
     const v = num_(f[k]);

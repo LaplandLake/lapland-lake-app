@@ -102,8 +102,10 @@ test('staff count: not counted vs zero, resume, validation, incomplete finish', 
   assert.equal(sheet.session, null);
   for (const it of sheet.items) same(Object.keys(it).sort(), ['allowLoose', 'category', 'countingUnit', 'desiredStock', 'id', 'locations', 'looseUnitLabel', 'minimumStock', 'name', 'unitsPerCase']);
 
-  bad(app.call('saveCount', { kind: 'housekeeping', itemId: a.id, fullCases: '-1' }), /whole number/);
-  bad(app.call('saveCount', { kind: 'housekeeping', itemId: a.id, fullCases: '1.5' }), /whole number/);
+  bad(app.call('saveCount', { kind: 'housekeeping', itemId: a.id, fullCases: '-1' }), /0 or more/);
+  bad(app.call('saveCount', { kind: 'housekeeping', itemId: a.id, fullCases: '1.555' }), /two decimal/);
+  ok(app.call('saveCount', { kind: 'housekeeping', itemId: b.id, fullCases: '0.6' })); // part cases are fine
+  ok(app.call('saveCount', { kind: 'housekeeping', itemId: b.id, clear: true }));
   bad(app.call('saveCount', { kind: 'housekeeping', itemId: a.id, looseUnits: '-3' }), /0 or more/);
   bad(app.call('saveCount', { kind: 'housekeeping', itemId: b.id, looseUnits: '3' }), /full cases only/);
   bad(app.call('saveCount', { kind: 'housekeeping', itemId: inactive.id, fullCases: 1 }), /not on the/);
@@ -690,7 +692,7 @@ test('split locations: Kitchen + Storage room counted separately and added up', 
   const sheet = ok(app.call('countSheet', { kind: 'cafe' }));
   same(sheet.items.filter((i) => i.id === cups.id)[0].locations, ['Kitchen', 'Storage room']);
   assert.equal(sheet.items.filter((i) => i.id === soup.id)[0].locations, null);
-  bad(app.call('saveCount', { kind: 'cafe', itemId: cups.id, parts: [{ fullCases: '1.5' }, {}] }), /whole number/);
+  bad(app.call('saveCount', { kind: 'cafe', itemId: cups.id, parts: [{ fullCases: '1.555' }, {}] }), /two decimal/);
   const r = ok(app.call('saveCount', { kind: 'cafe', itemId: cups.id, parts: [{ fullCases: '1', looseUnits: '4' }, { fullCases: '2', looseUnits: '' }] }));
   assert.equal(r.entry.fullCases, 3);
   assert.equal(r.entry.looseUnits, 4);
