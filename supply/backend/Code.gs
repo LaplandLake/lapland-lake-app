@@ -16,7 +16,7 @@
    The same file runs in Node for automated tests (see supply/test). Everything that
    touches Google services goes through the "platform" object at the bottom. */
 
-const APP_VERSION = '1.2.4';
+const APP_VERSION = '1.3.0';
 const TZ = 'America/New_York';
 const DATA_SPREADSHEET_NAME = 'Lapland Lake Supply Manager Data';
 const DRIVE_FOLDER_NAME = 'Lapland Lake Supply Manager';
@@ -2476,6 +2476,8 @@ function adminDashboard_() {
     nextDelivery: nextDelivery_(platform_().now()),
     paused: orderingPaused_(),
     staff: suggestionList_().filter((g) => g.status === 'open'),
+    research: otherList_().length,
+    countInbox: !!allSettings_().countInbox.enabled,
     checklist: {
       password: true,
       activeCatalog: items.some((i) => i.active),

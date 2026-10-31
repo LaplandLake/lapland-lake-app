@@ -127,10 +127,12 @@ try {
     expect(v[0] === '2' && v[1] === '30', 'values after return: ' + v);
     expect((await page.locator('.item', { hasText: 'TEST Hand soap refills' }).locator('input').first().inputValue()) === '0', 'zero kept');
   });
-  await check('Count validation: fractional cases rejected and not saved', async () => {
+  await check('Count validation: part cases save (1.5); three decimals are refused and not saved', async () => {
     const soap = page.locator('.item', { hasText: 'TEST Hand soap refills' });
     await soap.locator('input').first().fill('1.5');
-    await soap.locator('.save-state', { hasText: 'whole number' }).waitFor({ timeout: 4000 });
+    await soap.locator('.save-state', { hasText: /^Saved/ }).waitFor({ timeout: 8000 });
+    await soap.locator('input').first().fill('1.555');
+    await soap.locator('.save-state', { hasText: 'like 2 or 1.5' }).waitFor({ timeout: 4000 });
     await soap.locator('input').first().fill('1');
     await soap.locator('.save-state', { hasText: /^Saved/ }).waitFor({ timeout: 8000 });
   });
@@ -478,6 +480,44 @@ try {
     await admin.waitForSelector('text=/On: a copy of everything/');
     await admin.waitForSelector('button:has-text("Back up now")');
     await admin.screenshot({ path: path.join(SHOTS, 'admin-backup-390.png'), fullPage: false });
+  });
+  await check('Count inbox: Check now takes a file in as a real count; the unmatched line shows on the Overview', async () => {
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+    const text = 'item,supplier number,department,count date,cases,add to order (cases),note\n' +
+      'TEST Soup red lentil,90003,Cafe,' + today + ',0.5,,from the file\nMystery thing,,Cafe,' + today + ',2,,\n';
+    await hook('inboxFile?name=count.csv&text=' + encodeURIComponent(text));
+    await admin.goto(APP + '#/admin/import');
+    await admin.waitForSelector('text=Count inbox');
+    await admin.click('button:has-text("Check now")');
+    await admin.waitForSelector('text=/count.csv: 1 item counted, 1 line needs you/');
+    await admin.screenshot({ path: path.join(SHOTS, 'admin-count-inbox-390.png'), fullPage: false });
+    await admin.goto(APP + '#/admin/home');
+    await admin.waitForSelector('.staff-card:has-text("Mystery thing")');
+    expect(/Count file: no matching item/.test(await admin.textContent('.staff-card:has-text("Mystery thing")')), 'no-match card');
+    await page.goto(APP + '#/'); await page.goto(APP + '#/count/cafe');
+    await page.waitForSelector('.item');
+    expect((await page.locator('.item', { hasText: 'TEST Soup red lentil' }).locator('input').first().inputValue()) === '0.5', 'count from the file shows on the staff screen');
+    expect(!/from the file/.test(await page.textContent('body')), 'notes are not shown to staff');
+  });
+  await check('Other supplier: item set to Other goes on To research & order, not the Ginsberg’s draft; Ordered clears it', async () => {
+    await admin.goto(APP + '#/admin/catalog');
+    await admin.waitForSelector('.card select');
+    await admin.fill('input[placeholder^="Search name"]', 'Sugar packets');
+    await admin.locator('.card select').first().selectOption('active');
+    await admin.click('a:has-text("TEST Sugar packets")');
+    await admin.waitForSelector('text=Supplier');
+    await admin.selectOption('select:has(option[value="other"])', 'other');
+    await admin.click('button:has-text("Save item")');
+    await admin.waitForSelector('text=Saved');
+    await page.goto(APP + '#/'); await page.goto(APP + '#/count/cafe');
+    await page.waitForSelector('.item');
+    await page.locator('.item', { hasText: 'TEST Sugar packets' }).locator('input').first().fill('0');
+    await page.locator('.item', { hasText: 'TEST Sugar packets' }).locator('.save-state', { hasText: /^Saved/ }).waitFor({ timeout: 8000 });
+    await admin.goto(APP + '#/admin/requests/research');
+    await admin.waitForSelector('.list-item:has-text("TEST Sugar packets")');
+    await admin.screenshot({ path: path.join(SHOTS, 'admin-research-390.png'), fullPage: false });
+    await admin.click('.list-item:has-text("TEST Sugar packets") button:has-text("Ordered")');
+    await admin.waitForSelector('text=Nothing to order right now.');
   });
   for (const [hash, label] of [['#/admin/catalog', 'catalog'], ['#/admin/beverages', 'beverages'], ['#/admin/import', 'import'], ['#/admin/settings', 'settings'], ['#/admin/counts', 'counts']]) {
     await check('Admin ' + label + ' page loads without sideways scroll at 360px', async () => {

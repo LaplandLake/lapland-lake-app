@@ -23,7 +23,7 @@
   function token() { return memToken || getToken(); }
 
   // Anything that changes data clears the saved page copies, so no page opens with old numbers.
-  const READ_ONLY = /^admin(Dashboard|Items|Orders?|Requests|Suggestions|Counts|CountDetail|Photo|Settings|Lists|Bev|BevReport|BevHistory|FillPreview|LooseSuggest|Backup|BackupStatus|SupplierHistory|Audit|Import\w*Preview)$/;
+  const READ_ONLY = /^admin(Dashboard|Items|Orders?|Requests|Suggestions|Counts|CountDetail|Photo|Settings|Lists|Bev|BevReport|BevHistory|FillPreview|LooseSuggest|Backup|BackupStatus|SupplierHistory|Audit|OtherList|InboxStatus|Import\w*Preview)$/;
   async function aapi(action, body) {
     try {
       const r = await api(action, Object.assign({ token: token() }, body || {}));
@@ -231,7 +231,7 @@
   }
 
   /* ------------------------------------------------------------ from staff */
-  const SG_TITLE = { extra: 'Extra for this week', more: 'Need more every week', less: 'Have too many', add: 'Add to count list', late: 'Count changed after you sent the order' };
+  const SG_TITLE = { extra: 'Extra for this week', more: 'Need more every week', less: 'Have too many', add: 'Add to count list', late: 'Count changed after you sent the order', nomatch: 'Count file: no matching item', inactive: 'Count file: item is turned off' };
   const SG_STATUS = { open: 'To do', added: 'Added to the order', done: 'Done', dismissed: 'Dismissed' };
   function staffCard(g) {
     const msg = h('div');
@@ -254,7 +254,23 @@
         lines.push(h('p', { style: 'margin:4px 0' }, h('b', null, '+' + g.cases + ' ' + (g.cases === 1 ? 'case' : 'cases') + ' of ' + g.itemName)));
         if (g.status === 'added') lines.push(h('p', { class: 'small' }, 'Added to the draft for ' + fmtDay(g.deliveryDate) + '. ', g.orderId ? h('a', { href: '#/admin/order/' + g.orderId }, 'Open the draft') : null));
         else if (open && g.detail && g.detail.reason === 'paused') lines.push(h('p', { class: 'small' }, 'Ordering is paused, so this was not added to an order. Buy it elsewhere, or mark it done.'));
+        else if (open && g.detail && g.detail.reason === 'other') lines.push(h('p', { class: 'small' }, 'Not a Ginsberg’s item, so it’s on ', h('a', { href: '#/admin/requests/research' }, 'To research & order'), '.'));
         else if (open && g.detail && g.detail.reason === 'sent') lines.push(h('p', { class: 'small' }, 'Came in after you sent the order for ' + fmtDay(g.deliveryDate) + '. You can still call it in until ' + fmtWhen(g.detail.deadline) + '; otherwise it goes on next week’s draft.'));
+      } else if (g.kind === 'nomatch') {
+        const d = g.detail || {};
+        lines.push(h('p', { style: 'margin:4px 0' }, h('b', null, g.itemName), d.number ? ' · #' + d.number : '',
+          d.cases !== null && d.cases !== undefined ? ' · counted ' + d.cases : '', g.cases ? ' · add ' + g.cases + ' to order' : ''));
+        lines.push(h('p', { class: 'small' }, d.problem === 'number' ? 'The number on this line could not be read.' :
+          d.close ? 'Could be “' + d.close[0] + '” or “' + d.close[1] + '”. ' : 'Not found in the catalog. ',
+          d.problem === 'number' ? '' : 'Find it in the catalog (and add its Ginsberg’s number so it matches next time), or add it as a new item.'));
+        buttons.push(h('button', { class: 'btn small secondary', type: 'button', onclick: () => { store.set('sm-cat-filter', { show: 'all', dept: '', q: (d.close && d.close[0]) || g.itemName }); location.hash = '#/admin/catalog'; } }, 'Find in catalog'),
+          h('a', { class: 'btn small secondary', href: '#/admin/item/new' }, 'Add an item'));
+      } else if (g.kind === 'inactive') {
+        const d = g.detail || {};
+        lines.push(h('p', { style: 'margin:4px 0' }, h('b', null, g.itemName), d.cases !== null && d.cases !== undefined ? ' · counted ' + d.cases : '', d.add ? ' · add ' + d.add + ' to order' : ''));
+        lines.push(h('p', { class: 'small' }, 'The count was saved, but this item is turned off, so it isn’t on the count screens or the order. ' +
+          (d.missing && d.missing.length ? 'To turn it on it needs: ' + d.missing.join(', ') + '.' : '')));
+        if (g.itemId) buttons.push(h('a', { class: 'btn small secondary', href: '#/admin/item/' + g.itemId }, 'Open the item'));
       } else if (g.kind === 'late') {
         const d = g.detail || {};
         const t = (v) => (!v || (v.fullCases === null && v.looseUnits === null) ? 'not counted' : (v.fullCases || 0) + (v.looseUnits ? ' + ' + v.looseUnits + ' loose' : ''));
@@ -320,6 +336,7 @@
       const staff = d.staff || [];
       replace(box,
         d.paused ? h('div', { class: 'notice warn' }, h('b', null, 'Ordering is paused. '), 'Staff keep counting, but no draft orders are made. ', h('a', { href: '#/admin/settings' }, 'Turn ordering back on in Settings')) : null,
+        d.research ? h('div', { class: 'notice info' }, h('b', null, plural(d.research, 'item', 'items') + ' to research & order '), '(not from Ginsberg’s). ', h('a', { href: '#/admin/requests/research' }, 'Open the list')) : null,
         staff.length ? h('div', { class: 'card' }, h('h2', null, 'From staff (' + staff.length + ')'),
           staff.map(staffCard)) : null,
         d.latestDraft && !d.paused ? h('div', { class: 'notice info' }, h('b', null, 'Draft order for ' + fmtDay(d.latestDraft.deliveryDate) + '. '),
@@ -436,7 +453,7 @@
       const otherWarnings = d.warnings.filter((w) => !/case minimum/.test(w));
 
       const staffLines = (l) => {
-        const notes = (l.staffNotes || []).concat(l.countChange ? [l.countChange] : [])
+        const notes = (l.staffNotes || []).concat(l.countChange ? [l.countChange] : []).concat(l.countNote ? ['Note: ' + l.countNote] : [])
           .concat((d.staffSuggestions || []).filter((g) => g.itemId === l.itemId).map((g) => 'Staff: ' + (g.kind === 'more' ? 'need more every week' : 'we have too many') + (g.note ? ' (' + g.note + ')' : '')));
         return notes.length ? h('div', { class: 'staff-notes' }, notes.map((t) => h('div', null, t))) : null;
       };
@@ -548,9 +565,10 @@
   async function renderRequests(filter) {
     filter = filter || 'supply';
     const box = h('div', null, loading());
-    const filters = [['supply', 'Other Supply list'], ['beverage', 'Beer / Cider / Wine list'], ['unassigned', 'Drinks to assign'], ['extras', 'Extras & count notes'], ['add', 'Add to count list'], ['ordered', 'Ordered'], ['lists', 'Supply & drink lists']];
+    const filters = [['supply', 'Other Supply list'], ['beverage', 'Beer / Cider / Wine list'], ['unassigned', 'Drinks to assign'], ['extras', 'Extras & count notes'], ['add', 'Add to count list'], ['research', 'To research & order'], ['ordered', 'Ordered'], ['lists', 'Supply & drink lists']];
     shell('requests', h('nav', { class: 'tabs', 'aria-label': 'Request lists' }, filters.map((f) => h('a', { href: '#/admin/requests/' + f[0], 'aria-current': f[0] === filter ? 'page' : null }, f[1]))), box);
     if (filter === 'lists') return renderLists(box);
+    if (filter === 'research') return renderResearch(box);
     if (filter === 'extras' || filter === 'add') {
       const kinds = filter === 'add' ? ['add'] : ['extra', 'late', 'more', 'less'];
       try {
@@ -612,6 +630,36 @@
         h('div', { class: 'grid2 stack' }, field('Status (staff see this)', status), routing ? field('Order list (private)', routing) : h('div')),
         field('Private note', note), h('div', { class: 'row', style: 'margin-top:8px' }, save, del), msg);
       return card;
+    }
+  }
+  // "To research & order": low items from suppliers other than Ginsberg's, grouped by store.
+  async function renderResearch(box) {
+    let rows;
+    try { rows = (await aapi('adminOtherList')).rows; } catch (err) { replace(box, errBox(err)); return; }
+    draw();
+    function draw() {
+      const groups = {};
+      rows.forEach((r) => { (groups[r.storeName || ''] = groups[r.storeName || ''] || []).push(r); });
+      const names = Object.keys(groups).sort((a, b) => (a ? 0 : 1) - (b ? 0 : 1) || a.localeCompare(b));
+      replace(box, h('p', { class: 'muted small' }, 'Items that aren’t from Ginsberg’s and are running low, or that staff asked for. Type the store when you find one; press Ordered once you’ve ordered it. It comes back when it runs low again.'),
+        rows.length ? names.map((n) => h('div', { class: 'card' }, h('h2', null, n || 'Store not known yet'), groups[n].map(row))) : h('p', { class: 'muted' }, 'Nothing to order right now.'));
+    }
+    function row(r) {
+      const store = inp(r.storeName, { maxlength: 120, placeholder: 'Store', 'aria-label': 'Store for ' + r.name });
+      const msg = h('div');
+      const saveStore = h('button', { class: 'btn small secondary', type: 'button' }, 'Save store');
+      saveStore.onclick = busy(saveStore, async () => {
+        try { await aapi('adminSaveItem', { id: r.itemId, item: { storeName: store.value } }); rows = (await aapi('adminOtherList')).rows; draw(); } catch (err) { replace(msg, errBox(err)); }
+      });
+      const ordered = h('button', { class: 'btn small', type: 'button' }, 'Ordered');
+      ordered.onclick = busy(ordered, async () => { try { rows = (await aapi('adminOtherOrdered', { itemId: r.itemId })).rows; draw(); } catch (err) { replace(msg, errBox(err)); } });
+      return h('div', { class: 'list-item' },
+        h('div', { class: 'row' }, h('b', { class: 'grow' }, r.name), r.toGet !== null ? h('span', { class: 'chip shopping' }, 'Get ' + r.toGet) : null),
+        h('div', { class: 'small muted' }, [KIND_HEADING[r.department] || '', r.onHand !== null ? 'on hand ' + r.onHand + (r.countedAt ? ' (' + fmtWhen(r.countedAt) + ')' : '') : 'not counted',
+          r.minimumStock !== null ? 'min ' + r.minimumStock : '', r.desiredStock !== null ? 'desired ' + r.desiredStock : ''].filter(Boolean).join(' · ')),
+        r.note ? h('div', { class: 'small' }, 'Note: ' + r.note) : null,
+        r.extras.map((x) => h('div', { class: 'small', style: 'color:var(--teal-dark);font-weight:600' }, '+' + x.cases + ' extra' + (x.note ? ' (staff: ' + x.note + ')' : ' (staff)'))),
+        h('div', { class: 'row', style: 'margin-top:6px' }, store, saveStore, ordered), msg);
     }
   }
   function viewPhoto(src) {
@@ -700,7 +748,7 @@
           const link = h('a', { href: '#/admin/item/' + it.id, class: 'grow', style: 'display:block;text-decoration:none;color:inherit;min-width:0' },
             h('div', { class: 'row' }, h('b', { class: 'grow' }, it.name),
               it.archived ? h('span', { class: 'chip gray' }, 'Removed') : it.active ? h('span', { class: 'chip ordered' }, 'Active · ' + (KIND_HEADING[it.department] || '?')) : h('span', { class: 'chip gray' }, 'Inactive')),
-            h('div', { class: 'small muted' }, [it.supplierItemNumber ? '#' + it.supplierItemNumber : 'no item #', it.casePackRaw, it.supplierStatus, it.minimumStock !== null && it.minimumStock !== undefined ? 'min ' + it.minimumStock : '', it.desiredStock !== null ? 'desired ' + it.desiredStock : ''].filter(Boolean).join(' · ')));
+            h('div', { class: 'small muted' }, [it.supplier === 'other' ? 'Other supplier' + (it.storeName ? ': ' + it.storeName : '') : '', it.supplierItemNumber ? '#' + it.supplierItemNumber : 'no item #', it.casePackRaw, it.supplierStatus, it.minimumStock !== null && it.minimumStock !== undefined ? 'min ' + it.minimumStock : '', it.desiredStock !== null ? 'desired ' + it.desiredStock : ''].filter(Boolean).join(' · ')));
           if (!selectable) return h('div', { class: 'list-item' }, link);
           const cb = h('input', { type: 'checkbox', checked: picked.has(it.id), 'aria-label': 'Select ' + it.name, style: 'width:26px;height:26px;flex:0 0 26px', onchange: () => { if (cb.checked) picked.add(it.id); else picked.delete(it.id); syncBtn(); } });
           return h('div', { class: 'list-item row', style: 'align-items:flex-start;flex-wrap:nowrap' }, cb, link);
@@ -800,6 +848,8 @@
     const f = {
       name: inp(it.name, { maxlength: 120 }),
       department: selectEl(it.department || '', [['', 'Not assigned'], ['housekeeping', 'Housekeeping'], ['cafe', 'Cafe']]),
+      supplier: selectEl(it.supplier === 'other' ? 'other' : 'ginsbergs', [['ginsbergs', 'Ginsberg’s (goes on the Ginsberg’s order)'], ['other', 'Other (goes on To research & order)']]),
+      storeName: inp(it.storeName, { maxlength: 120, placeholder: 'Leave blank until you know (for example Costco)' }),
       category: selectEl(it.category || '', [['', 'Not set (shows last)']].concat(STORAGE_AREAS.map((x) => [x, x]),
         it.category && STORAGE_AREAS.indexOf(it.category) < 0 ? [[it.category, it.category + ' (from import)']] : [])),
       supplierItemNumber: inp(it.supplierItemNumber, { maxlength: 30, inputmode: 'text' }),
@@ -835,7 +885,7 @@
         const r = await aapi('adminSaveItem', { id: id === 'new' ? '' : id, item: {
           name: f.name.value, department: f.department.value, supplierItemNumber: f.supplierItemNumber.value, description: f.description.value,
           brand: f.brand.value, casePackRaw: f.casePackRaw.value, countingUnit: f.countingUnit.value, unitsPerCase: f.unitsPerCase.value,
-          looseUnitLabel: f.looseUnitLabel.value, category: f.category.value, desiredStock: f.desiredStock.value, minimumStock: f.minimumStock.value, notes: f.notes.value,
+          looseUnitLabel: f.looseUnitLabel.value, category: f.category.value, supplier: f.supplier.value, storeName: f.storeName.value, desiredStock: f.desiredStock.value, minimumStock: f.minimumStock.value, notes: f.notes.value,
           countingUnitConfirmed: cu.box.checked, unitsPerCaseConfirmed: upc.box.checked, active: act.box.checked, replacementApproved: repl.box.checked,
           supplierNumberStatus: id === 'new' && f.supplierItemNumber.value ? 'entered-in-admin' : undefined,
         } });
@@ -849,6 +899,7 @@
       it.archived ? h('div', { class: 'notice info' }, 'This item is removed from the catalog. Its history is kept. Restore it to use it again; it comes back inactive.') : null,
       it.supplierNumberStatus === 'unverified' ? h('div', { class: 'notice warn' }, 'The item number came from an old/legacy record and is unverified. Check it against the current Ginsberg’s guide before ordering.') : null,
       h('div', { class: 'grid2 stack' }, field('Name staff see', f.name), field('Department', f.department)),
+      h('div', { class: 'grid2 stack' }, field('Supplier', f.supplier), field('Store (other suppliers)', f.storeName)),
       field('Storage area (where it shows on the count)', f.category, 'Cafe: Frozen through Cups, to-go & utensils. Housekeeping: Paper products, Trash & cleaning.'),
       h('div', { class: 'grid2 stack' }, field('Supplier item #', f.supplierItemNumber, 'Kept as text, so leading zeros stay.'), field('Brand', f.brand)),
       field('Supplier description', f.description),
@@ -921,12 +972,12 @@
         s.note ? h('p', { class: 'small muted' }, s.note) : null, msg, act,
         s.status === 'open' ? h('p', null, h('a', { href: '#/count/' + s.kind }, 'Open the staff count screen')) : null),
       h('div', { class: 'table-wrap' }, h('table', { class: 'data' },
-        h('thead', null, h('tr', null, ['Item (as counted)', 'Full cases', 'Loose', 'Package at count time', 'Flag', 'Counted at'].map((x) => h('th', null, x)))),
+        h('thead', null, h('tr', null, ['Item (as counted)', 'Full cases', 'Loose', 'Package at count time', 'Note', 'Counted at'].map((x) => h('th', null, x)))),
         h('tbody', null, d.entries.map((e) => h('tr', null,
           h('td', null, (e.snapshot && e.snapshot.name) || e.currentName),
           h('td', { class: 'num' }, e.fullCases === null ? '—' : String(e.fullCases)),
           h('td', { class: 'num' }, e.looseUnits === null ? '—' : String(e.looseUnits)),
-          h('td', null, unit(e)), h('td', null, e.flag || ''), h('td', null, fmtDateTime(e.countedAt))))))),
+          h('td', null, unit(e)), h('td', null, [e.note, e.flag].filter(Boolean).join(' · ')), h('td', null, fmtDateTime(e.countedAt))))))),
       d.notCounted.length ? h('div', { class: 'card' }, h('h3', null, 'Not counted yet'), h('p', null, d.notCounted.map((x) => x.name).join(', '))) : null);
   }
 
@@ -1260,6 +1311,7 @@
     let settings = null;
     try { settings = (await aapi('adminSettings')).settings; } catch (e) { /* shown elsewhere */ }
     const backupBox = h('div', null, loading());
+    const inboxBox = h('div', null, loading());
     const manualSteps = () => h('div', { class: 'notice warn' },
       h('b', null, 'Google didn’t let the app set this up by itself. One-time steps instead:'),
       h('ol', null,
@@ -1267,6 +1319,34 @@
         h('li', null, 'In the function list next to Run, choose ', h('b', null, 'installWeeklyDriveBackup'), ', then press ', h('b', null, 'Run'), '.'),
         h('li', null, 'If Google asks for permission, choose your account and press Allow.'),
         h('li', null, 'Come back here and reload: it should say the weekly backup is on.')));
+    async function drawInbox(result) {
+      let st = result;
+      if (!st) { try { st = await aapi('adminInboxStatus'); } catch (err) { replace(inboxBox, errBox(err)); return; } }
+      const on = h('button', { class: 'btn', type: 'button' }, 'Turn on Count inbox');
+      on.onclick = busy(on, async () => { try { drawInbox(await aapi('adminInboxOn')); } catch (err) { replace(inboxBox, errBox(err)); } });
+      const offBtn = h('button', { class: 'btn secondary', type: 'button' }, 'Turn off');
+      offBtn.onclick = busy(offBtn, async () => { try { drawInbox(await aapi('adminInboxOff')); } catch (err) { replace(inboxBox, errBox(err)); } });
+      const check = h('button', { class: 'btn secondary', type: 'button' }, 'Check now');
+      check.onclick = busy(check, async () => { try { drawInbox(await aapi('adminInboxCheck')); } catch (err) { replace(inboxBox, errBox(err)); } });
+      const working = st.enabled && st.triggerInstalled !== false;
+      const res = st.result;
+      replace(inboxBox,
+        st.turnedOn === false ? h('div', { class: 'notice warn' }, h('b', null, 'Google didn’t let the app set its timer. '),
+          'One-time fix: open script.google.com > Lapland Lake Supply Manager, pick "installCountInbox" next to the Run button, press Run and approve. Then reload this page.') : null,
+        st.error && st.turnedOn !== false ? errBox(new Error(st.error)) : null,
+        res ? (res.length ? res.map((r) => r.status === 'imported'
+          ? okBox(r.fileName + ': ' + plural(r.summary.counted, 'item', 'items') + ' counted' + (r.summary.issues ? ', ' + plural(r.summary.issues, 'line needs', 'lines need') + ' you (see Overview)' : '') + '.')
+          : errBox(new Error(r.fileName + ': ' + (r.summary.error || 'could not be imported') + ' It was moved to "Could not import".')))
+          : okBox('No new count files.')) : null,
+        h('p', null, working ? '✅ On: checks every 15 minutes.' : st.enabled ? '⚠ Marked on, but Google’s timer is missing. Press "Turn on Count inbox" again.' : 'Off.'),
+        st.lastRunAt ? h('p', { class: 'small muted' }, 'Last checked: ' + fmtDateTime(st.lastRunAt) + '.') : null,
+        st.lastError ? h('p', { class: 'small', style: 'color:var(--err)' }, 'Last problem: ' + st.lastError) : null,
+        st.folderUrl ? h('p', { class: 'small' }, h('a', { href: st.folderUrl, target: '_blank', rel: 'noopener' }, 'Open the Count inbox folder')) : null,
+        h('div', { class: 'row' }, working ? null : on, check, st.enabled ? offBtn : null),
+        st.log && st.log.length ? h('details', { style: 'margin-top:10px' }, h('summary', null, 'Recent count files'),
+          st.log.map((x) => h('div', { class: 'small', style: 'margin:4px 0' }, fmtDateTime(x.at) + ' · ' + x.fileName + ' · ' +
+            (x.status === 'imported' ? plural((x.summary && x.summary.counted) || 0, 'item', 'items') + ' counted' : 'could not import: ' + ((x.summary && x.summary.error) || ''))))) : null);
+    }
     async function drawBackup(result) {
       let st = result;
       if (!st) { try { st = await aapi('adminBackupStatus'); } catch (err) { replace(backupBox, errBox(err)); return; } }
@@ -1299,11 +1379,15 @@
       h('div', { class: 'card' }, h('h2', null, 'Import a spreadsheet file (optional)'),
         h('p', { class: 'small muted' }, 'CSV or JSON. You get a preview with checks and duplicate detection before anything is saved. Original IDs are kept, and imported history keeps the package sizes from the file, not today’s catalog.'),
         field('What is in the file?', type), h('div', { style: 'margin:10px 0' }, file), fPrev, fOut),
+      h('div', { class: 'card' }, h('h2', null, 'Count inbox'),
+        h('p', { class: 'small muted' }, 'Counts done with Claude or Hendrick arrive as files in your Drive folder "Lapland Lake Supply Manager" > "Count inbox". Every 15 minutes the app takes each file in as a real count, the same as staff typing it, then moves the file to "Imported". Anything it can’t match shows on your Overview.'),
+        inboxBox),
       h('div', { class: 'card' }, h('h2', null, 'Backup'),
         h('p', { class: 'small muted' }, 'All data already lives in your Google Sheet "Lapland Lake Supply Manager Data" in your Drive. Download a copy any time:'),
         h('div', { class: 'row' }, bk, bkCsv),
         h('h3', { style: 'margin-top:16px' }, 'Weekly backup to Google Drive'), backupBox));
     drawBackup();
+    drawInbox();
   }
 
   /* ------------------------------------------------------------ settings */
