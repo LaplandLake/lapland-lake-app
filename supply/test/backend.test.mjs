@@ -1007,6 +1007,11 @@ test('count inbox: a file becomes a real count, feeds the draft, and lists only 
   ok(app.admin('adminInboxCheck'));
   assert.equal(ok(app.admin('adminDashboard')).staff.filter((g) => g.kind === 'nomatch').length, 1);
   assert.equal(ok(app.admin('adminInboxStatus')).log.length, 2);
+  // Drive still listing a file that was already taken in: it is not taken in twice.
+  const extrasBefore = ok(app.admin('adminSuggestions')).suggestions.filter((g) => g.kind === 'extra').length;
+  app.state.inboxFiles.push(Object.assign({}, app.state.inboxMoved[0]));
+  assert.equal(ok(app.admin('adminInboxCheck')).result.length, 0);
+  assert.equal(ok(app.admin('adminSuggestions')).suggestions.filter((g) => g.kind === 'extra').length, extrasBefore);
 });
 
 test('count inbox: fixes this week’s staff count item by item; past dates stay history; paused makes no draft', () => {

@@ -16,7 +16,7 @@
    The same file runs in Node for automated tests (see supply/test). Everything that
    touches Google services goes through the "platform" object at the bottom. */
 
-const APP_VERSION = '1.3.2';
+const APP_VERSION = '1.3.3';
 const TZ = 'America/New_York';
 const DATA_SPREADSHEET_NAME = 'Lapland Lake Supply Manager Data';
 const DRIVE_FOLDER_NAME = 'Lapland Lake Supply Manager';
@@ -1596,7 +1596,12 @@ function processInbox_() {
   const p = platform_();
   const files = p.countInbox.list();
   const results = [];
+  // Drive can still list a file for a moment after it was moved, so a file taken in once is never
+  // taken in again (that would double its extras): it is just moved again.
+  const seen = {};
+  db_().all('inboxLog').forEach((x) => { if (x.status === 'imported' && x.fileId) seen[x.fileId] = true; });
   files.forEach((f) => {
+    if (seen[f.id]) { try { p.countInbox.move(f.id, 'Imported'); } catch (err) { /* already moved */ } return; }
     let status = 'imported', summary;
     try {
       const table = f.rows || parseCsv_(String(f.text || '').replace(/^\uFEFF/, ''));

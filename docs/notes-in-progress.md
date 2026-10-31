@@ -29,6 +29,15 @@ Last updated: 2026-10-05. These are notes from working with the owner's team, so
 - Only season totals exist (2023/24, 2025/26), no weekly detail. When the 2 more years of invoices are scanned, add them to the purchase history so suggestions improve.
 - 2026-10-31: Todd's Oct 30 count file was put in Count inbox and taken in: 53 counted, 24 lines need him. Ordering stays paused until about 3 weeks out; the paused "extra" cards are his reminder list for the first order.
 
+## Supply Manager: stock numbers set from invoices (2026-10-31)
+- Todd was overwhelmed by the Catalog suggestion list; he expected "what we use per week". I read all 23 winter invoices (Drive > Ginsberg's Foods > season folders; scanned sideways, read as images) and worked out per-week use for 24/25 and 25/26.
+- With his OK (backup first: "Lapland Lake Supply Manager Data - backup 2026-10-31 before stock numbers"), I wrote straight to the Sheet:
+  - minimums for the 47 turned-on items: busy items (chili, red lentil, hot chocolate, white cheddar mac) minimum 2; medium items (paper towels, toilet paper, touchless towels, basil bisque, oyster crackers) minimum 1; everything else 0.33. Hot chocolate desired went from 2 to 3. Cavatappi mac was left alone (on hold).
+  - turned on 16 of the 18 turned-off counted items (desired 1, minimum 0.33, full cases) with storage areas: packets → Dry & shelf-stable; gloves and zipper bags → Kitchen supplies; plates, containers, carriers, teaspoons, souffle cups and lids → Cups, to-go & utensils; hand soap → Trash & cleaning.
+  - left plastic forks ("hold") and waxed sandwich bags ("not used") turned off.
+- Duplicate extra cards from a double file read were dismissed; code fix in place (needs Code.gs redeploy).
+- Open: imported items still have Ginsberg's names in capitals (e.g. "GLOVE VINYL MED PWDR FREE 606292") on staff screens; offer to rename them in plain words (Todd decides wording). The invoice data could also replace the season totals in the app later.
+
 ## Lodge Map (not built yet)
 Decided: a simple labeled **diagram** of the lodge (Lounge, Café upstairs, Bathrooms, Sauna, Rentals, Wax Room, etc.); tapping an area shows a **photo** of it. The app currently uses no photos besides the logo and trail map. Owner is taking inside photos.
 
