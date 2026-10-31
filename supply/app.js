@@ -285,7 +285,7 @@
 
   /* ------------------------------------------------------------ count screens */
   function validateLocal(kind, full, loose) {
-    if (full !== '' && !/^\d+$/.test(full)) return 'Full cases must be a whole number (0 or more).';
+    if (full !== '' && !/^\d+(\.\d{1,2})?$/.test(full)) return 'Full cases must be a number (0 or more, like 2 or 1.5).';
     if (loose !== '') {
       if (kind === 'beverage' ? !/^\d+$/.test(loose) : !/^\d+(\.\d{1,2})?$/.test(loose)) {
         return kind === 'beverage' ? 'Loose bottles/cans must be a whole number (0 or more).' : 'Loose units must be 0 or more.';
@@ -464,7 +464,9 @@
       const low = entered && it.minimumStock !== null && it.minimumStock !== undefined && onHand <= it.minimumStock + 1e-9;
       r.lowBadge.classList.toggle('hidden', !low);
       r.el.classList.toggle('is-low', low);
-      if (r.totalEl) {
+      if (r.totalEl && !entered && r.saved && !r.saved.parts && r.saved.fullCases !== null && r.saved.fullCases !== undefined && isBlank(vals)) {
+        r.totalEl.textContent = 'Total: ' + plural(r.saved.fullCases, 'case', 'cases') + ' (from a count file)';
+      } else if (r.totalEl) {
         r.totalEl.textContent = entered
           ? 'Total: ' + plural(Math.round(full * 100) / 100, 'case', 'cases') + (it.allowLoose && loose ? ' + ' + (Math.round(loose * 100) / 100) + ' ' + (it.looseUnitLabel || 'units') : '')
           : 'Total: not counted yet';
@@ -539,7 +541,7 @@
     function stepper(input, delta) {
       const v = input.value.trim() === '' ? 0 : Number(input.value);
       if (!isFinite(v)) return;
-      input.value = String(Math.max(0, Math.floor(v) + delta));
+      input.value = String(Math.max(0, Math.round((v + delta) * 100) / 100));
       input.dispatchEvent(new Event('input'));
     }
 
@@ -547,7 +549,7 @@
       const sfx = it.id + '-' + n;
       const box = {};
       const lbl = (t) => (label ? label + ': ' : '') + t;
-      box.full = h('input', { type: 'text', inputmode: 'numeric', pattern: '[0-9]*', id: 'f-' + sfx, autocomplete: 'off', value: saved && saved.fullCases !== null && saved.fullCases !== undefined ? String(saved.fullCases) : '', 'aria-label': lbl('Full cases of ' + it.name) });
+      box.full = h('input', { type: 'text', inputmode: 'decimal', id: 'f-' + sfx, autocomplete: 'off', value: saved && saved.fullCases !== null && saved.fullCases !== undefined ? String(saved.fullCases) : '', 'aria-label': lbl('Full cases of ' + it.name) });
       box.loose = it.allowLoose ? h('input', { type: 'text', inputmode: kind === 'beverage' ? 'numeric' : 'decimal', id: 'l-' + sfx, autocomplete: 'off', value: saved && saved.looseUnits !== null && saved.looseUnits !== undefined ? String(saved.looseUnits) : '', 'aria-label': lbl('Loose ' + (it.looseUnitLabel || 'units') + ' of ' + it.name) }) : null;
       [box.full, box.loose].forEach((inp) => {
         if (!inp) return;

@@ -87,6 +87,30 @@ Deploy** (the address stays the same).
 8. **Optional weekly Drive backup**: Admin > Import & backup > **Turn on weekly backup**. (If Google refuses to
    set the timer from the app, the page shows the one-time editor steps: run **installWeeklyDriveBackup**.)
 
+## Counts from a file (Count inbox)
+
+Counts done out loud or typed with Claude or Hendrick arrive as a CSV (or Google Sheet) in Drive > "Lapland Lake
+Supply Manager" > **Count inbox**. Every 15 minutes (or **Check now** in Admin > Import & backup) each file is taken in
+as a real count, the same as staff typing it, and moved to **Count inbox / Imported** (unreadable files go to
+**Could not import**). Turn it on once with **Turn on Count inbox** (or run `installCountInbox` in the Apps Script editor).
+
+File format (one header row): `item, supplier number, department, count date, cases, add to order (cases), note`.
+Department is Housekeeping or Cafe; date is YYYY-MM-DD; cases can be part cases (0.6, 4.33); blank cases = not counted
+(the note is kept); add to order = whole extra cases for the next draft; the note shows in Admin only.
+
+* Matching: Ginsberg's number first, then a close name match (sizes like 6x6 or 12 oz must match; when two items are
+  close and exactly one is turned on, that one wins). Anything unclear, and counted items that are turned off (with what
+  they need), show on the Admin Overview.
+* Where it goes: a count in progress gets the numbers; this week's finished count is updated item by item (like a staff
+  fix); otherwise a new finished count is made. A date before this week is kept as history only.
+
+## Other suppliers
+
+Each item has a **Supplier**: Ginsberg's (the default) or Other, with an optional store name. Other-supplier items are
+counted like everything else but never go on the Ginsberg's draft; when at or below their minimum (or staff ask for an
+extra) they go on Admin > Requests > **To research & order**, grouped by store. **Ordered** takes an item off the list
+until a later count shows it restocked and then low again.
+
 ## What staff can and can't do
 
 * Home screen: Housekeeping Orders, Cafe Orders, Other Supply Requests, Drink Cooler, Beer / Cider / Wine.

@@ -102,8 +102,10 @@ test('staff count: not counted vs zero, resume, validation, incomplete finish', 
   assert.equal(sheet.session, null);
   for (const it of sheet.items) same(Object.keys(it).sort(), ['allowLoose', 'category', 'countingUnit', 'desiredStock', 'id', 'locations', 'looseUnitLabel', 'minimumStock', 'name', 'unitsPerCase']);
 
-  bad(app.call('saveCount', { kind: 'housekeeping', itemId: a.id, fullCases: '-1' }), /whole number/);
-  bad(app.call('saveCount', { kind: 'housekeeping', itemId: a.id, fullCases: '1.5' }), /whole number/);
+  bad(app.call('saveCount', { kind: 'housekeeping', itemId: a.id, fullCases: '-1' }), /0 or more/);
+  bad(app.call('saveCount', { kind: 'housekeeping', itemId: a.id, fullCases: '1.555' }), /two decimal/);
+  ok(app.call('saveCount', { kind: 'housekeeping', itemId: b.id, fullCases: '0.6' })); // part cases are fine
+  ok(app.call('saveCount', { kind: 'housekeeping', itemId: b.id, clear: true }));
   bad(app.call('saveCount', { kind: 'housekeeping', itemId: a.id, looseUnits: '-3' }), /0 or more/);
   bad(app.call('saveCount', { kind: 'housekeeping', itemId: b.id, looseUnits: '3' }), /full cases only/);
   bad(app.call('saveCount', { kind: 'housekeeping', itemId: inactive.id, fullCases: 1 }), /not on the/);
@@ -690,7 +692,7 @@ test('split locations: Kitchen + Storage room counted separately and added up', 
   const sheet = ok(app.call('countSheet', { kind: 'cafe' }));
   same(sheet.items.filter((i) => i.id === cups.id)[0].locations, ['Kitchen', 'Storage room']);
   assert.equal(sheet.items.filter((i) => i.id === soup.id)[0].locations, null);
-  bad(app.call('saveCount', { kind: 'cafe', itemId: cups.id, parts: [{ fullCases: '1.5' }, {}] }), /whole number/);
+  bad(app.call('saveCount', { kind: 'cafe', itemId: cups.id, parts: [{ fullCases: '1.555' }, {}] }), /two decimal/);
   const r = ok(app.call('saveCount', { kind: 'cafe', itemId: cups.id, parts: [{ fullCases: '1', looseUnits: '4' }, { fullCases: '2', looseUnits: '' }] }));
   assert.equal(r.entry.fullCases, 3);
   assert.equal(r.entry.looseUnits, 4);
@@ -949,4 +951,131 @@ test('review fixes: uncounted lines stay automatic, other department keeps its d
   at(app, '2026-10-19T13:00:00Z'); // Monday 9 AM
   ok(app.call('completeCount', { kind: 'cafe' }));
   assert.equal(ok(app.call('countSheet', { kind: 'cafe' })).finished.mode, 'paused');
+});
+
+function inboxApp() {
+  const app = freshApp();
+  at(app, '2026-10-12T14:00:00Z'); // Monday
+  const soup = cafeItem(app, { name: 'Soup red lentil', supplierItemNumber: '81266', desiredStock: 3, minimumStock: 1 });
+  const lid = cafeItem(app, { name: 'LID HOT CUP DOME BLACK', supplierItemNumber: '55501', desiredStock: 2, minimumStock: 1 });
+  const ketchup = addItem(app, { name: 'Ketchup packets', supplierItemNumber: '87670', department: 'cafe' }); // turned off, no desired stock
+  const stir = cafeItem(app, { name: 'Coffee stirrers', supplierItemNumber: '', supplier: 'other', desiredStock: 2, minimumStock: 1 });
+  const tp = addItem(app, { name: 'Bath tissue', supplierItemNumber: '43500', department: 'housekeeping', countingUnit: 'case', countingUnitConfirmed: true, desiredStock: 6, minimumStock: 5, active: true });
+  return { app, soup, lid, ketchup, stir, tp };
+}
+const CSV = (lines) => 'item,supplier number,department,count date,cases,add to order (cases),note\n' + lines.join('\n') + '\n';
+
+test('count inbox: a file becomes a real count, feeds the draft, and lists only what needs the admin', () => {
+  const { app, soup, lid, ketchup, stir, tp } = inboxApp();
+  app.state.inboxFiles.push({ id: 'f1', name: 'count.csv', text: CSV([
+    'Soup red lentil,81266,Cafe,2026-10-12,0.5,1,"Group Friday, extra"',
+    'Hot cup lids (black dome),,Cafe,2026-10-12,1.33,,1 case + 4 sleeves',
+    'Ketchup packets,87670,Cafe,2026-10-12,0,,',
+    "Sweet'N Low,,Cafe,2026-10-12,,,Plenty on hand",
+    'Mystery thing,999,Cafe,2026-10-12,2,,',
+    'Coffee stirrers,,Cafe,2026-10-12,0.5,,',
+    'Bath tissue (Nova),43500,Housekeeping,2026-10-12,4.5,,Half case + 4',
+  ]) });
+  const r = ok(app.admin('adminInboxCheck')).result[0];
+  assert.equal(r.status, 'imported');
+  assert.equal(app.state.inboxMoved[0].to, 'Imported');
+  assert.equal(r.summary.counted, 5); // soup, lid, ketchup (stored), stirrers, bath tissue
+  // Cafe: a new finished count, on the count screen as this week's count.
+  const sheet = ok(app.call('countSheet', { kind: 'cafe' }));
+  assert.equal(sheet.entries[soup.id].fullCases, 0.5);
+  assert.equal(sheet.entries[lid.id].fullCases, 1.33); // matched by a close name
+  assert.equal(sheet.entries[stir.id].fullCases, 0.5);
+  assert.equal(sheet.entries[soup.id].note, undefined); // notes are never sent to staff screens
+  // Draft: soup orders back up to 3 (0.5 -> 3 cases) + 1 extra; stirrers are not Ginsberg's.
+  const orders = ok(app.admin('adminOrders')).orders;
+  const o = ok(app.admin('adminOrder', { orderId: orders[0].id }));
+  const line = (id) => o.lines.filter((l) => l.itemId === id)[0];
+  assert.equal(line(soup.id).finalCases, 4);
+  assert.equal(line(soup.id).countNote, 'Group Friday, extra');
+  assert.equal(line(stir.id), undefined);
+  assert.equal(line(tp.id).finalCases, 2); // 4.5 <= 5 -> back up to 6
+  // Stirrers go on "To research & order".
+  const other = ok(app.admin('adminOtherList')).rows;
+  same(other.map((x) => [x.name, x.onHand, x.toGet]), [['Coffee stirrers', 0.5, 2]]);
+  // Needs the admin: the unknown line and the turned-off item (with what it's missing).
+  const staff = ok(app.admin('adminDashboard')).staff;
+  same(staff.map((g) => g.kind + ':' + g.itemName).sort(), ['inactive:Ketchup packets', 'nomatch:Mystery thing']);
+  same(staff.filter((g) => g.kind === 'inactive')[0].detail.missing, ['confirmed counting unit', 'desired stock']);
+  assert.ok(!staff.some((g) => /Sweet/.test(g.itemName))); // blank, unmatched: nothing to do
+  // A second file naming the same unknown item doesn't add a duplicate notice.
+  app.state.inboxFiles.push({ id: 'f2', name: 'again.csv', text: CSV(['Mystery thing,999,Cafe,2026-10-12,1,,']) });
+  ok(app.admin('adminInboxCheck'));
+  assert.equal(ok(app.admin('adminDashboard')).staff.filter((g) => g.kind === 'nomatch').length, 1);
+  assert.equal(ok(app.admin('adminInboxStatus')).log.length, 2);
+});
+
+test('count inbox: fixes this week’s staff count item by item; past dates stay history; paused makes no draft', () => {
+  const { app, soup, lid } = inboxApp();
+  ok(app.call('saveCount', { kind: 'cafe', itemId: soup.id, fullCases: 3 }));
+  ok(app.call('saveCount', { kind: 'cafe', itemId: lid.id, fullCases: 2 }));
+  ok(app.call('completeCount', { kind: 'cafe' }));
+  app.state.inboxFiles.push({ id: 'f1', name: 'fix.csv', text: CSV(['Soup red lentil,81266,Cafe,2026-10-12,0,,']) });
+  const r = ok(app.admin('adminInboxCheck')).result[0];
+  assert.equal(r.summary.departments.cafe.mode, 'finished');
+  const sheet = ok(app.call('countSheet', { kind: 'cafe' }));
+  assert.equal(sheet.entries[soup.id].fullCases, 0);
+  assert.equal(sheet.entries[lid.id].fullCases, 2); // staff number kept
+  const o = ok(app.admin('adminOrder', { orderId: ok(app.admin('adminOrders')).orders[0].id }));
+  const soupLine = o.lines.filter((l) => l.itemId === soup.id)[0];
+  assert.equal(soupLine.finalCases, 3);
+  assert.match(soupLine.countChange, /3 → 0/);
+  // A file dated last week is kept as history and doesn't become this week's count.
+  app.state.inboxFiles.push({ id: 'f2', name: 'old.csv', text: CSV(['Soup red lentil,81266,Cafe,2026-10-01,5,,']) });
+  assert.equal(ok(app.admin('adminInboxCheck')).result[0].summary.departments.cafe.mode, 'past');
+  assert.equal(ok(app.call('countSheet', { kind: 'cafe' })).entries[soup.id].fullCases, 0);
+  // Paused: the count goes in, no draft is touched, extras wait on the Overview.
+  const { app: b, soup: s2 } = inboxApp();
+  ok(b.admin('adminSaveSettings', { ordering: { paused: true } }));
+  b.state.inboxFiles.push({ id: 'f3', name: 'p.csv', text: CSV(['Soup red lentil,81266,Cafe,2026-10-12,0,2,']) });
+  ok(b.admin('adminInboxCheck'));
+  assert.equal(ok(b.admin('adminOrders')).orders.length, 0);
+  assert.equal(ok(b.call('countSheet', { kind: 'cafe' })).entries[s2.id].fullCases, 0);
+  assert.equal(ok(b.admin('adminDashboard')).staff.filter((g) => g.kind === 'extra')[0].detail.reason, 'paused');
+});
+
+test('count inbox: unreadable files are set aside; the timer can be turned on and off', () => {
+  const { app } = inboxApp();
+  app.state.inboxFiles.push({ id: 'bad', name: 'notes.txt', text: 'just some words\nmore words' });
+  const r = ok(app.admin('adminInboxCheck')).result[0];
+  assert.equal(r.status, 'problem');
+  assert.match(r.summary.error, /column names/);
+  assert.equal(app.state.inboxMoved[0].to, 'Could not import');
+  assert.equal(ok(app.admin('adminInboxOn')).turnedOn, true);
+  assert.equal(app.state.inboxInstalled, true);
+  ok(app.admin('adminInboxOff'));
+  assert.equal(app.state.inboxInstalled, false);
+  app.state.failInboxInstall = true;
+  assert.equal(ok(app.admin('adminInboxOn')).turnedOn, false);
+  bad(app.call('adminInboxCheck', {}), /sign in/);
+});
+
+test('other suppliers: never on the Ginsberg’s draft; "Ordered" hides until restocked; staff extras go to the list', () => {
+  const { app, stir } = inboxApp();
+  ok(app.call('saveCount', { kind: 'cafe', itemId: stir.id, fullCases: 0 }));
+  ok(app.call('completeCount', { kind: 'cafe' }));
+  const o = ok(app.admin('adminOrder', { orderId: ok(app.admin('adminOrders')).orders[0].id }));
+  assert.equal(o.lines.filter((l) => l.itemId === stir.id).length, 0);
+  assert.equal(ok(app.admin('adminOtherList')).rows[0].toGet, 2);
+  assert.equal(ok(app.call('staffSuggest', { type: 'extra', department: 'cafe', itemId: stir.id, cases: 1 })).message, 'Sent ✓');
+  assert.equal(ok(app.admin('adminOtherList')).rows[0].extras.length, 1);
+  ok(app.admin('adminSaveItem', { id: stir.id, item: { storeName: 'Costco' } }));
+  assert.equal(ok(app.admin('adminOtherList')).rows[0].storeName, 'Costco');
+  same(ok(app.admin('adminOtherOrdered', { itemId: stir.id })).rows, []);
+  // Next week: still low before delivery -> stays off; restocked then low again -> back on.
+  at(app, '2026-10-19T14:00:00Z');
+  const t = ok(app.call('adminLogin', { password: PW })).token;
+  ok(app.call('saveCount', { kind: 'cafe', itemId: stir.id, fullCases: 0.5 }));
+  ok(app.call('completeCount', { kind: 'cafe' }));
+  same(ok(app.call('adminOtherList', { token: t })).rows, []);
+  ok(app.call('saveCount', { kind: 'cafe', itemId: stir.id, fullCases: 2 })); // fix: delivered
+  at(app, '2026-10-26T14:00:00Z');
+  const t2 = ok(app.call('adminLogin', { password: PW })).token;
+  ok(app.call('saveCount', { kind: 'cafe', itemId: stir.id, fullCases: 1 }));
+  ok(app.call('completeCount', { kind: 'cafe' }));
+  assert.equal(ok(app.call('adminOtherList', { token: t2 })).rows.length, 1);
 });

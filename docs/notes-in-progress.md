@@ -16,6 +16,13 @@ Last updated: 2026-10-05. These are notes from working with the owner's team, so
 - Decided 2026-10-30: the top-bar logo stays hidden on phones (Todd: no).
 - Note: Todd once opened a copy of the app saved to his desktop (file:///…/Lapland Lake Supply Manager.htm). It never updates; told him to delete it and use the live address.
 
+## Supply Manager: Count inbox + other suppliers (built 2026-10-31, waiting for Todd's wording yes and "publish")
+- Todd's goal: say or type counts to Claude/Hendrick; the count goes in with no extra steps. Claude can't press app buttons, so the bridge is a CSV in Drive > Lapland Lake Supply Manager > Count inbox, picked up every 15 min by an Apps Script timer.
+- Decided: no Preview/Import step; only unclear lines and turned-off items need Todd (Overview). Part cases allowed for everyone. Notes are Admin-only (they can contain names).
+- Decided: Supplier box (Ginsberg's / Other + store). Other items go to "To research & order", never the Ginsberg's draft.
+- Test on Todd's real Oct 30 file against a copy of the catalog: 53 of 69 lines went straight in; 18 turned-off items and 6 unknown lines would show on the Overview. The real file was not imported and is not in the repo.
+- Open: Todd needs to give Hendrick the file-format line; turn on the Count inbox after deploying.
+
 ## Lodge Map (not built yet)
 Decided: a simple labeled **diagram** of the lodge (Lounge, Café upstairs, Bathrooms, Sauna, Rentals, Wax Room, etc.); tapping an area shows a **photo** of it. The app currently uses no photos besides the logo and trail map. Owner is taking inside photos.
 

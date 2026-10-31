@@ -2,6 +2,9 @@
 
 Newest first. One plain-English line per change.
 
+- 2026-10-31: Supply Manager: Count inbox: count files from Claude or Hendrick in Drive become real counts every 15 minutes; unclear lines show on the Overview.
+- 2026-10-31: Supply Manager: Supplier box on items (Ginsberg's or Other); other-supplier items go on a new "To research & order" list instead of the Ginsberg's draft.
+- 2026-10-31: Supply Manager: counts can be part cases (like 0.6 or 4.33).
 - 2026-10-30: Bob's instructions (CLAUDE.md): three Gotchas added (no personal names in apps; answer questions without changing things; get Todd's yes on exact wording).
 - 2026-10-30: Supply Manager: the top-bar logo goes to the home page; count pages show "Loading…" while they load.
 - 2026-10-30: Supply Manager: home card no longer shows "null"; the Thursday / 20-case note always stays, even while ordering is paused.

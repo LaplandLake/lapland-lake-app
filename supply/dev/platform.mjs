@@ -86,6 +86,10 @@ export function createPlatform(backend, opts = {}) {
     backupInstalled: false,
     failBackupInstall: false,
     backupFiles: [],
+    inboxFiles: [], // files waiting in "Count inbox": { id, name, text } or { id, name, rows }
+    inboxMoved: [],
+    inboxInstalled: false,
+    failInboxInstall: false,
     logs: [],
   };
   const platform = {
@@ -124,6 +128,14 @@ export function createPlatform(backend, opts = {}) {
     mail: {
       remaining: () => 100,
       send: (m) => { if (state.failMail) throw new Error('Simulated mail failure'); state.sentMail.push(m); },
+    },
+    countInbox: {
+      list: () => state.inboxFiles.slice(),
+      move: (id, sub) => { const i = state.inboxFiles.findIndex((f) => f.id === id); if (i >= 0) state.inboxMoved.push(Object.assign({ to: sub }, state.inboxFiles.splice(i, 1)[0])); },
+      install: () => { if (state.failInboxInstall) throw new Error('Simulated: Google refused to create the timer'); state.inboxInstalled = true; },
+      remove: () => { state.inboxInstalled = false; },
+      isInstalled: () => !!state.inboxInstalled,
+      folderUrl: () => 'https://drive.google.com/drive/folders/TEST-COUNT-INBOX',
     },
     backup: {
       install: () => { if (state.failBackupInstall) throw new Error('Simulated: Google refused to create the timer'); state.backupInstalled = true; },

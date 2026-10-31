@@ -71,6 +71,7 @@ const server = http.createServer(async (req, res) => {
       else if (what === 'offline') env.state.offline = q.on === '1';
       else if (what === 'clock') env.state.clock = q.t ? new Date(q.t).getTime() : null;
       else if (what === 'delay') delay.ms = Number(q.ms || 0);
+      else if (what === 'inboxFile') env.state.inboxFiles.push({ id: 'f' + Date.now(), name: q.name || 'count.csv', text: q.text || '' });
       else if (what === 'setupCode') { backend.setPlatform_(env.platform); return send(res, 200, JSON.stringify({ code: backend.createAdminSetupCode() })); }
       else if (what === 'mail') return send(res, 200, JSON.stringify(env.state.sentMail));
       else if (what === 'reset') { boot(null); if (q.seed === 'demo') { const { seedDemo } = await import('./seed-demo.mjs'); seedDemo(backend, env); } }
