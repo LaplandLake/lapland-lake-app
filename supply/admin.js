@@ -23,7 +23,7 @@
   function token() { return memToken || getToken(); }
 
   // Anything that changes data clears the saved page copies, so no page opens with old numbers.
-  const READ_ONLY = /^admin(Dashboard|Items|Orders?|Requests|Suggestions|Counts|CountDetail|Photo|Settings|Lists|Bev|BevReport|BevHistory|FillPreview|LooseSuggest|Backup|BackupStatus|SupplierHistory|Audit|OtherList|InboxStatus|Import\w*Preview)$/;
+  const READ_ONLY = /^admin(Dashboard|Items|Orders?|Requests|Suggestions|Counts|CountDetail|Photo|Settings|Lists|Bev|BevReport|BevHistory|FillPreview|LooseSuggest|Backup|BackupStatus|SupplierHistory|Audit|OtherList|InboxStatus|HistorySuggest|Import\w*Preview)$/;
   async function aapi(action, body) {
     try {
       const r = await api(action, Object.assign({ token: token() }, body || {}));
@@ -797,6 +797,50 @@
           h('div', { class: 'row', style: 'margin-top:10px' }, applyBtn())));
       } catch (err) { replace(looseOut, errBox(err)); }
     });
+    // "Suggest from order history": suggested minimum and desired stock from recent Ginsberg's seasons.
+    const histOut = h('div');
+    const histBtn = h('button', { class: 'btn small secondary', type: 'button' }, 'Suggest from order history');
+    histBtn.onclick = busy(histBtn, async () => {
+      let d;
+      try { d = await aapi('adminHistorySuggest'); } catch (err) { replace(histOut, errBox(err)); return; }
+      const has = (v) => v !== null && v !== undefined;
+      const rows = d.rows.map((x) => {
+        const sug = has(x.suggestedDesired);
+        const use = h('input', { type: 'checkbox', checked: sug && !has(x.desiredStock), disabled: !sug, 'aria-label': 'Use the suggestion for ' + x.name, style: 'width:26px;height:26px' });
+        const min = inp(sug ? x.suggestedMinimum : '', { inputmode: 'decimal', class: 'line-input', 'aria-label': 'Minimum for ' + x.name });
+        const des = inp(sug ? x.suggestedDesired : '', { inputmode: 'decimal', class: 'line-input', 'aria-label': 'Desired stock for ' + x.name });
+        [min, des].forEach((el) => el.addEventListener('input', () => { use.checked = true; use.disabled = false; }));
+        const on = x.active ? null : h('input', { type: 'checkbox', checked: true, 'aria-label': 'Turn on ' + x.name, style: 'width:26px;height:26px' });
+        return { x, use, min, des, on };
+      });
+      const run = async () => {
+        const pick = rows.filter((r) => r.use.checked);
+        if (!pick.length) { tell('Tick at least one item.'); return; }
+        try {
+          const res = await aapi('adminHistoryApply', { rows: pick.map((r) => ({ id: r.x.id, minimumStock: r.min.value.trim(), desiredStock: r.des.value.trim(), turnOn: !!(r.on && r.on.checked) })) });
+          replace(histOut, okBox('Saved ' + plural(res.changed, 'item', 'items') + (res.turnedOn ? '; turned on ' + res.turnedOn : '') + '.'),
+            res.problems.length ? h('div', { class: 'notice warn' }, 'Not saved: ', h('ul', null, res.problems.map((t) => h('li', null, t)))) : null);
+          items = (await aapi('adminItems')).items; draw();
+        } catch (err) { histOut.prepend(errBox(err)); }
+      };
+      // The list is long, so the button is at the top and the bottom.
+      const applyBtn = () => { const b = h('button', { class: 'btn', type: 'button' }, 'Apply ticked'); b.onclick = busy(b, run); return b; };
+      const table = h('table', { class: 'data' },
+        h('thead', null, h('tr', null, ['Use', 'Item', 'Bought (cases)', 'Now', 'Minimum', 'Desired', 'Turn on'].map((t) => h('th', null, t)))),
+        h('tbody', null, rows.map((r) => h('tr', null,
+          h('td', null, r.use),
+          h('td', null, h('b', null, r.x.name), h('div', { class: 'small muted' }, (KIND_HEADING[r.x.department] || 'No department') + (r.x.active ? '' : ' · turned off'))),
+          h('td', null, r.x.seasons.length ? r.x.seasons.map((z) => z.label + ': ' + z.cases + ' in ' + z.weeks + ' wks').join(' · ') + (r.x.perWeek !== null ? ' (' + r.x.perWeek + ' a week)' : '') : 'No order history'),
+          h('td', null, has(r.x.desiredStock) ? 'min ' + (has(r.x.minimumStock) ? r.x.minimumStock : '—') + ', desired ' + r.x.desiredStock : '—'),
+          h('td', null, r.min), h('td', null, r.des),
+          h('td', null, r.on || '')))));
+      labelize(table);
+      replace(histOut, h('div', { class: 'card', style: 'margin-top:12px' }, h('h3', null, 'Suggestions from order history (nothing saved yet)'),
+        h('p', { class: 'small muted' }, 'Based on cases bought from Ginsberg’s in the last ' + d.seasonsUsed + ' seasons, spread over the weeks you actually ordered that winter (from the invoice dates). Slow items (under a case a week): desired 1, reorder at a third of a case. Faster items: minimum about 1 week, desired about 2 weeks. Items without numbers start ticked; compare the others and tick the ones you want. You can change any number.'),
+        h('div', { class: 'row', style: 'margin-bottom:10px' }, applyBtn()),
+        h('div', { class: 'table-wrap' }, table),
+        h('div', { class: 'row', style: 'margin-top:10px' }, applyBtn())));
+    });
     const fillOut = h('div');
     const fillBtn = h('button', { class: 'btn small secondary', type: 'button' }, 'Fill from notes & Ginsberg’s records');
     fillBtn.onclick = busy(fillBtn, async () => {
@@ -831,7 +875,7 @@
     replace(box, h('div', { class: 'card' }, h('h2', null, 'Housekeeping & Cafe catalog'),
       h('p', { class: 'small muted' }, 'Imported items start inactive. An item shows on a staff count only when you give it a department, confirm how it is counted, set a desired stock, and make it active. Items you will never use can be removed (and restored later) from the "Inactive" view.'),
       h('div', { class: 'grid2 stack' }, show, dept), h('div', { style: 'margin-top:10px' }, q),
-      h('div', { class: 'row' }, h('a', { class: 'btn small secondary', href: '#/admin/item/new' }, 'Add an item'), fillBtn, looseBtn), fillOut, looseOut), h('div', { class: 'card' }, list));
+      h('div', { class: 'row' }, h('a', { class: 'btn small secondary', href: '#/admin/item/new' }, 'Add an item'), fillBtn, looseBtn, histBtn), fillOut, looseOut, histOut), h('div', { class: 'card' }, list));
     draw();
     // Ignore the fresh copy if a change made on this page already replaced the list.
     if (cachedItems) freshItems.then((d) => { if (items === cachedItems.items && JSON.stringify(d.items) !== JSON.stringify(items)) { items = d.items; draw(); } }).catch(() => {});
