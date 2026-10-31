@@ -2,6 +2,8 @@
 
 Newest first. One plain-English line per change.
 
+- 2026-10-31: Supply Manager: a count file is never taken in twice (Drive can list a moved file for a moment); fixes doubled "extra" cards.
+- 2026-10-31: Supply Manager data: minimums set for the turned-on items and 16 counted items turned on, from week-by-week invoice reading (backup made first).
 - 2026-10-31: Supply Manager: order-history suggestions also read history from removed duplicate catalog entries (they showed "No order history" before).
 - 2026-10-31: Supply Manager: Catalog "Suggest from order history": suggested minimum and desired stock from the last 2 Ginsberg's seasons, with a tick box to turn counted items on.
 - 2026-10-31: Supply Manager: Count inbox: count files from Claude or Hendrick in Drive become real counts every 15 minutes; unclear lines show on the Overview.
