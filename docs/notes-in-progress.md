@@ -36,6 +36,8 @@ Last updated: 2026-10-05. These are notes from working with the owner's team, so
   - turned on 16 of the 18 turned-off counted items (desired 1, minimum 0.33, full cases) with storage areas: packets → Dry & shelf-stable; gloves and zipper bags → Kitchen supplies; plates, containers, carriers, teaspoons, souffle cups and lids → Cups, to-go & utensils; hand soap → Trash & cleaning.
   - left plastic forks ("hold") and waxed sandwich bags ("not used") turned off.
 - Duplicate extra cards from a double file read were dismissed; code fix in place (needs Code.gs redeploy).
+- Later on 2026-10-31, from box labels Todd photographed: Hendrick's file used maker numbers. Premium hard wound towels (Empress 108-0061) = Touchless towel rolls #70902; Bath tissue (Nova 43500) = Toilet paper #70626; Can liners (P654OXC) = Trash bags 60 gal #71061; Kitchen roll towels (7800008) = Paper towel rolls #70849; 6x6 containers = #66437 (turned on, desired 1, min 0.33). Counts written to the Sheet with Todd's OK; those Overview cards are done. 5 oz paper cups are bought elsewhere (could become an "Other supplier" item if Todd wants). Housekeeping's count from Oct 13 is still open (not finished) and holds these numbers.
+- Idea: Hendrick should put Ginsberg's numbers (from the box label's second line, e.g. 70902) in count files, not the maker's number.
 - Open: imported items still have Ginsberg's names in capitals (e.g. "GLOVE VINYL MED PWDR FREE 606292") on staff screens; offer to rename them in plain words (Todd decides wording). The invoice data could also replace the season totals in the app later.
 
 ## Lodge Map (not built yet)
