@@ -519,6 +519,20 @@ try {
     await admin.click('.list-item:has-text("TEST Sugar packets") button:has-text("Ordered")');
     await admin.waitForSelector('text=Nothing to order right now.');
   });
+  await check('Catalog: "Suggest from order history" shows seasons and suggestions; Apply ticked saves only ticked rows', async () => {
+    await admin.goto(APP + '#/admin/catalog');
+    await admin.waitForSelector('.card select');
+    await admin.fill('input[placeholder^="Search name"]', '');
+    await admin.click('button:has-text("Suggest from order history")');
+    await admin.waitForSelector('text=Suggestions from order history (nothing saved yet)');
+    const sugar = admin.locator('tr', { hasText: 'TEST Sugar packets' });
+    expect(/2025\/26: 1/.test(await sugar.textContent()), 'season history shown: ' + await sugar.textContent());
+    expect((await sugar.locator('input[aria-label^="Desired stock"]').inputValue()) === '1', 'slow item suggests desired 1');
+    await admin.screenshot({ path: path.join(SHOTS, 'admin-history-suggest-390.png'), fullPage: false });
+    await sugar.locator('input[aria-label^="Use the suggestion"]').check();
+    await admin.locator('button:has-text("Apply ticked")').first().click();
+    await admin.waitForSelector('text=/Saved \\d+ items?/');
+  });
   for (const [hash, label] of [['#/admin/catalog', 'catalog'], ['#/admin/beverages', 'beverages'], ['#/admin/import', 'import'], ['#/admin/settings', 'settings'], ['#/admin/counts', 'counts']]) {
     await check('Admin ' + label + ' page loads without sideways scroll at 360px', async () => {
       await admin.setViewportSize({ width: 360, height: 800 });

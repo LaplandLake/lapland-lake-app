@@ -16,7 +16,7 @@
    The same file runs in Node for automated tests (see supply/test). Everything that
    touches Google services goes through the "platform" object at the bottom. */
 
-const APP_VERSION = '1.3.0';
+const APP_VERSION = '1.3.1';
 const TZ = 'America/New_York';
 const DATA_SPREADSHEET_NAME = 'Lapland Lake Supply Manager Data';
 const DRIVE_FOLDER_NAME = 'Lapland Lake Supply Manager';
@@ -173,6 +173,8 @@ const ACTIONS = {
   adminFillPreview: { role: 'admin', fn: () => fillFromRecords_(false) },
   adminLooseSuggest: { role: 'admin', fn: () => looseSuggest_() },
   adminLooseApply: { role: 'admin', write: true, fn: (b) => looseApply_(b) },
+  adminHistorySuggest: { role: 'admin', fn: () => historySuggest_() },
+  adminHistoryApply: { role: 'admin', write: true, fn: (b) => historyApply_(b) },
   adminFillCommit: { role: 'admin', write: true, fn: () => fillFromRecords_(true) },
   adminCounts: { role: 'admin', fn: (b) => adminCounts_(b) },
   adminCountDetail: { role: 'admin', fn: (b) => adminCountDetail_(b) },
@@ -1927,6 +1929,88 @@ function adminRemoveItems_(b) {
 // One-time helper for items added from a spreadsheet: takes the minimum from notes like
 // "Suggested minimum 2, target 3 cases" and copies price/history from the matching imported
 // Ginsberg's record (same item #). Never overwrites anything already already filled in.
+// "Suggest from order history": a starting minimum and desired stock per item from the cases
+// bought from Ginsberg's in recent seasons (purchase history imported from Ginsberg's files).
+// Average cases per season over the latest HISTORY_SEASONS seasons / SEASON_WEEKS = cases per week.
+// Slow items (under a case a week): desired 1, reorder at a third of a case.
+// Faster items: minimum about one week's worth, desired about two weeks' worth, in whole cases.
+const SEASON_WEEKS = 13;
+const HISTORY_SEASONS = 2;
+function seasonKeys_(h) {
+  return Object.keys(h || {}).map((k) => k.match(/^cases(\d{4})_(\d{2})$/)).filter(Boolean)
+    .sort((a, b) => Number(b[1]) - Number(a[1])).map((m) => ({ key: m[0], label: m[1] + '/' + m[2] }));
+}
+function historyFor_(it, byNumber) {
+  const own = it.purchaseHistory && seasonKeys_(it.purchaseHistory).length ? it.purchaseHistory : null;
+  return own || (it.supplierItemNumber ? byNumber[normNumber_(it.supplierItemNumber)] || null : null);
+}
+function suggestFromHistory_(h) {
+  const seasons = seasonKeys_(h).slice(0, HISTORY_SEASONS)
+    .map((x) => ({ label: x.label, cases: num_(h[x.key]) })).filter((x) => x.cases !== null && !isNaN(x.cases));
+  if (!seasons.length) return { seasons, minimumStock: null, desiredStock: null };
+  const avg = seasons.reduce((t, x) => t + x.cases, 0) / seasons.length;
+  if (!(avg > 0)) return { seasons, minimumStock: null, desiredStock: null };
+  const perWeek = avg / SEASON_WEEKS;
+  if (perWeek < 1) return { seasons, perWeek: round2_(perWeek), minimumStock: 0.33, desiredStock: 1 };
+  const min = Math.ceil(perWeek - 1e-9);
+  return { seasons, perWeek: round2_(perWeek), minimumStock: min, desiredStock: Math.max(min + 1, Math.ceil(2 * perWeek - 1e-9)) };
+}
+function historySuggest_() {
+  const items = db_().all('items').filter((it) => !it.archived);
+  const byNumber = {};
+  items.forEach((it) => {
+    if (!it.supplierItemNumber || !it.purchaseHistory || !seasonKeys_(it.purchaseHistory).length) return;
+    const k = normNumber_(it.supplierItemNumber);
+    if (!byNumber[k]) byNumber[k] = it.purchaseHistory;
+  });
+  const counted = {};
+  db_().all('entries').forEach((e) => { if (isCounted_(e)) counted[e.itemId] = e.kind; });
+  const flagged = {};
+  db_().all('suggestions').forEach((g) => { if (g.status === 'open' && g.kind === 'inactive' && g.itemId) flagged[g.itemId] = g.department; });
+  return {
+    seasonWeeks: SEASON_WEEKS, seasonsUsed: HISTORY_SEASONS,
+    rows: sortItems_(items.filter((it) => it.active || counted[it.id] || flagged[it.id] !== undefined)).map((it) => {
+      const sug = suggestFromHistory_(historyFor_(it, byNumber));
+      return {
+        id: it.id, name: it.name, department: it.department || counted[it.id] || flagged[it.id] || '', active: !!it.active,
+        minimumStock: it.minimumStock === undefined ? null : it.minimumStock, desiredStock: it.desiredStock,
+        seasons: sug.seasons, perWeek: sug.perWeek === undefined ? null : sug.perWeek,
+        suggestedMinimum: sug.minimumStock, suggestedDesired: sug.desiredStock,
+      };
+    }),
+  };
+}
+function historyApply_(b) {
+  const rows = Array.isArray(b.rows) ? b.rows : [];
+  const known = {};
+  historySuggest_().rows.forEach((r) => { known[r.id] = r; });
+  const now = nowIso_();
+  let changed = 0, turnedOn = 0;
+  const problems = [];
+  rows.forEach((r) => {
+    const it = db_().get('items', str_(r.id, 60));
+    const k = it && known[it.id];
+    if (!k) return;
+    const min = num_(r.minimumStock), desired = num_(r.desiredStock);
+    if (min === null || desired === null || isNaN(min) || isNaN(desired) || min < 0 || desired < 0 || round2_(min) !== min || round2_(desired) !== desired) {
+      problems.push(it.name + ': enter a minimum and a desired stock (0 or more, up to two decimals).'); return;
+    }
+    if (min > desired) { problems.push(it.name + ': the minimum can’t be more than the desired stock.'); return; }
+    const patch = { minimumStock: min, desiredStock: desired, updatedAt: now };
+    if (r.turnOn && !it.active) {
+      if (!k.department) { problems.push(it.name + ': give it a department on its item page, then turn it on.'); return; }
+      Object.assign(patch, { department: k.department, active: true, countingUnitConfirmed: true, countingUnit: it.countingUnit || 'case' });
+      turnedOn++;
+      db_().all('suggestions').filter((g) => g.status === 'open' && g.kind === 'inactive' && g.itemId === it.id)
+        .forEach((g) => db_().update('suggestions', g.id, { status: 'done', handledAt: now, updatedAt: now }));
+    }
+    db_().update('items', it.id, patch);
+    changed++;
+  });
+  audit_('admin', 'history-suggestions-applied', { changed, turnedOn });
+  return { changed, turnedOn, problems };
+}
+
 function fillFromRecords_(commit) {
   const items = db_().all('items');
   const src = {};

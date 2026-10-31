@@ -165,6 +165,11 @@ until a later count shows it restocked and then low again.
 * Catalog > **Set up loose counting** suggests loose units for every active item from its case pack
   (96 x CT -> 96 rolls, 4 x 4# -> 4 bags). Items with one pack per case stay full-case only; counts over 120 per case
   start unticked. The admin adjusts the numbers and names, then applies; staff then get a Loose box beside Full cases.
+* Catalog > **Suggest from order history** suggests a minimum and desired stock for each turned-on or counted item from the
+  cases bought from Ginsberg's in the last 2 seasons over a 13-week season (`HISTORY_SEASONS`, `SEASON_WEEKS` in Code.gs).
+  Slow items (under a case a week): desired 1, reorder at 0.33. Faster items: minimum about 1 week, desired about 2 weeks.
+  Rows without numbers start ticked; a "Turn on" box turns on counted items (counted in full cases). Nothing saves until
+  **Apply ticked**.
 * Catalog > **Fill from notes & Ginsberg's records** fills each active item's minimum from notes like
   "Suggested minimum 2, target 3" and copies the price, purchase history and item # check from the imported
   Ginsberg's record with the same item number (preview first; never overwrites).

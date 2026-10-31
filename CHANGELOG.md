@@ -2,6 +2,7 @@
 
 Newest first. One plain-English line per change.
 
+- 2026-10-31: Supply Manager: Catalog "Suggest from order history": suggested minimum and desired stock from the last 2 Ginsberg's seasons, with a tick box to turn counted items on.
 - 2026-10-31: Supply Manager: Count inbox: count files from Claude or Hendrick in Drive become real counts every 15 minutes; unclear lines show on the Overview.
 - 2026-10-31: Supply Manager: Supplier box on items (Ginsberg's or Other); other-supplier items go on a new "To research & order" list instead of the Ginsberg's draft.
 - 2026-10-31: Supply Manager: counts can be part cases (like 0.6 or 4.33).

@@ -1079,3 +1079,29 @@ test('other suppliers: never on the Ginsberg’s draft; "Ordered" hides until re
   ok(app.call('completeCount', { kind: 'cafe' }));
   assert.equal(ok(app.call('adminOtherList', { token: t2 })).rows.length, 1);
 });
+
+test('suggest from order history: last 2 seasons / 13 weeks; slow items 1 and a third; apply only ticked rows; turn on counted items', () => {
+  const app = freshApp();
+  at(app, '2026-10-12T14:00:00Z');
+  // History lives on the imported Ginsberg's record; the turned-on item shares its number.
+  const rec = addItem(app, { name: 'GLOVE VINYL MED', supplierItemNumber: '68106' });
+  app.platform.store.update('items', rec.id, { purchaseHistory: { cases2023_24: 1, cases2025_26: 2, cases2020_2026: 9 } });
+  const fast = addItem(app, { name: 'SOUP FAST', supplierItemNumber: '7777' });
+  app.platform.store.update('items', fast.id, { purchaseHistory: { cases2023_24: 30, cases2025_26: 22, cases2020_2026: 90 } });
+  const gloves = cafeItem(app, { name: 'Vinyl gloves medium', supplierItemNumber: '68106', desiredStock: 3, minimumStock: 2 });
+  const soup = addItem(app, { name: 'Soup fast', supplierItemNumber: '7777', department: 'cafe' }); // turned off
+  app.state.inboxFiles.push({ id: 'f', name: 'c.csv', text: 'item,supplier number,department,count date,cases,add to order,note\nSoup fast,7777,Cafe,2026-10-12,1,,\n' });
+  ok(app.admin('adminInboxCheck'));
+  const s = ok(app.admin('adminHistorySuggest'));
+  const row = (id) => s.rows.filter((r) => r.id === id)[0];
+  same([row(gloves.id).suggestedMinimum, row(gloves.id).suggestedDesired, row(gloves.id).minimumStock], [0.33, 1, 2]); // 1.5 a season: slow
+  same([row(soup.id).suggestedMinimum, row(soup.id).suggestedDesired, row(soup.id).active, row(soup.id).department], [2, 4, false, 'cafe']); // 26/13 = 2 a week
+  assert.equal(row(rec.id), undefined); // never-counted, turned-off records aren't listed
+  const r = ok(app.admin('adminHistoryApply', { rows: [{ id: soup.id, minimumStock: 2, desiredStock: 4, turnOn: true }, { id: gloves.id, minimumStock: 3, desiredStock: 1 }] }));
+  same([r.changed, r.turnedOn, r.problems.length], [1, 1, 1]);
+  const items = ok(app.admin('adminItems')).items;
+  const s2 = items.filter((i) => i.id === soup.id)[0];
+  same([s2.active, s2.minimumStock, s2.desiredStock, s2.countingUnitConfirmed], [true, 2, 4, true]);
+  assert.equal(items.filter((i) => i.id === gloves.id)[0].desiredStock, 3); // refused row left alone
+  assert.equal(ok(app.admin('adminDashboard')).staff.filter((g) => g.kind === 'inactive').length, 0); // its notice is cleared
+});
