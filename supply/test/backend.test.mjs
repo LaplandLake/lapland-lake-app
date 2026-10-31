@@ -1085,7 +1085,7 @@ test('suggest from order history: last 2 seasons / 13 weeks; slow items 1 and a 
   at(app, '2026-10-12T14:00:00Z');
   // History lives on the imported Ginsberg's record; the turned-on item shares its number.
   const rec = addItem(app, { name: 'GLOVE VINYL MED', supplierItemNumber: '68106' });
-  app.platform.store.update('items', rec.id, { purchaseHistory: { cases2023_24: 1, cases2025_26: 2, cases2020_2026: 9 } });
+  app.platform.store.update('items', rec.id, { purchaseHistory: { cases2023_24: 1, cases2025_26: 2, cases2020_2026: 9 }, archived: true }); // removed duplicate: its history still counts
   const fast = addItem(app, { name: 'SOUP FAST', supplierItemNumber: '7777' });
   app.platform.store.update('items', fast.id, { purchaseHistory: { cases2023_24: 30, cases2025_26: 22, cases2020_2026: 90 } });
   const gloves = cafeItem(app, { name: 'Vinyl gloves medium', supplierItemNumber: '68106', desiredStock: 3, minimumStock: 2 });

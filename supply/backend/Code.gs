@@ -16,7 +16,7 @@
    The same file runs in Node for automated tests (see supply/test). Everything that
    touches Google services goes through the "platform" object at the bottom. */
 
-const APP_VERSION = '1.3.1';
+const APP_VERSION = '1.3.2';
 const TZ = 'America/New_York';
 const DATA_SPREADSHEET_NAME = 'Lapland Lake Supply Manager Data';
 const DRIVE_FOLDER_NAME = 'Lapland Lake Supply Manager';
@@ -1959,8 +1959,10 @@ function suggestFromHistory_(h) {
 }
 function historySuggest_() {
   const items = db_().all('items').filter((it) => !it.archived);
+  // History often sits on the older imported record for the same Ginsberg's number, which may have
+  // been removed from the catalog as a duplicate: removed records still count here.
   const byNumber = {};
-  items.forEach((it) => {
+  db_().all('items').slice().sort((x, y) => (x.archived ? 1 : 0) - (y.archived ? 1 : 0)).forEach((it) => {
     if (!it.supplierItemNumber || !it.purchaseHistory || !seasonKeys_(it.purchaseHistory).length) return;
     const k = normNumber_(it.supplierItemNumber);
     if (!byNumber[k]) byNumber[k] = it.purchaseHistory;
