@@ -110,6 +110,8 @@ const TABLES = {
     at: 's', error: 's', trigger: 's',
   },
   settings: { id: 's', value: 'j' },
+  // Count files picked up from the Drive "Count inbox" folder.
+  inboxLog: { id: 's', fileName: 's', fileId: 's', at: 's', status: 's', summary: 'j' },
   audit: { id: 's', at: 's', actor: 's', action: 's', detail: 'j' },
 };
 
@@ -187,6 +189,10 @@ const ACTIONS = {
   adminRequests: { role: 'admin', fn: () => adminRequests_() },
   adminSuggestions: { role: 'admin', fn: () => ({ suggestions: suggestionList_() }) },
   adminOtherList: { role: 'admin', fn: () => ({ rows: otherList_() }) },
+  adminInboxStatus: { role: 'admin', fn: () => inboxStatus_() },
+  adminInboxOn: { role: 'admin', write: true, fn: () => inboxOn_() },
+  adminInboxOff: { role: 'admin', write: true, fn: () => inboxOff_() },
+  adminInboxCheck: { role: 'admin', write: true, fn: () => Object.assign(inboxStatus_(), { result: processInbox_() }) },
   adminOtherOrdered: { role: 'admin', write: true, fn: (b) => adminOtherOrdered_(b) },
   adminHandleSuggestion: { role: 'admin', write: true, fn: (b) => adminHandleSuggestion_(b) },
   adminPhoto: { role: 'admin', fn: (b) => adminPhoto_(b) },
@@ -494,6 +500,7 @@ const DEFAULT_SETTINGS = {
   email: { recipient: '', enabled: false },
   backup: { driveBackupEnabled: false, lastBackupAt: '', lastError: '' },
   ordering: { paused: false },
+  countInbox: { enabled: false, lastRunAt: '', lastError: '' },
   migration: { ginsberg: 'not-imported', notes: '' },
 };
 
@@ -1289,6 +1296,30 @@ function takePhotos_(tokens, ownerId) {
   return { ids: photos.map((p) => p.id), attach: () => photos.forEach((ph) => db_().update('photos', ph.id, { requestId: ownerId, status: 'attached' })) };
 }
 
+// Puts a one-time extra where it belongs and fills in the suggestion record g (not saved here):
+// Ginsberg's items go on the next draft (or wait as a notice when ordering is paused or the order
+// was already sent); other-supplier items go on the "To research & order" list.
+function placeExtra_(g, it, n, note) {
+  g.cases = n;
+  if (!isGinsbergs_(it)) { g.detail = Object.assign({}, g.detail, { reason: 'other' }); return 'Sent ✓'; }
+  const nd = orderingPaused_() ? null : nextDelivery_(platform_().now());
+  const sent = nd ? sentWithoutDraft_(nd.deliveryDate) : null;
+  if (!nd) { g.detail = Object.assign({}, g.detail, { reason: 'paused' }); return 'Sent ✓'; }
+  if (sent) {
+    g.deliveryDate = nd.deliveryDate;
+    g.orderId = sent.id;
+    g.detail = Object.assign({}, g.detail, { reason: 'sent', deadline: nd.deadline });
+    return 'Sent ✓';
+  }
+  const order = draftFor_(nd);
+  addExtraToOrder_(order, it, n, note);
+  g.status = 'added';
+  g.orderId = order.id;
+  g.deliveryDate = nd.deliveryDate;
+  g.handledAt = nowIso_();
+  return 'Added to this week’s order ✓ (+' + n + ' ' + (n === 1 ? 'case' : 'cases') + ' of ' + it.name + ')';
+}
+
 // Staff: "+ Extra for this week", "We need more every week", "We have too many",
 // and "Item not on this list?". Nothing here changes desired stock or minimums.
 function staffSuggest_(b) {
@@ -1316,32 +1347,7 @@ function staffSuggest_(b) {
   if (kind === 'extra') {
     const n = num_(b.cases);
     if (n === null || isNaN(n) || n < 1 || n > 50 || Math.floor(n) !== n) fail_('Extra cases must be a whole number from 1 to 50.');
-    g.cases = n;
-    if (!isGinsbergs_(it)) {
-      // Not a Ginsberg's item: it goes on the "To research & order" list instead of the draft.
-      g.detail = { reason: 'other' };
-      db_().insert('suggestions', g);
-      return { saved: true, message: 'Sent ✓' };
-    }
-    const nd = orderingPaused_() ? null : nextDelivery_(platform_().now());
-    const sent = nd ? sentWithoutDraft_(nd.deliveryDate) : null;
-    if (!nd) {
-      g.detail = { reason: 'paused' };
-      message = 'Sent ✓';
-    } else if (sent) {
-      g.deliveryDate = nd.deliveryDate;
-      g.orderId = sent.id;
-      g.detail = { reason: 'sent', deadline: nd.deadline };
-      message = 'Sent ✓';
-    } else {
-      const order = draftFor_(nd);
-      addExtraToOrder_(order, it, n, note);
-      g.status = 'added';
-      g.orderId = order.id;
-      g.deliveryDate = nd.deliveryDate;
-      g.handledAt = nowIso_();
-      message = 'Added to this week’s order ✓ (+' + n + ' ' + (n === 1 ? 'case' : 'cases') + ' of ' + it.name + ')';
-    }
+    message = placeExtra_(g, it, n, note);
   } else {
     message = 'Sent ✓';
   }
@@ -1371,6 +1377,281 @@ function adminHandleSuggestion_(b) {
   db_().update('suggestions', g.id, { status: act === 'reopen' ? 'open' : act === 'done' ? 'done' : 'dismissed', handledAt: act === 'reopen' ? '' : now, updatedAt: now });
   audit_('admin', 'staff-suggestion-' + act, { id: g.id, kind: g.kind });
   return { suggestion: db_().get('suggestions', g.id), item: g.itemId ? db_().get('items', g.itemId) : null };
+}
+
+/* ---------------------------------------------------------------- count inbox (counts from a file) */
+
+// A count file is a CSV (or Google Sheet) saved in Drive > "Lapland Lake Supply Manager" > "Count inbox".
+// Columns (header names are matched loosely): item, supplier number, department, count date, cases,
+// add to order (cases), note. Every 15 minutes (or "Check now" in Admin) each file is taken in as a
+// real count, the same as staff typing, then moved to "Count inbox / Imported". Nothing is deleted.
+
+const MATCH_STOP_ = { of: 1, and: 1, the: 1, with: 1, a: 1, for: 1, in: 1, to: 1 };
+const MATCH_SYN_ = { cont: 'container', pkt: 'packet', pk: 'pack', pkg: 'package', ct: 'count', choc: 'chocolate', lg: 'large', med: 'medium', sm: 'small', xl: 'xlarge', 'x-large': 'xlarge' };
+function nameTokens_(s) {
+  return String(s || '').toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9.]+/g, ' ').split(' ')
+    .map((w) => w.replace(/^\.+|\.+$/g, '')).filter((w) => w && !MATCH_STOP_[w])
+    .map((w) => MATCH_SYN_[w] || w).map((w) => (w.length > 3 && /s$/.test(w) && !/ss$/.test(w) ? w.slice(0, -1) : w));
+}
+function nameScore_(a, b) {
+  const A = nameTokens_(a), B = nameTokens_(b);
+  if (!A.length || !B.length) return 0;
+  const setB = {}; B.forEach((w) => { setB[w] = 1; });
+  const common = A.filter((w, i) => setB[w] && A.indexOf(w) === i).length;
+  return (2 * common) / (A.length + B.length);
+}
+function normNumber_(n) {
+  const s = String(n || '').trim().toUpperCase();
+  return /^\d+$/.test(s) ? s.replace(/^0+(?=\d)/, '') : s;
+}
+// Ginsberg's number first, then a close name match. Returns { item, how } or { item: null }.
+function matchItem_(items, number, name, dept) {
+  const prefer = (list) => list.slice().sort((a, b) => (b.active ? 1 : 0) - (a.active ? 1 : 0) ||
+    ((b.department === dept) ? 1 : 0) - ((a.department === dept) ? 1 : 0))[0];
+  const num = normNumber_(number);
+  if (num) {
+    const byNum = items.filter((it) => it.supplierItemNumber && normNumber_(it.supplierItemNumber) === num);
+    if (byNum.length) return { item: prefer(byNum), how: 'number' };
+  }
+  if (!String(name || '').trim()) return { item: null };
+  const pool = items.filter((it) => !dept || !it.department || it.department === dept);
+  // Sizes in the name (6x6, 12 oz, 9 in) must also be in the item's name or description.
+  const sizes = nameTokens_(name).filter((w) => /\d/.test(w));
+  const hasSizes = (it) => { const t = nameTokens_(it.name + ' ' + (it.description || '')); return sizes.every((w) => t.indexOf(w) >= 0); };
+  const scored = pool.map((it) => ({ it, score: hasSizes(it) ? Math.max(nameScore_(name, it.name), nameScore_(name, it.description)) : 0 }))
+    .sort((a, b) => b.score - a.score || (b.it.active ? 1 : 0) - (a.it.active ? 1 : 0));
+  const best = scored[0], second = scored[1];
+  if (!best || best.score < 0.5) return { item: null };
+  // Too close to call between two different items: leave it for the admin. Two catalog records
+  // for the same product (same Ginsberg's number) are one item: the turned-on one wins.
+  const sameProduct = (x, y) => (x.supplierItemNumber && normNumber_(x.supplierItemNumber) === normNumber_(y.supplierItemNumber)) ||
+    nameTokens_(x.name).join(' ') === nameTokens_(y.name).join(' ');
+  if (second && second.score > best.score - 0.1) {
+    // Exactly one turned-on item among the close ones: that's the one staff count.
+    const closeOnes = scored.filter((x) => x.score > best.score - 0.1);
+    const on = closeOnes.filter((x) => x.it.active);
+    if (on.length === 1 && on[0].score >= 0.65 && !sameProduct(best.it, second.it)) return { item: on[0].it, how: 'name' };
+    if (!sameProduct(best.it, second.it)) return { item: null, close: [best.it.name, second.it.name] };
+    return { item: prefer(scored.filter((x) => x.score > best.score - 0.1 && sameProduct(best.it, x.it)).map((x) => x.it)), how: 'name' };
+  }
+  return { item: best.it, how: 'name' };
+}
+
+// Finds a column by name: exact names first, then names that start the same way.
+function csvField_(header, row, names) {
+  let i = -1;
+  names.some((n) => { i = header.indexOf(n); return i >= 0; });
+  if (i < 0) names.some((n) => { i = header.findIndex((h) => h.indexOf(n) === 0); return i >= 0; });
+  return i < 0 ? '' : String(row[i] === undefined ? '' : row[i]).trim();
+}
+function countDate_(v) {
+  const m = String(v || '').trim().match(/^(\d{4})-(\d{1,2})-(\d{1,2})/) || String(v || '').trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (!m) return null;
+  const y = m[1].length === 4 ? Number(m[1]) : Number(m[3]);
+  const mo = m[1].length === 4 ? Number(m[2]) : Number(m[1]);
+  const d = m[1].length === 4 ? Number(m[3]) : Number(m[2]);
+  return nyToDate_(y, mo, d, 12, 0);
+}
+
+// The count an imported line goes into, per department:
+// - a date before this week: its own past count (kept as history, it doesn't change the draft);
+// - a count in progress: that count (staff finish it as usual);
+// - this week's finished count: that count, like staff fixing a number;
+// - otherwise: a new finished count.
+function importSession_(kind, when, file) {
+  const now = platform_().now();
+  const mk = (at, origin) => {
+    const s = {
+      id: newId_('s'), kind, status: 'completed', weekPeriod: weekPeriodOf_(at), startedAt: at.toISOString(), completedAt: at.toISOString(),
+      completedBy: 'count file', incompleteAtCompletion: null, totalAtCompletion: null, reportVersion: 1, note: 'From count file ' + file,
+      origin, legacyId: '', createdAt: nowIso_(), updatedAt: nowIso_(),
+    };
+    db_().insert('sessions', s);
+    return s;
+  };
+  if (when && weekPeriodOf_(when) < weekPeriodOf_(now)) return { session: mk(when, 'count-file'), mode: 'past' };
+  const open = openSession_(kind);
+  if (open) return { session: open, mode: 'open' };
+  const last = latestSession_(kind);
+  if (last && last.status === 'completed' && last.completedAt && weekPeriodOf_(new Date(last.completedAt)) === weekPeriodOf_(now)) return { session: last, mode: 'finished' };
+  return { session: mk(now, 'count-file'), mode: 'new' };
+}
+
+function inboxIssue_(kind, dept, fields) {
+  // One open notice per item and kind, updated by later files.
+  const same = db_().all('suggestions').filter((g) => g.status === 'open' && g.kind === kind &&
+    (fields.itemId ? g.itemId === fields.itemId : g.itemName.toLowerCase() === String(fields.itemName || '').toLowerCase()))[0];
+  if (same) { db_().update('suggestions', same.id, Object.assign({}, fields, { updatedAt: nowIso_() })); return; }
+  db_().insert('suggestions', newSuggestion_(kind, dept, fields));
+}
+
+function importCountFile_(fileName, table) {
+  if (!table.length) fail_('The file is empty.');
+  const header = table[0].map((h) => String(h).toLowerCase().replace(/\(.*?\)/g, '').replace(/[^a-z ]+/g, ' ').replace(/\s+/g, ' ').trim());
+  if (header.indexOf('item') < 0 && !header.some((h) => h.indexOf('item') === 0)) fail_('The first row must be the column names (item, supplier number, department, count date, cases, add to order, note).');
+  const items = db_().all('items').filter((it) => !it.archived);
+  const sum = { counted: 0, notCounted: [], extras: 0, issues: 0, departments: {}, problems: [] };
+  const byDept = {};
+  table.slice(1).forEach((row, i) => {
+    const line = i + 2;
+    const name = csvField_(header, row, ['item']);
+    const number = csvField_(header, row, ['supplier number', 'ginsberg', 'item number', 'number']);
+    let dept = csvField_(header, row, ['department', 'dept']).toLowerCase().replace('é', 'e');
+    dept = dept.indexOf('house') === 0 ? 'housekeeping' : dept.indexOf('cafe') === 0 ? 'cafe' : '';
+    const when = countDate_(csvField_(header, row, ['count date', 'date']));
+    const casesRaw = csvField_(header, row, ['cases', 'count', 'on hand']);
+    const addRaw = csvField_(header, row, ['add to order', 'add', 'extra']);
+    const note = csvField_(header, row, ['note', 'notes']).slice(0, 300);
+    if (!name && !number) return;
+    const cases = casesRaw === '' ? null : num_(casesRaw);
+    const add = addRaw === '' ? null : num_(addRaw);
+    if ((cases !== null && (isNaN(cases) || cases < 0 || cases > 9999)) || (add !== null && (isNaN(add) || add < 0 || add > 50))) {
+      sum.problems.push('Line ' + line + ' (' + (name || number) + '): the number could not be read.');
+      inboxIssue_('nomatch', dept, { itemName: name || number, note, detail: { number, line, file: fileName, problem: 'number' } });
+      sum.issues++;
+      return;
+    }
+    const m = matchItem_(items, number, name, dept);
+    const it = m.item;
+    if (!it) {
+      if (cases === null && !(add > 0)) { sum.notCounted.push(name || number); return; }
+      inboxIssue_('nomatch', dept, { itemName: name || number, note, cases: add > 0 ? Math.ceil(add) : null, detail: { number, line, file: fileName, cases, close: m.close || null } });
+      sum.issues++;
+      return;
+    }
+    const kind = it.department || dept;
+    if (!kind) {
+      inboxIssue_('inactive', '', { itemId: it.id, itemName: it.name, note, detail: { missing: ['department'], cases, add, file: fileName } });
+      sum.issues++;
+      return;
+    }
+    if (!it.active) {
+      const missing = [];
+      if (!it.department) missing.push('department');
+      if (!it.countingUnitConfirmed) missing.push('confirmed counting unit');
+      if (it.desiredStock === null || it.desiredStock === undefined) missing.push('desired stock');
+      inboxIssue_('inactive', kind, { itemId: it.id, itemName: it.name, note, detail: { missing, cases, add, file: fileName } });
+      sum.issues++;
+    }
+    (byDept[kind] = byDept[kind] || []).push({ it, cases: cases === null ? null : round2_(cases), add, note, when, line, name });
+  });
+
+  Object.keys(byDept).forEach((kind) => {
+    const rowsIn = byDept[kind];
+    const when = rowsIn.map((r) => r.when).filter(Boolean)[0] || null;
+    const target = importSession_(kind, when, fileName);
+    const s = target.session;
+    const ed = target.mode === 'finished' ? editableSession_(kind) : null;
+    const now = nowIso_();
+    const at = target.mode === 'past' ? s.completedAt : now;
+    rowsIn.forEach((r) => {
+      const existing = db_().all('entries').filter((e) => e.sessionId === s.id && e.itemId === r.it.id)[0];
+      if (r.cases === null) {
+        sum.notCounted.push(r.it.name);
+        if (!r.note) return;
+        if (existing) { db_().update('entries', existing.id, { note: r.note, updatedAt: now }); return; }
+      }
+      const rec = {
+        sessionId: s.id, kind, itemId: r.it.id, fullCases: r.cases, looseUnits: null, flag: '', note: r.note,
+        countedAt: at, snapshot: itemSnapshot_(r.it), parts: null, updatedAt: now,
+      };
+      if (r.cases !== null) sum.counted++;
+      if (target.mode === 'finished' && existing && r.cases !== null && (existing.fullCases !== r.cases || existing.looseUnits !== null)) {
+        rec.changedAfterFinish = { from: existing.changedAfterFinish ? existing.changedAfterFinish.from : { fullCases: existing.fullCases, looseUnits: existing.looseUnits }, at: now };
+      }
+      if (existing) db_().update('entries', existing.id, rec);
+      else db_().insert('entries', Object.assign({ id: newId_('e'), origin: 'count-file', legacyId: '', createdAt: now }, rec));
+      if (ed && ed.session.id === s.id && ed.mode === 'sent' && rec.changedAfterFinish && r.it.active) {
+        try { afterFinishChange_(ed, r.it, rec); } catch (err) { platform_().log('Count file follow-up failed: ' + err); }
+      }
+    });
+    if (target.mode === 'new') {
+      const countables = activeCountables_(kind);
+      const counted = {};
+      db_().all('entries').filter((e) => e.sessionId === s.id && isCounted_(e)).forEach((e) => { counted[e.itemId] = 1; });
+      db_().update('sessions', s.id, { incompleteAtCompletion: countables.filter((c) => !counted[c.id]).length, totalAtCompletion: countables.length });
+    }
+    // The draft updates the same way as for a staff count.
+    const draftable = !orderingPaused_() && (target.mode === 'new' || (ed && ed.session.id === s.id && ed.mode === 'draft'));
+    if (draftable) {
+      try { autoDraft_(kind, s.id); } catch (err) { platform_().log('Auto draft from count file failed: ' + err); }
+    }
+    // "Add to order" works like a staff "extra this week" (whole cases).
+    rowsIn.forEach((r) => {
+      if (!(r.add > 0) || !r.it.active) return;
+      const g = newSuggestion_('extra', kind, { itemId: r.it.id, itemName: r.it.name, note: r.note, detail: { source: 'count file' } });
+      placeExtra_(g, r.it, Math.ceil(r.add), r.note);
+      db_().insert('suggestions', g);
+      sum.extras++;
+    });
+    sum.departments[kind] = { mode: target.mode, sessionId: s.id, lines: rowsIn.length };
+  });
+  audit_('system', 'count-file-imported', { file: fileName, counted: sum.counted, issues: sum.issues });
+  return sum;
+}
+
+function processInbox_() {
+  const p = platform_();
+  const files = p.countInbox.list();
+  const results = [];
+  files.forEach((f) => {
+    let status = 'imported', summary;
+    try {
+      const table = f.rows || parseCsv_(String(f.text || '').replace(/^\uFEFF/, ''));
+      summary = importCountFile_(f.name, table.filter((r) => r.some((x) => String(x).trim() !== '')));
+    } catch (err) {
+      status = 'problem';
+      summary = { error: err instanceof UserError ? err.message : 'Could not read this file: ' + (err && err.message ? err.message : err) };
+    }
+    try { p.countInbox.move(f.id, status === 'imported' ? 'Imported' : 'Could not import'); } catch (err) { summary.moveError = String(err && err.message ? err.message : err); }
+    db_().insert('inboxLog', { id: newId_('x'), fileName: f.name, fileId: f.id, at: nowIso_(), status, summary });
+    results.push({ fileName: f.name, status, summary });
+  });
+  putSetting_('countInbox', Object.assign(allSettings_().countInbox, { lastRunAt: nowIso_(), lastError: '' }));
+  return results;
+}
+
+function inboxStatus_() {
+  const c = allSettings_().countInbox;
+  let installed = null, folderUrl = '';
+  try { installed = platform_().countInbox.isInstalled(); } catch (e) { installed = null; }
+  try { folderUrl = platform_().countInbox.folderUrl(); } catch (e) { folderUrl = ''; }
+  return {
+    enabled: !!c.enabled, lastRunAt: c.lastRunAt || '', lastError: c.lastError || '', triggerInstalled: installed, folderUrl,
+    log: db_().all('inboxLog').slice().sort((a, b) => String(b.at).localeCompare(String(a.at))).slice(0, 15),
+  };
+}
+function inboxOn_() {
+  try { platform_().countInbox.install(); } catch (err) {
+    // Google can refuse to create the timer from the web app; the admin then runs installCountInbox once in the editor.
+    return Object.assign(inboxStatus_(), { turnedOn: false, error: String(err && err.message ? err.message : err).slice(0, 300) });
+  }
+  putSetting_('countInbox', Object.assign(allSettings_().countInbox, { enabled: true }));
+  audit_('admin', 'count-inbox-on', null);
+  return Object.assign(inboxStatus_(), { turnedOn: true });
+}
+function inboxOff_() {
+  try { platform_().countInbox.remove(); } catch (err) { return Object.assign(inboxStatus_(), { error: String(err && err.message ? err.message : err).slice(0, 300) }); }
+  putSetting_('countInbox', Object.assign(allSettings_().countInbox, { enabled: false }));
+  audit_('admin', 'count-inbox-off', null);
+  return inboxStatus_();
+}
+
+// The 15-minute timer runs this.
+function checkCountInbox() {
+  const p = platform_();
+  try {
+    p.withLock(() => { db_().reset(); processInbox_(); });
+  } catch (err) {
+    try { db_().reset(); putSetting_('countInbox', Object.assign(allSettings_().countInbox, { lastRunAt: nowIso_(), lastError: String(err && err.message ? err.message : err).slice(0, 300) })); } catch (e) { /* ignore */ }
+    p.log('Count inbox check failed: ' + (err && err.stack ? err.stack : err));
+  }
+}
+// Same as the "Turn on Count inbox" button in Admin, for running from the Apps Script editor.
+function installCountInbox() {
+  db_().reset();
+  const r = inboxOn_();
+  platform_().log(r.turnedOn ? 'Count inbox is on (checks every 15 minutes).' : 'Could not turn on the Count inbox: ' + r.error);
 }
 
 /* ---------------------------------------------------------------- requests and photos */
@@ -3059,6 +3340,28 @@ function gasPlatform_() {
         attachments: (m.attachments || []).map((a) => Utilities.newBlob(a.content, a.mimeType, a.name)),
       }),
     },
+    countInbox: {
+      list: () => {
+        const out = [];
+        const it = gasFolder_(['Count inbox']).getFiles();
+        while (it.hasNext()) {
+          const f = it.next();
+          if (f.isTrashed()) continue;
+          const mime = f.getMimeType();
+          if (mime === MimeType.GOOGLE_SHEETS) out.push({ id: f.getId(), name: f.getName(), rows: SpreadsheetApp.openById(f.getId()).getSheets()[0].getDataRange().getDisplayValues() });
+          else out.push({ id: f.getId(), name: f.getName(), text: f.getBlob().getDataAsString('UTF-8') });
+        }
+        return out;
+      },
+      move: (id, sub) => { DriveApp.getFileById(id).moveTo(gasFolder_(['Count inbox', sub])); },
+      install: () => {
+        ScriptApp.getProjectTriggers().filter((t) => t.getHandlerFunction() === 'checkCountInbox').forEach((t) => ScriptApp.deleteTrigger(t));
+        ScriptApp.newTrigger('checkCountInbox').timeBased().everyMinutes(15).create();
+      },
+      remove: () => ScriptApp.getProjectTriggers().filter((t) => t.getHandlerFunction() === 'checkCountInbox').forEach((t) => ScriptApp.deleteTrigger(t)),
+      isInstalled: () => ScriptApp.getProjectTriggers().some((t) => t.getHandlerFunction() === 'checkCountInbox'),
+      folderUrl: () => gasFolder_(['Count inbox']).getUrl(),
+    },
     backup: {
       install: () => {
         ScriptApp.getProjectTriggers().filter((t) => t.getHandlerFunction() === 'driveBackup').forEach((t) => ScriptApp.deleteTrigger(t));
@@ -3087,5 +3390,5 @@ function setup() {
 }
 
 if (typeof module !== 'undefined') {
-  module.exports = { handleApi_, setPlatform_, TABLES, SheetStore, parseCasePack_, nextDelivery_, weekPeriodOf_, createAdminSetupCode, pbkdf2_, parseCsv_, bevReport_ };
+  module.exports = { handleApi_, setPlatform_, TABLES, SheetStore, parseCasePack_, nextDelivery_, weekPeriodOf_, createAdminSetupCode, pbkdf2_, parseCsv_, bevReport_, matchItem_ };
 }
