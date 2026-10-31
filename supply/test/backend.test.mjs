@@ -1095,7 +1095,8 @@ test('suggest from order history: last 2 seasons / 13 weeks; slow items 1 and a 
   const s = ok(app.admin('adminHistorySuggest'));
   const row = (id) => s.rows.filter((r) => r.id === id)[0];
   same([row(gloves.id).suggestedMinimum, row(gloves.id).suggestedDesired, row(gloves.id).minimumStock], [0.33, 1, 2]); // 1.5 a season: slow
-  same([row(soup.id).suggestedMinimum, row(soup.id).suggestedDesired, row(soup.id).active, row(soup.id).department], [2, 4, false, 'cafe']); // 26/13 = 2 a week
+  same([row(soup.id).suggestedMinimum, row(soup.id).suggestedDesired, row(soup.id).active, row(soup.id).department], [3, 5, false, 'cafe']); // 30/11 and 22/12 a week = 2.28
+  same(row(soup.id).seasons.map((x) => x.weeks), [12, 11]);
   assert.equal(row(rec.id), undefined); // never-counted, turned-off records aren't listed
   const r = ok(app.admin('adminHistoryApply', { rows: [{ id: soup.id, minimumStock: 2, desiredStock: 4, turnOn: true }, { id: gloves.id, minimumStock: 3, desiredStock: 1 }] }));
   same([r.changed, r.turnedOn, r.problems.length], [1, 1, 1]);

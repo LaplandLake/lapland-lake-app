@@ -526,7 +526,7 @@ try {
     await admin.click('button:has-text("Suggest from order history")');
     await admin.waitForSelector('text=Suggestions from order history (nothing saved yet)');
     const sugar = admin.locator('tr', { hasText: 'TEST Sugar packets' });
-    expect(/2025\/26: 1/.test(await sugar.textContent()), 'season history shown: ' + await sugar.textContent());
+    expect(/2025\/26: 1 in 12 wks/.test(await sugar.textContent()), 'season history shown: ' + await sugar.textContent());
     expect((await sugar.locator('input[aria-label^="Desired stock"]').inputValue()) === '1', 'slow item suggests desired 1');
     await admin.screenshot({ path: path.join(SHOTS, 'admin-history-suggest-390.png'), fullPage: false });
     await sugar.locator('input[aria-label^="Use the suggestion"]').check();

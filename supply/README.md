@@ -166,7 +166,8 @@ until a later count shows it restocked and then low again.
   (96 x CT -> 96 rolls, 4 x 4# -> 4 bags). Items with one pack per case stay full-case only; counts over 120 per case
   start unticked. The admin adjusts the numbers and names, then applies; staff then get a Loose box beside Full cases.
 * Catalog > **Suggest from order history** suggests a minimum and desired stock for each turned-on or counted item from the
-  cases bought from Ginsberg's in the last 2 seasons over a 13-week season (`HISTORY_SEASONS`, `SEASON_WEEKS` in Code.gs).
+  cases bought from Ginsberg's in the last 2 seasons, each spread over the weeks actually ordered that winter (from the
+  invoice dates: 23/24 = 11, 24/25 = 13, 25/26 = 12; `SEASON_ORDER_WEEKS` and `HISTORY_SEASONS` in Code.gs).
   Slow items (under a case a week): desired 1, reorder at 0.33. Faster items: minimum about 1 week, desired about 2 weeks.
   Rows without numbers start ticked; a "Turn on" box turns on counted items (counted in full cases). Nothing saves until
   **Apply ticked**.

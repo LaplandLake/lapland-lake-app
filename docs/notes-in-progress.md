@@ -25,7 +25,7 @@ Last updated: 2026-10-05. These are notes from working with the owner's team, so
 
 ## Supply Manager: suggestions from order history (built 2026-10-31)
 - Todd doesn't know desired stock for most items; asked to base it on past orders, especially the last 2 seasons (3 at most).
-- Decided with Todd: 13-week season; slow items desired 1, reorder at a third of a case (he said 1/4 to 1/3; we used 1/3); show suggestions for items that already have numbers too, to compare.
+- Decided with Todd: use the real winter order weeks from the invoice dates in Drive > Ginsberg's Foods season folders (23/24 = 11, 24/25 = 13, 25/26 = 12; one summer invoice Aug 27, 2026 left out); slow items desired 1, reorder at a third of a case (he said 1/4 to 1/3; we used 1/3); show suggestions for items that already have numbers too, to compare.
 - Only season totals exist (2023/24, 2025/26), no weekly detail. When the 2 more years of invoices are scanned, add them to the purchase history so suggestions improve.
 - 2026-10-31: Todd's Oct 30 count file was put in Count inbox and taken in: 53 counted, 24 lines need him. Ordering stays paused until about 3 weeks out; the paused "extra" cards are his reminder list for the first order.
 

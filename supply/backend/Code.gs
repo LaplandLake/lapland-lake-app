@@ -1931,10 +1931,12 @@ function adminRemoveItems_(b) {
 // Ginsberg's record (same item #). Never overwrites anything already already filled in.
 // "Suggest from order history": a starting minimum and desired stock per item from the cases
 // bought from Ginsberg's in recent seasons (purchase history imported from Ginsberg's files).
-// Average cases per season over the latest HISTORY_SEASONS seasons / SEASON_WEEKS = cases per week.
+// Each season's cases are spread over the weeks Lapland actually ordered that winter (first to last
+// winter invoice date in Drive > Ginsberg's Foods > season folders), then averaged = cases per week.
 // Slow items (under a case a week): desired 1, reorder at a third of a case.
 // Faster items: minimum about one week's worth, desired about two weeks' worth, in whole cases.
-const SEASON_WEEKS = 13;
+const SEASON_WEEKS = 13; // for a season not listed below
+const SEASON_ORDER_WEEKS = { '2023/24': 11, '2024/25': 13, '2025/26': 12 }; // Dec 14-Feb 22, Dec 12-Mar 6, Dec 11-Feb 26
 const HISTORY_SEASONS = 2;
 function seasonKeys_(h) {
   return Object.keys(h || {}).map((k) => k.match(/^cases(\d{4})_(\d{2})$/)).filter(Boolean)
@@ -1946,11 +1948,11 @@ function historyFor_(it, byNumber) {
 }
 function suggestFromHistory_(h) {
   const seasons = seasonKeys_(h).slice(0, HISTORY_SEASONS)
-    .map((x) => ({ label: x.label, cases: num_(h[x.key]) })).filter((x) => x.cases !== null && !isNaN(x.cases));
+    .map((x) => ({ label: x.label, cases: num_(h[x.key]), weeks: SEASON_ORDER_WEEKS[x.label] || SEASON_WEEKS }))
+    .filter((x) => x.cases !== null && !isNaN(x.cases));
   if (!seasons.length) return { seasons, minimumStock: null, desiredStock: null };
-  const avg = seasons.reduce((t, x) => t + x.cases, 0) / seasons.length;
-  if (!(avg > 0)) return { seasons, minimumStock: null, desiredStock: null };
-  const perWeek = avg / SEASON_WEEKS;
+  const perWeek = seasons.reduce((t, x) => t + x.cases / x.weeks, 0) / seasons.length;
+  if (!(perWeek > 0)) return { seasons, minimumStock: null, desiredStock: null };
   if (perWeek < 1) return { seasons, perWeek: round2_(perWeek), minimumStock: 0.33, desiredStock: 1 };
   const min = Math.ceil(perWeek - 1e-9);
   return { seasons, perWeek: round2_(perWeek), minimumStock: min, desiredStock: Math.max(min + 1, Math.ceil(2 * perWeek - 1e-9)) };

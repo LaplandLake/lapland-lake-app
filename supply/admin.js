@@ -830,13 +830,13 @@
         h('tbody', null, rows.map((r) => h('tr', null,
           h('td', null, r.use),
           h('td', null, h('b', null, r.x.name), h('div', { class: 'small muted' }, (KIND_HEADING[r.x.department] || 'No department') + (r.x.active ? '' : ' · turned off'))),
-          h('td', null, r.x.seasons.length ? r.x.seasons.map((z) => z.label + ': ' + z.cases).join(' · ') + (r.x.perWeek !== null ? ' (' + r.x.perWeek + ' a week)' : '') : 'No order history'),
+          h('td', null, r.x.seasons.length ? r.x.seasons.map((z) => z.label + ': ' + z.cases + ' in ' + z.weeks + ' wks').join(' · ') + (r.x.perWeek !== null ? ' (' + r.x.perWeek + ' a week)' : '') : 'No order history'),
           h('td', null, has(r.x.desiredStock) ? 'min ' + (has(r.x.minimumStock) ? r.x.minimumStock : '—') + ', desired ' + r.x.desiredStock : '—'),
           h('td', null, r.min), h('td', null, r.des),
           h('td', null, r.on || '')))));
       labelize(table);
       replace(histOut, h('div', { class: 'card', style: 'margin-top:12px' }, h('h3', null, 'Suggestions from order history (nothing saved yet)'),
-        h('p', { class: 'small muted' }, 'Based on cases bought from Ginsberg’s in the last ' + d.seasonsUsed + ' seasons, over a ' + d.seasonWeeks + '-week season. Slow items (under a case a week): desired 1, reorder at a third of a case. Faster items: minimum about 1 week, desired about 2 weeks. Items without numbers start ticked; compare the others and tick the ones you want. You can change any number.'),
+        h('p', { class: 'small muted' }, 'Based on cases bought from Ginsberg’s in the last ' + d.seasonsUsed + ' seasons, spread over the weeks you actually ordered that winter (from the invoice dates). Slow items (under a case a week): desired 1, reorder at a third of a case. Faster items: minimum about 1 week, desired about 2 weeks. Items without numbers start ticked; compare the others and tick the ones you want. You can change any number.'),
         h('div', { class: 'row', style: 'margin-bottom:10px' }, applyBtn()),
         h('div', { class: 'table-wrap' }, table),
         h('div', { class: 'row', style: 'margin-top:10px' }, applyBtn())));
