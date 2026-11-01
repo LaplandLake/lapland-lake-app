@@ -16,7 +16,7 @@
    The same file runs in Node for automated tests (see supply/test). Everything that
    touches Google services goes through the "platform" object at the bottom. */
 
-const APP_VERSION = '1.3.3';
+const APP_VERSION = '1.4.0';
 const TZ = 'America/New_York';
 const DATA_SPREADSHEET_NAME = 'Lapland Lake Supply Manager Data';
 const DRIVE_FOLDER_NAME = 'Lapland Lake Supply Manager';
@@ -38,6 +38,23 @@ const ADJUSTMENT_TYPES = ['waste', 'transfer', 'return', 'other'];
 // Categories stored in more than one place: staff count each place and the app adds them up.
 const SPLIT_LOCATIONS = { 'cups, to-go & utensils': ['Kitchen', 'Storage room'] };
 function splitLocationsFor_(category) { return SPLIT_LOCATIONS[String(category || '').trim().toLowerCase()] || null; }
+// Housekeeping items are kept in two places and counted by two people.
+const HOUSEKEEPING_LOCATIONS = ['Lodge storage room', 'Housekeeping'];
+function locationsFor_(it) { return it.department === 'housekeeping' ? HOUSEKEEPING_LOCATIONS : splitLocationsFor_(it.category); }
+// The per-place numbers of a saved entry. An entry saved as one total (older counts, count files)
+// counts as the first place.
+function entryParts_(e, locs) {
+  return locs.map((loc, i) => {
+    const p = e && e.parts && e.parts[i];
+    if (p) return { location: loc, fullCases: p.fullCases, looseUnits: p.looseUnits };
+    if (i === 0 && e && !e.parts && isCounted_(e)) return { location: loc, fullCases: e.fullCases, looseUnits: e.looseUnits };
+    return { location: loc, fullCases: null, looseUnits: null };
+  });
+}
+function sumParts_(parts) {
+  const sum = (k) => (parts.some((p) => p[k] !== null && p[k] !== undefined) ? round2_(parts.reduce((t, p) => t + (p[k] || 0), 0)) : null);
+  return { fullCases: sum('fullCases'), looseUnits: sum('looseUnits') };
+}
 
 /* ---------------------------------------------------------------- schema */
 
@@ -588,7 +605,7 @@ function staffItem_(it) {
     desiredStock: it.desiredStock,
     minimumStock: it.minimumStock === undefined ? null : it.minimumStock,
     category: it.category || '',
-    locations: splitLocationsFor_(it.category),
+    locations: locationsFor_(it),
   };
 }
 
@@ -695,17 +712,27 @@ function saveCount_(b, actor) {
   const clear = !!b.clear;
   const v = clear ? null : validateCount_(b.kind, it, b);
   // Items kept in two places: each place is counted separately and the total is saved.
+  // A place sent as null is left as it is, so two people on two phones don't overwrite each other.
   let parts = null;
-  const locs = b.kind !== 'beverage' ? splitLocationsFor_(it.category) : null;
+  const locs = b.kind !== 'beverage' ? locationsFor_(it) : null;
   if (!clear && locs && Array.isArray(b.parts)) {
+    const prior = session ? db_().all('entries').filter((e) => e.sessionId === session.id && e.itemId === it.id)[0] : null;
+    const before = entryParts_(prior, locs);
     parts = locs.map((loc, i) => {
-      const p = b.parts[i] || {};
+      const p = b.parts[i];
+      if (p === null || p === undefined) return before[i];
       const pv = validateCount_(b.kind, it, { fullCases: p.fullCases, looseUnits: p.looseUnits, flag: '' });
       return { location: loc, fullCases: pv.fullCases, looseUnits: pv.looseUnits };
     });
-    const sum = (k) => (parts.some((p) => p[k] !== null) ? round2_(parts.reduce((t, p) => t + (p[k] || 0), 0)) : null);
-    v.fullCases = sum('fullCases');
-    v.looseUnits = sum('looseUnits');
+    const t = sumParts_(parts);
+    v.fullCases = t.fullCases;
+    v.looseUnits = t.looseUnits;
+    // Both places empty: the item is simply not counted.
+    if (t.fullCases === null && t.looseUnits === null && !v.flag) {
+      if (ed) fail_('This count is already finished. Enter the new number instead (0 if there are none).');
+      if (prior) db_().remove('entries', prior.id);
+      return { cleared: true, session: session ? { id: session.id } : null, entry: null };
+    }
   }
   if (!clear && v.fullCases === null && v.looseUnits === null && !v.flag) {
     fail_('Enter a count, or use "Clear" to mark the item as not counted.');
@@ -1557,8 +1584,19 @@ function importCountFile_(fileName, table) {
         sessionId: s.id, kind, itemId: r.it.id, fullCases: r.cases, looseUnits: null, flag: '', note: r.note,
         countedAt: at, snapshot: itemSnapshot_(r.it), parts: null, updatedAt: now,
       };
+      // Items counted in two places: the file's number is the first place (for Housekeeping, the
+      // Lodge storage room); the other place's number is kept.
+      const locs = locationsFor_(r.it);
+      if (locs && r.cases !== null) {
+        const parts = entryParts_(existing, locs);
+        parts[0] = { location: locs[0], fullCases: r.cases, looseUnits: null };
+        rec.parts = parts;
+        const t = sumParts_(parts);
+        rec.fullCases = t.fullCases;
+        rec.looseUnits = t.looseUnits;
+      } else if (locs && existing) rec.parts = existing.parts || null;
       if (r.cases !== null) sum.counted++;
-      if (target.mode === 'finished' && existing && r.cases !== null && (existing.fullCases !== r.cases || existing.looseUnits !== null)) {
+      if (target.mode === 'finished' && existing && r.cases !== null && (existing.fullCases !== rec.fullCases || existing.looseUnits !== rec.looseUnits)) {
         rec.changedAfterFinish = { from: existing.changedAfterFinish ? existing.changedAfterFinish.from : { fullCases: existing.fullCases, looseUnits: existing.looseUnits }, at: now };
       }
       if (existing) db_().update('entries', existing.id, rec);
