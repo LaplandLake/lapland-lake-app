@@ -134,7 +134,7 @@ try {
       await other.waitForSelector('.item');
       const places = await page.locator('.item', { hasText: 'TEST Toilet tissue' }).locator('.place').allTextContents();
       expect(places.join('|') === 'Lodge storage room|Housekeeping', 'place labels: ' + places.join('|'));
-      expect(/Count the Lodge storage room and Housekeeping separately; the app adds them up\./.test(await page.textContent('.area-note')), 'area note');
+      expect((await page.locator('.area-note').count()) === 0, 'no two-places note on Housekeeping');
       // Phone 2 (opened earlier, so it still shows phone 1's old Lodge number) counts Housekeeping.
       const tp2 = other.locator('.item', { hasText: 'TEST Toilet tissue' });
       await tp2.locator('input').nth(2).fill('0');

@@ -632,9 +632,7 @@
           h('h3', null, g.name),
           countEl,
           h('div', { class: 'sec-bar', 'aria-hidden': 'true' }, barEl)),
-        split ? h('p', { class: 'area-note' }, kind === 'housekeeping'
-          ? 'These are kept in two places. Count the Lodge storage room and Housekeeping separately; the app adds them up.'
-          : 'These are kept in two places. Count the Kitchen and the Storage room separately; the app adds them up.') : null,
+        split && kind !== 'housekeeping' ? h('p', { class: 'area-note' }, 'These are kept in two places. Count the Kitchen and the Storage room separately; the app adds them up.') : null,
         h('div', { class: 'area-items' }, g.items.map((it) => itemCard(it, state.entries[it.id] || null))));
       state.sections.push({ el, countEl, barEl, items: g.items });
       return el;
