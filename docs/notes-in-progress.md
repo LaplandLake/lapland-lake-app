@@ -10,6 +10,13 @@ Last updated: 2026-10-05. These are notes from working with the owner's team, so
 - `main` is protected (2026-10-15, GitHub Settings → Rules → Rulesets → "Protect main"): nobody can delete it or force-push (rewrite its history). Pull requests are NOT required, on purpose: the trail report bot in `.github/workflows/site.yml` saves straight to `main`, and requiring pull requests would block it. Open question: confirm the bot still saves fine the next time the trail report changes.
 - Live app: https://laplandlake.github.io/lapland-lake-app/ (GitHub user renamed from Tssngs75 to LaplandLake on 2026-10-05; old address no longer works).
 
+## Supply Manager: Housekeeping counted in two places (built 2026-11-01, waiting for Todd's wording yes and "publish")
+- Todd: Housekeeping items are kept in two places, counted by two people. Every Housekeeping item gets two boxes, "Lodge storage room" and "Housekeeping"; each saves on its own; the app adds them up.
+- Decided: a count file's single number for a Housekeeping item = the Lodge storage room only (Todd's answer "B"), so he can compare.
+- An older count saved as one total shows in the Lodge storage room box.
+- Needs the Code.gs paste + new version. Hendrick's SOP section 3 needs a line about the two boxes.
+- Still waiting: Hendrick's shelf-order list per storage area (sortOrder) before building shelf order.
+
 ## Supply Manager: open items (2026-10-30)
 - **To do (Todd):** fill the two request drop-downs. Admin → Requests → "Supply & drink lists": add the regular non-Ginsberg's supplies (Other Supply Requests) and the Drink Cooler drinks. Both lists are empty, so staff only see "type it in". Todd will add them later; remind him.
 - Fixes requested 2026-10-30, all published: 1) home card "null" fixed, Thursday / 20-case note always shows; 2) request drop-downs: not a bug, lists empty (calendar reminder for Todd, Mon Nov 16, 9 AM); 3) top-bar logo goes home, count pages show "Loading…"; 4) "Admin" link works; the Ginsberg's box is information only, on purpose.

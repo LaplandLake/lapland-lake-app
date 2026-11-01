@@ -436,7 +436,9 @@
       });
     }
 
-    // Each item has one or more count boxes (two for items kept in the Kitchen and the Storage room).
+    // Each item has one or more count boxes: two for items kept in two places (Cups: Kitchen and
+    // Storage room; Housekeeping: Lodge storage room and Housekeeping). Each box saves only its own
+    // number, so two people counting on two phones don't overwrite each other.
     function boxValues(r) { return r.boxes.map((b) => ({ full: b.full.value.trim(), loose: b.loose ? b.loose.value.trim() : '' })); }
     function isBlank(vals) { return vals.every((v) => v.full === '' && v.loose === ''); }
 
@@ -519,9 +521,13 @@
     }
     async function doSave(r) {
       const vals = boxValues(r);
-      const clear = isBlank(vals) && !r.flag;
+      // Items counted in two places are only cleared with the Clear button; emptying your own box
+      // just empties that place (the server keeps the other place's number).
+      const clear = r.item.locations ? !!r.wantClear : isBlank(vals) && !r.flag;
       const body = { kind, itemId: r.item.id, flag: r.flag, clear };
-      if (r.item.locations) body.parts = vals.map((v) => ({ fullCases: v.full, looseUnits: v.loose }));
+      // Only the places typed in on this phone are sent; the server keeps the other place as it is.
+      const sent = r.boxes.map((b, i) => (b.dirty ? vals[i] : null));
+      if (r.item.locations) body.parts = sent.map((v) => (v ? { fullCases: v.full, looseUnits: v.loose } : null));
       else { body.fullCases = vals[0].full; body.looseUnits = vals[0].loose; }
       r.inflight = true;
       setStatus(r, 'saving');
@@ -529,9 +535,20 @@
         const res = await api('saveCount', body);
         store.del('sm-c:countSheet:' + JSON.stringify({ kind })); // next open loads fresh numbers
         if (res.session) state.session = res.session;
-        r.saved = clear ? null : res.entry;
+        r.saved = clear || !res.entry ? null : res.entry;
         r.inflight = false;
-        setStatus(r, r.dirty ? 'pending' : (clear ? 'none' : 'saved'));
+        // Boxes not changed since sending are saved; show the other person's number in boxes not typed in here.
+        r.boxes.forEach((b, i) => {
+          const now = { full: b.full.value.trim(), loose: b.loose ? b.loose.value.trim() : '' };
+          if (sent[i] && now.full === sent[i].full && now.loose === sent[i].loose) b.dirty = false;
+          if (clear) b.dirty = false;
+          const p = res.entry && res.entry.parts && res.entry.parts[i];
+          if (!b.dirty && p && document.activeElement !== b.full && document.activeElement !== b.loose) {
+            b.full.value = p.fullCases === null || p.fullCases === undefined ? '' : String(p.fullCases);
+            if (b.loose) b.loose.value = p.looseUnits === null || p.looseUnits === undefined ? '' : String(p.looseUnits);
+          }
+        });
+        setStatus(r, r.dirty ? 'pending' : (r.saved ? 'saved' : 'none'));
       } catch (err) {
         r.inflight = false;
         setStatus(r, 'error', err.message);
@@ -553,7 +570,7 @@
       box.loose = it.allowLoose ? h('input', { type: 'text', inputmode: kind === 'beverage' ? 'numeric' : 'decimal', id: 'l-' + sfx, autocomplete: 'off', value: saved && saved.looseUnits !== null && saved.looseUnits !== undefined ? String(saved.looseUnits) : '', 'aria-label': lbl('Loose ' + (it.looseUnitLabel || 'units') + ' of ' + it.name) }) : null;
       [box.full, box.loose].forEach((inp) => {
         if (!inp) return;
-        inp.addEventListener('input', () => { r.wantClear = false; schedule(r); });
+        inp.addEventListener('input', () => { r.wantClear = false; box.dirty = true; schedule(r); });
         inp.addEventListener('blur', () => { if (r.status === 'pending') schedule(r, 0); });
       });
       box.el = h('div', { class: 'count-box' },
@@ -571,7 +588,9 @@
     function itemCard(it, saved) {
       const r = { item: it, saved, flag: saved ? saved.flag || '' : '', status: 'none' };
       if (it.locations) {
-        const parts = (saved && saved.parts) || [];
+        // A count saved as one total (older counts, count files) fills the first place.
+        const counted = saved && (saved.fullCases !== null || saved.looseUnits !== null);
+        const parts = (saved && saved.parts) || (counted ? [saved] : []);
         r.boxes = it.locations.map((loc, i) => countBox(r, it, loc, parts[i] || null, i));
         r.totalEl = h('p', { class: 'split-total' });
       } else {
@@ -613,7 +632,9 @@
           h('h3', null, g.name),
           countEl,
           h('div', { class: 'sec-bar', 'aria-hidden': 'true' }, barEl)),
-        split ? h('p', { class: 'area-note' }, 'These are kept in two places. Count the Kitchen and the Storage room separately; the app adds them up.') : null,
+        split ? h('p', { class: 'area-note' }, kind === 'housekeeping'
+          ? 'These are kept in two places. Count the Lodge storage room and Housekeeping separately; the app adds them up.'
+          : 'These are kept in two places. Count the Kitchen and the Storage room separately; the app adds them up.') : null,
         h('div', { class: 'area-items' }, g.items.map((it) => itemCard(it, state.entries[it.id] || null))));
       state.sections.push({ el, countEl, barEl, items: g.items });
       return el;
@@ -682,6 +703,7 @@
         r.boxes.forEach((b, i) => {
           b.full.value = (boxes[i] && boxes[i].full) || '';
           if (b.loose) b.loose.value = (boxes[i] && boxes[i].loose) || '';
+          b.dirty = true; // unsent typing from last time
         });
         r.flag = draft[id].flag || '';
         r.wantClear = !!draft[id].clear;

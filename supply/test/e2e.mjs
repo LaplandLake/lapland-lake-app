@@ -127,6 +127,35 @@ try {
     expect(v[0] === '2' && v[1] === '30', 'values after return: ' + v);
     expect((await page.locator('.item', { hasText: 'TEST Hand soap refills' }).locator('input').first().inputValue()) === '0', 'zero kept');
   });
+  await check('Housekeeping: two people on two phones count the two places; neither wipes the other; the app adds them up', async () => {
+    const other = await newPage(390);
+    try {
+      await other.goto(APP + '#/count/housekeeping');
+      await other.waitForSelector('.item');
+      const places = await page.locator('.item', { hasText: 'TEST Toilet tissue' }).locator('.place').allTextContents();
+      expect(places.join('|') === 'Lodge storage room|Housekeeping', 'place labels: ' + places.join('|'));
+      expect(/Count the Lodge storage room and Housekeeping separately; the app adds them up\./.test(await page.textContent('.area-note')), 'area note');
+      // Phone 2 (opened earlier, so it still shows phone 1's old Lodge number) counts Housekeeping.
+      const tp2 = other.locator('.item', { hasText: 'TEST Toilet tissue' });
+      await tp2.locator('input').nth(2).fill('0');
+      await tp2.locator('input').nth(3).fill('10');
+      await tp2.locator('.save-state', { hasText: /^Saved/ }).waitFor({ timeout: 8000 });
+      // Phone 1 changes the Lodge storage room.
+      const tp1 = page.locator('.item', { hasText: 'TEST Toilet tissue' });
+      await tp1.locator('input').nth(0).fill('1');
+      await tp1.locator('.save-state', { hasText: /^Saved/ }).waitFor({ timeout: 8000 });
+      await page.reload();
+      await page.waitForSelector('.item');
+      const card = page.locator('.item', { hasText: 'TEST Toilet tissue' });
+      const v = await card.locator('input').evaluateAll((els) => els.map((e) => e.value));
+      expect(v.join(',') === '1,30,0,10', 'both places kept: ' + v.join(','));
+      expect(/Total: 1 case \+ 40 rolls/.test(await card.locator('.split-total').textContent()), 'total: ' + (await card.locator('.split-total').textContent()));
+      await card.scrollIntoViewIfNeeded();
+      await page.screenshot({ path: path.join(SHOTS, 'count-housekeeping-two-places-390.png') });
+    } finally {
+      await other.context().close();
+    }
+  });
   await check('Count validation: part cases save (1.5); three decimals are refused and not saved', async () => {
     const soap = page.locator('.item', { hasText: 'TEST Hand soap refills' });
     await soap.locator('input').first().fill('1.5');

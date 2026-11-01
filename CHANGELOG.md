@@ -2,6 +2,7 @@
 
 Newest first. One plain-English line per change.
 
+- 2026-11-01: Supply Manager: every Housekeeping item has two count boxes, Lodge storage room and Housekeeping; each saves on its own and the app adds them up. A count file's number fills the Lodge storage room box. (Needs the Apps Script paste.)
 - 2026-11-01: Supply Manager: Requests > "Add to count list" also shows count-file lines that need a match or are turned off, so all catalog fixes are in one place.
 - 2026-10-31: Supply Manager data: plain names for 17 items, 5 oz paper cups added (other supplier), housekeeping test count relabeled as the Oct 30 count and finished.
 - 2026-10-31: Supply Manager: a count file is never taken in twice (Drive can list a moved file for a moment); fixes doubled "extra" cards.

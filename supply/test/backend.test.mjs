@@ -1111,3 +1111,27 @@ test('suggest from order history: last 2 seasons / 13 weeks; slow items 1 and a 
   assert.equal(items.filter((i) => i.id === gloves.id)[0].desiredStock, 3); // refused row left alone
   assert.equal(ok(app.admin('adminDashboard')).staff.filter((g) => g.kind === 'inactive').length, 0); // its notice is cleared
 });
+
+test('housekeeping: two places counted by two people; each place saves on its own; count files fill the Lodge storage room', () => {
+  const app = freshApp();
+  const tp = addItem(app, { name: 'Toilet paper', department: 'housekeeping', countingUnit: 'case', countingUnitConfirmed: true, desiredStock: 6, minimumStock: 2, active: true, supplierItemNumber: '70626' });
+  at(app, '2026-11-02T14:00:00Z'); // Monday
+  const t = ok(app.call('adminLogin', { password: PW })).token;
+  const sheet = ok(app.call('countSheet', { kind: 'housekeeping' }));
+  same(sheet.items[0].locations, ['Lodge storage room', 'Housekeeping']);
+  // Person A (phone 1) counts the storage room; person B (phone 2, loaded earlier) counts Housekeeping.
+  ok(app.call('saveCount', { kind: 'housekeeping', itemId: tp.id, parts: [{ fullCases: '3' }, null] }));
+  const r = ok(app.call('saveCount', { kind: 'housekeeping', itemId: tp.id, parts: [null, { fullCases: '1.5' }] }));
+  same(r.entry.parts.map((p) => p.fullCases), [3, 1.5]);
+  assert.equal(r.entry.fullCases, 4.5); // added up
+  // Emptying your own place keeps the other person's number; both empty = not counted.
+  assert.equal(ok(app.call('saveCount', { kind: 'housekeeping', itemId: tp.id, parts: [null, { fullCases: '' }] })).entry.fullCases, 3);
+  assert.equal(ok(app.call('saveCount', { kind: 'housekeeping', itemId: tp.id, parts: [{ fullCases: '' }, null] })).cleared, true);
+  assert.equal(ok(app.call('countSheet', { kind: 'housekeeping' })).entries[tp.id], undefined);
+  // A count file's number fills the Lodge storage room and leaves Housekeeping's number alone.
+  ok(app.call('saveCount', { kind: 'housekeeping', itemId: tp.id, parts: [null, { fullCases: '2' }] }));
+  app.state.inboxFiles.push({ id: 'f', name: 'c.csv', text: 'item,supplier number,department,count date,cases,add to order,note\nToilet paper,70626,Housekeeping,2026-11-02,4,,\n' });
+  ok(app.call('adminInboxCheck', { token: t }));
+  const e = ok(app.call('countSheet', { kind: 'housekeeping' })).entries[tp.id];
+  same([e.parts[0].fullCases, e.parts[1].fullCases, e.fullCases], [4, 2, 6]);
+});

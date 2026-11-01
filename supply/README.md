@@ -97,6 +97,7 @@ as a real count, the same as staff typing it, and moved to **Count inbox / Impor
 File format (one header row): `item, supplier number, department, count date, cases, add to order (cases), note`.
 Department is Housekeeping or Cafe; date is YYYY-MM-DD; cases can be part cases (0.6, 4.33); blank cases = not counted
 (the note is kept); add to order = whole extra cases for the next draft; the note shows in Admin only.
+For Housekeeping items the file's number fills the **Lodge storage room** box; the Housekeeping box is left as it is.
 
 * Matching: Ginsberg's number first, then a close name match (sizes like 6x6 or 12 oz must match; when two items are
   close and exactly one is turned on, that one wins). Anything unclear, and counted items that are turned off (with what
@@ -117,7 +118,9 @@ until a later count shows it restocked and then low again.
 * Count screens are grouped by storage area in walk-through order (Cafe: Frozen, Refrigerated, Produce,
   Dry & shelf-stable, Kitchen supplies, then Cups, to-go & utensils; Housekeeping: Paper products, Trash &
   cleaning), each with its own color, icon and "6 of 14" progress. Cups, to-go & utensils are kept in two
-  places, so each of those items has a **Kitchen** and a **Storage room** box and the app adds them up. An amber
+  places, so each of those items has a **Kitchen** and a **Storage room** box and the app adds them up. Every
+  Housekeeping item has a **Lodge storage room** and a **Housekeeping** box (two people can count them at the same
+  time; each box saves on its own and never wipes the other). An amber
   **Low** badge appears when the entered count is at or below the item's minimum.
 * **Special request** on each item (a note at the top of the count says when to use it): **+ Extra for this week** (one-time cases, added to the next draft on top of what the
   count orders), **We need more every week** or **We have too many** (suggestions the admin approves or dismisses; the
