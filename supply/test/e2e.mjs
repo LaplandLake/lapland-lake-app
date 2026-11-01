@@ -494,6 +494,8 @@ try {
     await admin.goto(APP + '#/admin/home');
     await admin.waitForSelector('.staff-card:has-text("Mystery thing")');
     expect(/Count file: no matching item/.test(await admin.textContent('.staff-card:has-text("Mystery thing")')), 'no-match card');
+    await admin.goto(APP + '#/admin/requests/add');
+    await admin.waitForSelector('.staff-card:has-text("Mystery thing")'); // also on Add to count list
     await page.goto(APP + '#/'); await page.goto(APP + '#/count/cafe');
     await page.waitForSelector('.item');
     expect((await page.locator('.item', { hasText: 'TEST Soup red lentil' }).locator('input').first().inputValue()) === '0.5', 'count from the file shows on the staff screen');

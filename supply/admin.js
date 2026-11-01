@@ -570,12 +570,13 @@
     if (filter === 'lists') return renderLists(box);
     if (filter === 'research') return renderResearch(box);
     if (filter === 'extras' || filter === 'add') {
-      const kinds = filter === 'add' ? ['add'] : ['extra', 'late', 'more', 'less'];
+      // "Add to count list" holds every catalog fix: staff reports and count-file lines that need a match or are turned off.
+      const kinds = filter === 'add' ? ['add', 'nomatch', 'inactive'] : ['extra', 'late', 'more', 'less'];
       try {
         await aload('adminSuggestions', null, (d) => {
           const list = d.suggestions.filter((g) => kinds.indexOf(g.kind) >= 0);
           replace(box, h('p', { class: 'muted small' }, filter === 'add'
-            ? 'Items staff count that aren’t on their list. Use Find in catalog to turn on an item you already have, or Add an item. Last 60 days.'
+            ? 'Items staff count that aren’t on their list, and count-file lines that need a match or are turned off. Use Find in catalog to turn on an item you already have, or Add an item. Last 60 days.'
             : 'Extras staff asked for, count changes after you sent an order, and "need more / too many" suggestions. Last 60 days; to-do items first.'),
           list.length ? list.map(staffCard) : h('p', { class: 'muted' }, 'Nothing here.'));
         }, box);
