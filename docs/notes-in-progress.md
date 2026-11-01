@@ -10,12 +10,12 @@ Last updated: 2026-10-05. These are notes from working with the owner's team, so
 - `main` is protected (2026-10-15, GitHub Settings → Rules → Rulesets → "Protect main"): nobody can delete it or force-push (rewrite its history). Pull requests are NOT required, on purpose: the trail report bot in `.github/workflows/site.yml` saves straight to `main`, and requiring pull requests would block it. Open question: confirm the bot still saves fine the next time the trail report changes.
 - Live app: https://laplandlake.github.io/lapland-lake-app/ (GitHub user renamed from Tssngs75 to LaplandLake on 2026-10-05; old address no longer works).
 
-## Supply Manager: Housekeeping counted in two places (built 2026-11-01, waiting for Todd's wording yes and "publish")
+## Supply Manager: Housekeeping counted in two places (live 2026-11-01; Apps Script pasted, Todd saw two boxes, Hendrick told)
 - Todd: Housekeeping items are kept in two places, counted by two people. Every Housekeeping item gets two boxes, "Lodge storage room" and "Housekeeping"; each saves on its own; the app adds them up.
 - Decided: a count file's single number for a Housekeeping item = the Lodge storage room only (Todd's answer "B"), so he can compare.
 - An older count saved as one total shows in the Lodge storage room box.
 - No explanation line on the Housekeeping screen (Todd: leave it out; housekeepers don't count in the lodge, the box labels are enough).
-- Needs the Code.gs paste + new version. Hendrick's SOP section 3 needs a line about the two boxes.
+- This week's housekeeping numbers were combined totals (counted before this existed); they show in the Lodge storage room box. Next week starts fresh.
 - Still waiting: Hendrick's shelf-order list per storage area (sortOrder) before building shelf order.
 
 ## Supply Manager: open items (2026-10-30)
