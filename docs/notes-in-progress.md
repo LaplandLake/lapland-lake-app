@@ -215,3 +215,9 @@ Readable prices (last season; owner said menu prices may change):
 - Change the Trail Maps home button subtitle from "Zoom in and tap a trail" to something covering both maps (suggested: "Trail map & live trail status"). Todd asked to wait until the live map is confirmed working on a phone.
 - App stores (Oct 24): Todd decided to launch as a web app only (link/QR + "Add this app to your phone"). Google Play / Galaxy Store / Apple are optional for later, if guests ask or usage is high. No D-U-N-S needed for now.
 - Live map (Oct 24): two switches, Ski/Snowshoe and Open/Closed / Difficulty; opens on Ski + Difficulty. Open/Closed key is just green Open / red Closed (Lapland closes trails rather than flagging issues). The "trailstyle=difficulty" setting name is unconfirmed: Todd to check that Difficulty shows green/blue/black lines on his phone; if not, get the difficulty embed code from Trailforks.
+
+## Ticket and lesson prices (Nov 6, 2026)
+- Buy Tickets shows full-day pass prices (Todd: no After 2pm prices) and day rental prices; Lessons shows $50 first person / $25 each additional. Copied from laplandlake.com/rates and /lessons-intro (2026-27). Stored in `content/prices.json`. Update every season from the website (the Company Brain doesn't keep prices).
+- No prices on Lodge With Us (Todd's call).
+- Flagged to Todd: CLAUDE.md says "never put prices in this repo"; guest-facing prices are in the app (café menu, tickets, lessons). Todd may ask Col to reword it.
+- Open: Company Brain says "cabins, never cottages"; the app still says "Our cottages, studios & farmhouse" (Lodge With Us button) and "Rental Cottages" (trail map Places). Offered to fix; waiting on Todd.
