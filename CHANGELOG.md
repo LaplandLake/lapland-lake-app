@@ -2,6 +2,7 @@
 
 Newest first. One plain-English line per change.
 
+- 2026-11-06: Added a rule to CLAUDE.md: stay on the app Todd is talking about (don't bring up the Supply Manager in guest app conversations, or vice versa).
 - 2026-11-01: Supply Manager: every Housekeeping item has two count boxes, Lodge storage room and Housekeeping; each saves on its own and the app adds them up. A count file's number fills the Lodge storage room box. (Needs the Apps Script paste.)
 - 2026-11-01: Supply Manager: Requests > "Add to count list" also shows count-file lines that need a match or are turned off, so all catalog fixes are in one place.
 - 2026-10-31: Supply Manager data: plain names for 17 items, 5 oz paper cups added (other supplier), housekeeping test count relabeled as the Oct 30 count and finished.
