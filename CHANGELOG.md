@@ -2,6 +2,8 @@
 
 Newest first. One plain-English line per change.
 
+- 2026-11-06: Trail Conditions: "Coming up" shows the next 3 events (content/events.json, from Paul's Oct 14 draft; past events drop off on their own) with a "More Events" link to laplandlake.com/events.
+- 2026-11-06: Trail Passes & Rentals: small "Good to know" note at the bottom (no dogs, snowshoe trails separate, night skiing for lodging guests only).
 - 2026-11-06: Lodge With Us shows "Check-out time: 11am".
 - 2026-11-06: Lodge With Us: kitchen spelled out (full private kitchen: refrigerator, stove with oven, microwave, drip coffee maker, toaster, dishes, utensils, pots and pans, kitchen towels); sauna moved to Every stay; headings "Winter Lodging" and "Summer and Fall Lodging".
 - 2026-11-06: Added a rule to CLAUDE.md: say "trail pass" (never "ticket") and "cabins" (never "cottages" or "tupas").

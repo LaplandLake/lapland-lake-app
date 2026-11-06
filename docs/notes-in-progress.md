@@ -94,6 +94,9 @@ Open questions: name for the lounge room; whether the café = Kuuma Feeding Stat
 
 ## Lodging
 
+- Nov 6: events published from Paul's Oct 14 draft. If dates change, edit content/events.json. Add next season's events each fall.
+- Todd's test for new ideas: would a guest who's here today need it? Planning info belongs on the website. Next step: beta test.
+
 - Nov 6: ideas offered, Todd deciding: Events button on Home (2026-27 events from Paul's draft) and a "Good to know" box at the bottom of Trail Conditions. Beta test "soon".
 
 - Nov 6: cabin photos skipped for now (Todd). lodging.json has an empty "photos" list ready: add {src, caption} items when Todd picks photos.
