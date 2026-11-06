@@ -504,3 +504,6 @@ button.trail-row { cursor: pointer; }
 .lodging-photos figcaption { font-size: 15px; color: var(--ink-soft); margin-top: 4px; }
 .lightbox img { transition: transform .15s; touch-action: pan-y; }
 .good-to-know { margin-top: 18px; }
+.more-link { margin: 10px 0 0; }
+.more-link a { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; font-weight: 700; color: var(--link); }
+.more-link svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }

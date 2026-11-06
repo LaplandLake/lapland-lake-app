@@ -325,6 +325,7 @@ function upcomingHtml(data) {
     <section class="menu-section">
       <h2>Coming up</h2>
       ${priceCard(next.map((e) => ({ name: e.name, note: when(e), price: '' })))}
+      ${data.moreUrl ? `<p class="more-link"><a href="${esc(data.moreUrl)}" target="_blank" rel="noopener">More Events ${svg('ext')}</a></p>` : ''}
     </section>`;
 }
 
