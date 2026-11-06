@@ -37,7 +37,7 @@
   "places": [
     { "name": "Ski Lodge & Upstairs Café", "icon": "lodge", "spots": [[843, 1298]] },
     { "name": "Parking", "icon": "parking", "spots": [[867, 1244]] },
-    { "name": "Rental Cottages", "icon": "cottage", "spots": [[990, 1030]] },
+    { "name": "Rental Cabins", "icon": "cottage", "spots": [[990, 1030]] },
     { "name": "Giant Pine", "icon": "rest", "description": "Hanging seat rest station.", "spots": [[235, 1335]] },
     { "name": "Large Pine", "icon": "rest", "description": "Hanging seat rest station.", "spots": [[1700, 1305]] },
     { "name": "The Wall", "icon": "caution", "description": "Steep section with a small rock face.", "spots": [[835, 745]] },
