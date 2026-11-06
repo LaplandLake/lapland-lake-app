@@ -223,7 +223,7 @@ async function renderTickets(view) {
       ${prices?.trailHours ? `<p class="hours-line"><strong>Trail hours:</strong> ${esc(prices.trailHours)}</p>` : ''}
       ${prices ? `
         <section class="menu-section">
-          <h2>Day Passes <span class="section-note">${esc(prices.season)} · full day</span></h2>
+          <h2>Trail Passes <span class="section-note">${esc(prices.season)} · full day</span></h2>
           ${priceCard(prices.dayPasses)}
         </section>
         ${prices.seasonPassNote ? `<p class="price-note">${esc(prices.seasonPassNote)}</p>` : ''}
