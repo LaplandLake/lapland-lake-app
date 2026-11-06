@@ -93,6 +93,9 @@ Open questions: name for the lounge room; whether the café = Kuuma Feeding Stat
 - **Menu prices published (2026-10-06)** from last season's café chalkboards (photo `docs/photos/promo/cafe-counter.jpg`), including salads, breakfast, snacks, scones and cinnamon rolls. Blank (no price shown): chili, mac and cheese, soup (cup $5.__/bowl $7.__), decorated sugar cookies, NA beer, all snacks. Muffin $4.50 was smudged. The café chalkboards have been erased for the off-season, so **this year's prices wait until the season starts**; then get a photo of the boards and update `content/menu.json`.
 
 ## Lodging
+
+- Nov 6, 2026: lodging list published (sleeps + beds per unit, from Drive sheet "Lapland Lake Lodging – Beds and Sleeping"). Todd: no stoves, no grills/fire pits (none in winter), no dishwasher, no "No TVs". Todd confirmed Suksi has a queen pull-out couch (sheet still says CHECK). Company Brain still says every unit has a grill and fire pit; should say summer and fall only.
+- Trail hours on Buy Tickets live in content/prices.json (trailHours); check each season.
 - "Lodge With Us" opens RezStream. Owner chose to keep it simple for now.
 - Possible later: list of the 12 units (2 studios, 9 tupas, Lapin farmhouse) from laplandlake.com/lodging, each linking to its RezStream page.
 

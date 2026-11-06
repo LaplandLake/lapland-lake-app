@@ -2,6 +2,7 @@
 
 Newest first. One plain-English line per change.
 
+- 2026-11-06: Buy Tickets shows trail hours. Lodge With Us lists every studio, cabin and the Farmhouse with how many it sleeps and its beds (content/lodging.json, from the Drive beds sheet).
 - 2026-11-06: Say "cabins," not "cottages" (Lodge With Us button and trail map Places), per the Company Brain.
 - 2026-11-06: Buy Tickets and Lessons pages now show 2026-27 prices (full-day passes, day rentals, lessons), copied from laplandlake.com. Prices live in content/prices.json; update each season.
 - 2026-11-06: Added a rule to CLAUDE.md: stay on the app Todd is talking about (don't bring up the Supply Manager in guest app conversations, or vice versa).
