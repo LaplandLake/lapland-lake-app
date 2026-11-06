@@ -1,6 +1,39 @@
 {
   "source": "Beds: Drive sheet 'Lapland Lake Lodging – Beds and Sleeping' (from laplandlake.com/lodging, Oct 30, 2026). Other facts: Company Brain.",
-  "intro": "Every unit has a full kitchen, linens and Wi-Fi. No pets.",
+  "included": [
+    {
+      "title": "Every stay",
+      "items": [
+        "Full kitchen",
+        "Bed linens and towels included",
+        "No cleaning fees"
+      ]
+    },
+    {
+      "title": "Winter",
+      "items": [
+        "Free trail pass for every registered lodging guest",
+        "Sauna, with men’s and women’s hours",
+        "Night skiing on the Lake Trail, 6–9 pm, for lodging guests only",
+        "Night tubing on the junior tubing hill, 6–9 pm, for lodging guests only",
+        "Electric heat in every unit, and a forced hot air furnace in the farmhouse",
+        "Indoor firewood delivered daily to units with a wood stove"
+      ]
+    },
+    {
+      "title": "Summer and Fall",
+      "items": [
+        "Private beach",
+        "Kayaks, canoes and rowboats, free to use",
+        "Life jackets and paddles, free to use",
+        "Two playgrounds",
+        "Each unit has a campfire ring, outdoor chairs, picnic table and charcoal grill",
+        "Campfire wood delivered daily, free",
+        "Sauna"
+      ]
+    }
+  ],
+  "photos": [],
   "groups": [
     {
       "title": "Studios",

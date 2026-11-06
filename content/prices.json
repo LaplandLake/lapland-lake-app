@@ -3,25 +3,70 @@
   "trailHours": "10am–4:30pm weekdays · 9am–4:30pm weekends and holidays",
   "source": "Copied from laplandlake.com/rates and /lessons-intro. Update each season.",
   "dayPasses": [
-    { "name": "Adults", "price": "$30" },
-    { "name": "Silver Striders", "note": "Ages 65–89", "price": "$25" },
-    { "name": "Youth", "note": "Ages 12–17", "price": "$25" },
-    { "name": "Juniors", "note": "Ages 6–11", "price": "$10" },
-    { "name": "Under 6 and 90+", "price": "Free" },
-    { "name": "Lodging guests", "price": "Free" }
+    {
+      "name": "Adults",
+      "price": "$30"
+    },
+    {
+      "name": "Silver Striders",
+      "note": "Ages 65–89",
+      "price": "$25"
+    },
+    {
+      "name": "Youth",
+      "note": "Ages 12–17",
+      "price": "$25"
+    },
+    {
+      "name": "Juniors",
+      "note": "Ages 6–11",
+      "price": "$10"
+    },
+    {
+      "name": "Under 6 and 90+",
+      "price": "Free"
+    },
+    {
+      "name": "Lodging guests",
+      "price": "Free"
+    }
   ],
   "rentals": [
-    { "name": "Classic ski package", "note": "Adult · Youth · Junior", "price": "$28 · $22 · $18" },
-    { "name": "Skate ski package", "note": "Adult · Youth · Junior", "price": "$32 · $25 · $23" },
-    { "name": "Snowshoes", "note": "Adult/Youth · Junior", "price": "$15 · $10" },
-    { "name": "Pulk sled", "note": "Reserve ahead", "price": "$25" },
-    { "name": "Snow tube", "price": "$10" },
-    { "name": "Munchkin ski set", "price": "$8" }
+    {
+      "name": "Classic ski package",
+      "note": "Adult · Youth · Junior",
+      "price": "$28 · $22 · $18"
+    },
+    {
+      "name": "Skate ski package",
+      "note": "Adult · Youth · Junior",
+      "price": "$32 · $25 · $23"
+    },
+    {
+      "name": "Snowshoes",
+      "note": "Adult/Youth · Junior",
+      "price": "$15 · $10"
+    },
+    {
+      "name": "Pulk sled",
+      "note": "Reserve ahead",
+      "price": "$25"
+    },
+    {
+      "name": "Snow tube",
+      "price": "$10"
+    },
+    {
+      "name": "Munchkin ski set",
+      "price": "$8"
+    }
   ],
   "rentalNote": "8% sales tax on rentals.",
   "lessons": {
     "first": "$50",
     "additional": "$25",
     "text": "One-hour private or shared lesson, classic or skate, for up to 6 people from your party. Trail pass and rentals not included. Reserve ahead; same-day only if space allows."
-  }
+  },
+  "seasonPassNote": "Ask us about season passes.",
+  "rentalSwitchNote": "Every daily ski package rental includes one free switch to snowshoes."
 }

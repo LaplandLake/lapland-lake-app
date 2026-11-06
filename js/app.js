@@ -44,6 +44,16 @@ async function loadContent(file) {
   return res.json();
 }
 
+// For content that rarely changes (prices, lodging, photos, settings): show the copy saved
+// on the phone right away, and quietly fetch a fresh one for next time. No "Loading…" wait.
+async function loadSaved(file) {
+  try {
+    const hit = await caches.match(`content/${file}`, { ignoreSearch: true });
+    if (hit) { loadContent(file).catch(() => {}); return await hit.json(); }
+  } catch {}
+  return loadContent(file);
+}
+
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -79,9 +89,22 @@ function renderHome(view) {
         </a>`).join('')}
     </nav>
     <footer class="home-footer">
-      <a href="https://laplandlake.com/" target="_blank" rel="noopener">laplandlake.com</a>
-      <span aria-hidden="true">·</span>
-      <a href="tel:+15188634974">518-863-4974</a>
+      <div class="footer-row">
+        <a href="https://laplandlake.com/" target="_blank" rel="noopener">laplandlake.com</a>
+        <span aria-hidden="true">·</span>
+        <a href="tel:+15188634974">518-863-4974</a>
+      </div>
+      <div class="footer-row">
+        <a href="mailto:vacation@laplandlake.com">vacation@laplandlake.com</a>
+      </div>
+      <div class="footer-row">
+        <a href="https://www.google.com/maps/search/?api=1&amp;query=Lapland+Lake+Nordic+Vacation+Center,+139+Lapland+Lake+Road,+Northville,+NY+12134" target="_blank" rel="noopener" class="footer-address">139 Lapland Lake Road<br>Northville, NY 12134</a>
+      </div>
+      <div class="footer-row">
+        <a href="https://www.facebook.com/laplandlake" target="_blank" rel="noopener">Facebook</a>
+        <span aria-hidden="true">·</span>
+        <a href="https://www.instagram.com/laplandlake" target="_blank" rel="noopener">Instagram</a>
+      </div>
     </footer>
     ${installButton()}
     ${samsungTip()}`;
@@ -184,12 +207,12 @@ const priceCard = (items) => `
   </div>`;
 
 // Ticket and lesson prices live in content/prices.json (copied from the website each season)
-const loadPrices = () => loadContent('prices.json').catch(() => null);
+const loadPrices = () => loadSaved('prices.json').catch(() => null);
 
 async function renderTickets(view) {
   view.innerHTML = `<h1>Buy Tickets</h1>${loading}`;
   try {
-    const [settings, prices] = await Promise.all([loadContent('settings.json'), loadPrices()]);
+    const [settings, prices] = await Promise.all([loadSaved('settings.json'), loadPrices()]);
     view.innerHTML = `
       <h1>Buy Tickets</h1>
       <p>Buy trail passes, equipment rentals, lessons, and season passes online. You'll go to our secure booking page.</p>
@@ -203,10 +226,12 @@ async function renderTickets(view) {
           <h2>Day Passes <span class="section-note">${esc(prices.season)} · full day</span></h2>
           ${priceCard(prices.dayPasses)}
         </section>
+        ${prices.seasonPassNote ? `<p class="price-note">${esc(prices.seasonPassNote)}</p>` : ''}
         <section class="menu-section">
           <h2>Day Rentals</h2>
           ${priceCard(prices.rentals)}
         </section>
+        ${prices.rentalSwitchNote ? `<p class="price-note">${esc(prices.rentalSwitchNote)}</p>` : ''}
         ${prices.rentalNote ? `<p class="meta">${esc(prices.rentalNote)}</p>` : ''}` : ''}`;
   } catch {
     view.innerHTML = `<h1>Buy Tickets</h1>${errorCard('the booking link')}`;
@@ -227,7 +252,7 @@ function noteHtml(note) {
 async function renderLessons(view) {
   view.innerHTML = `<h1>Lessons</h1>${loading}`;
   try {
-    const [settings, prices] = await Promise.all([loadContent('settings.json'), loadPrices()]);
+    const [settings, prices] = await Promise.all([loadSaved('settings.json'), loadPrices()]);
     view.innerHTML = `
       <h1>Lessons</h1>
       <p>Already have a ticket, season pass, or lodging with us? Book a lesson here.</p>
@@ -252,7 +277,7 @@ async function renderLessons(view) {
 async function renderLodging(view) {
   view.innerHTML = `<h1>Lodge With Us</h1>${loading}`;
   try {
-    const [settings, lodging] = await Promise.all([loadContent('settings.json'), loadContent('lodging.json').catch(() => null)]);
+    const [settings, lodging] = await Promise.all([loadSaved('settings.json'), loadSaved('lodging.json').catch(() => null)]);
     view.innerHTML = `
       <h1>Lodge With Us</h1>
       <p>Stay at Lapland Lake, Winter, Summer, or Fall. See available lodging and book online.</p>
@@ -262,8 +287,18 @@ async function renderLodging(view) {
       <p class="tip-line"><strong>Tip:</strong> The booking calendar is much easier to see on a computer screen.</p>
       <p class="meta">Reservations are handled by RezStream.</p>
       ${lodging ? `
+        ${lodging.included?.length ? `
+          <h2 class="lodging-title">What comes with a stay</h2>
+          ${lodging.included.map((g) => `
+            <section class="menu-section">
+              <h2>${esc(g.title)}</h2>
+              <div class="card"><ul class="included-list">${g.items.map((i) => `<li>${esc(i)}</li>`).join('')}</ul></div>
+            </section>`).join('')}` : ''}
+        ${lodging.photos?.length ? `
+          <div class="lodging-photos">${lodging.photos.map((ph) => `
+            <figure><img src="${esc(ph.src)}" alt="${esc(ph.caption || 'Lapland Lake lodging')}" loading="lazy">${ph.caption ? `<figcaption>${esc(ph.caption)}</figcaption>` : ''}</figure>`).join('')}
+          </div>` : ''}
         <h2 class="lodging-title">Our Lodging</h2>
-        <p>${esc(lodging.intro)}</p>
         ${lodging.groups.map((g) => `
           <section class="menu-section">
             <h2>${esc(g.title)}${g.note ? ` <span class="section-note">${esc(g.note)}</span>` : ''}</h2>
@@ -434,7 +469,7 @@ async function renderTrailMap(view) {
     liveFrame.src = liveMapUrl(liveActivity, liveStyle);
     liveTimer = setTimeout(() => {
       if (!liveLoaded && liveTries < 3 && liveFrame.isConnected) { liveTries++; loadLive(); }
-    }, 10000);
+    }, 25000); // (a slow connection can take a while; restarting too soon only makes it slower)
   };
   liveFrame.addEventListener('load', () => { if (liveFrame.src) { liveLoaded = true; clearTimeout(liveTimer); } });
   loadLive(); // start right away, as soon as the Trail Maps page opens
@@ -478,7 +513,7 @@ async function renderTrailMap(view) {
     canvas.querySelectorAll('.pin.active').forEach((p) => p.classList.remove('active'));
     const it = id && byId[id];
     view.classList.toggle('has-info', !!it);
-    if (!it) { info.hidden = true; return; }
+    if (!it) { info.hidden = true; view.style.paddingBottom = ''; return; }
     canvas.querySelectorAll(`.pin[data-id="${id}"]`).forEach((p) => p.classList.add('active'));
     info.innerHTML = `
       <button type="button" class="info-close" aria-label="Close">${svg('close')}</button>
@@ -489,6 +524,8 @@ async function renderTrailMap(view) {
       ${it.description || it.note ? `<p>${esc(it.description || it.note)}</p>` : ''}
       ${it.kind === 'trail' && !it.spots?.length ? '<p class="meta">Not marked on this map.</p>' : ''}`;
     info.hidden = false;
+    // leave room at the bottom of the page so the card never covers the end of the page
+    view.style.paddingBottom = `${info.offsetHeight + 28}px`;
     if (focusMap && it.spots?.length) {
       const [x, y] = it.spots[0];
       const w = canvas.offsetWidth, h = canvas.offsetHeight;
@@ -931,7 +968,7 @@ async function loadApproved(uploadUrl) {
 async function renderPhotos(view) {
   view.innerHTML = `<h1>Guest Photos</h1>${loading}`;
   let data;
-  try { data = await loadContent('photos.json'); }
+  try { data = await loadSaved('photos.json'); }
   catch { view.innerHTML = `<h1>Guest Photos</h1>${errorCard('the photos')}`; return; }
   const starters = data.photos || [];
   let remembered = [];
@@ -964,19 +1001,49 @@ async function renderPhotos(view) {
   gallery.addEventListener('click', (e) => {
     const item = e.target.closest('.gallery-item');
     if (!item) return;
-    const ph = photos[item.dataset.i];
+    let i = Number(item.dataset.i);
     const box = document.createElement('div');
     box.className = 'lightbox';
     box.setAttribute('role', 'dialog');
-    box.setAttribute('aria-label', 'Photo');
+    box.setAttribute('aria-label', 'Photo. Swipe left or right for more.');
     box.innerHTML = `
       <button type="button" class="lightbox-close" aria-label="Close photo">${svg('close')}</button>
-      <img src="${esc(sized(ph.src, 1600))}" alt="">
-      ${caption(ph) ? `<p>${caption(ph)}</p>` : ''}`;
+      <img src="" alt="">
+      <p></p>`;
+    const img = box.querySelector('img');
+    const cap = box.querySelector('p');
+    const show = (n) => {
+      i = (n + photos.length) % photos.length;
+      img.src = sized(photos[i].src, 1600);
+      cap.innerHTML = caption(photos[i]);
+      cap.hidden = !cap.innerHTML;
+      // get the next and previous photos ready, so a swipe shows them right away
+      [i + 1, i - 1].forEach((k) => { new Image().src = sized(photos[(k + photos.length) % photos.length].src, 1600); });
+    };
+    show(i);
     const close = () => { box.remove(); item.focus(); document.removeEventListener('keydown', onKey); };
-    const onKey = (e) => { if (e.key === 'Escape') close(); };
+    const onKey = (e) => {
+      if (e.key === 'Escape') close();
+      if (e.key === 'ArrowRight') show(i + 1);
+      if (e.key === 'ArrowLeft') show(i - 1);
+    };
     document.addEventListener('keydown', onKey);
-    box.addEventListener('click', close);
+    // Swipe left = next photo, swipe right = previous. A plain tap closes, like before.
+    let start = null, swiped = false;
+    box.addEventListener('touchstart', (e) => { start = [e.touches[0].clientX, e.touches[0].clientY]; swiped = false; }, { passive: true });
+    box.addEventListener('touchmove', (e) => {
+      if (!start) return;
+      const dx = e.touches[0].clientX - start[0];
+      if (Math.abs(dx) > 10) img.style.transform = `translateX(${dx}px)`;
+    }, { passive: true });
+    box.addEventListener('touchend', (e) => {
+      if (!start) return;
+      const dx = e.changedTouches[0].clientX - start[0], dy = e.changedTouches[0].clientY - start[1];
+      img.style.transform = '';
+      start = null;
+      if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) { swiped = true; show(i + (dx < 0 ? 1 : -1)); }
+    });
+    box.addEventListener('click', () => { if (swiped) { swiped = false; return; } close(); });
     document.body.append(box);
     box.querySelector('.lightbox-close').focus();
   });
