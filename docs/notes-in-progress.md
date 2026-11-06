@@ -94,6 +94,8 @@ Open questions: name for the lounge room; whether the café = Kuuma Feeding Stat
 
 ## Lodging
 
+- Nov 6: ideas offered, Todd deciding: Events button on Home (2026-27 events from Paul's draft) and a "Good to know" box at the bottom of Trail Conditions. Beta test "soon".
+
 - Nov 6: cabin photos skipped for now (Todd). lodging.json has an empty "photos" list ready: add {src, caption} items when Todd picks photos.
 - Home email uses vacation@laplandlake.com; Facebook/Instagram links are facebook.com/laplandlake and instagram.com/laplandlake (not checked from here; Todd to tap them).
 - Todd: say "trail pass," never "ticket," in the guest app.

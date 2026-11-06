@@ -2,6 +2,7 @@
 
 Newest first. One plain-English line per change.
 
+- 2026-11-06: Lodge With Us shows "Check-out time: 11am".
 - 2026-11-06: Lodge With Us: kitchen spelled out (full private kitchen: refrigerator, stove with oven, microwave, drip coffee maker, toaster, dishes, utensils, pots and pans, kitchen towels); sauna moved to Every stay; headings "Winter Lodging" and "Summer and Fall Lodging".
 - 2026-11-06: Added a rule to CLAUDE.md: say "trail pass" (never "ticket") and "cabins" (never "cottages" or "tupas").
 - 2026-11-06: "Buy Tickets" is now "Trail Passes & Rentals" (button "Buy Now"); "ticket" now says "trail pass" everywhere, including the share preview text. Price heading "Trail Passes".
