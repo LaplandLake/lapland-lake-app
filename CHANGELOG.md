@@ -2,6 +2,7 @@
 
 Newest first. One plain-English line per change.
 
+- 2026-11-06: Added a rule to CLAUDE.md: say "trail pass" (never "ticket") and "cabins" (never "cottages" or "tupas").
 - 2026-11-06: "Buy Tickets" is now "Trail Passes & Rentals" (button "Buy Now"); "ticket" now says "trail pass" everywhere, including the share preview text. Price heading "Trail Passes".
 - 2026-11-06: Lessons page says lessons don't include a trail pass or rentals, and you need a trail pass, season pass or lodging (links to buy a trail pass). New Home button wording for Trail Conditions, Lessons and Upstairs Café.
 - 2026-11-06: Trail Passes page: "Ask us about season passes" and the free switch to snowshoes. Lodge With Us: "What comes with a stay" (Every stay / Winter / Summer and Fall). Home: email, address (opens Google Maps), Facebook, Instagram.

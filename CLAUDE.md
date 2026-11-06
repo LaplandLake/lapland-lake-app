@@ -67,6 +67,7 @@ Todd decides anything visible: looks, wording, images, layout, share previews. S
 ## Gotchas
 
 - Stay on the app Todd is talking about. In a guest app conversation, don't bring up the Supply Manager (or vice versa) unless he asks, even though both share this repo.
+- Say "trail pass," never "ticket." Say "cabins," never "cottages" or "tupas." This applies to all app text (Todd, Nov 6, 2026).
 - (Add a line here each time Bob repeats a mistake.)
 - Never put a person's name (Todd's or anyone's) in a business app's text, labels or messages unless Todd asks for it. Use "Admin" or neutral wording.
 - When Todd asks a question, answer it. Don't start changing anything until he says to.
