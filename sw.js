@@ -3,7 +3,7 @@
    - Content files (trail report, soup, menu) always try the internet first, and fall back
      to the last saved copy if there's no signal.
    Bump VERSION whenever app files (not content) change, so phones pick up the new version. */
-const VERSION = 'v45';
+const VERSION = 'v46';
 const APP_FILES = [
   './',
   'index.html',
@@ -29,6 +29,7 @@ const APP_FILES = [
   'content/settings.json',
   'content/photos.json',
   'content/prices.json',
+  'content/lodging.json',
 ];
 
 self.addEventListener('install', (event) => {

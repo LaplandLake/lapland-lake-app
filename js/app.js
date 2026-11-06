@@ -197,6 +197,7 @@ async function renderTickets(view) {
         Buy Tickets Now ${svg('ext')}
       </a>
       <p class="meta" style="margin-top:12px">Booking and payment are handled by FareHarbor.</p>
+      ${prices?.trailHours ? `<p class="hours-line"><strong>Trail hours:</strong> ${esc(prices.trailHours)}</p>` : ''}
       ${prices ? `
         <section class="menu-section">
           <h2>Day Passes <span class="section-note">${esc(prices.season)} · full day</span></h2>
@@ -251,7 +252,7 @@ async function renderLessons(view) {
 async function renderLodging(view) {
   view.innerHTML = `<h1>Lodge With Us</h1>${loading}`;
   try {
-    const settings = await loadContent('settings.json');
+    const [settings, lodging] = await Promise.all([loadContent('settings.json'), loadContent('lodging.json').catch(() => null)]);
     view.innerHTML = `
       <h1>Lodge With Us</h1>
       <p>Stay at Lapland Lake, Winter, Summer, or Fall. See available lodging and book online.</p>
@@ -259,7 +260,15 @@ async function renderLodging(view) {
         Book Lodging ${svg('ext')}
       </a>
       <p class="tip-line"><strong>Tip:</strong> The booking calendar is much easier to see on a computer screen.</p>
-      <p class="meta">Reservations are handled by RezStream.</p>`;
+      <p class="meta">Reservations are handled by RezStream.</p>
+      ${lodging ? `
+        <h2 class="lodging-title">Our Lodging</h2>
+        <p>${esc(lodging.intro)}</p>
+        ${lodging.groups.map((g) => `
+          <section class="menu-section">
+            <h2>${esc(g.title)}${g.note ? ` <span class="section-note">${esc(g.note)}</span>` : ''}</h2>
+            ${priceCard(g.units.map((u) => ({ name: u.name, note: u.note, price: '' })))}
+          </section>`).join('')}` : ''}`;
   } catch {
     view.innerHTML = `<h1>Lodge With Us</h1>${errorCard('the booking link')}`;
   }

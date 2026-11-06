@@ -491,3 +491,5 @@ button.trail-row { cursor: pointer; }
 .style-switch .map-switch-btn { min-height: 44px; font-size: 16px; }
 .status-legend[hidden] { display: none; }
 .status-legend .sym { flex: none; }
+.hours-line { margin: 16px 0 0; }
+.lodging-title { margin-top: 28px; }
