@@ -387,7 +387,7 @@ async function renderTrailMap(view) {
   view.innerHTML = `<h1>Trail Maps</h1>${loading}`;
   let data;
   try {
-    [data] = await Promise.all([loadContent('trails.json'), loadScript('js/vendor/panzoom.min.js')]);
+    [data] = await Promise.all([loadSaved('trails.json'), loadScript('js/vendor/panzoom.min.js')]);
   } catch {
     view.innerHTML = `<h1>Trail Maps</h1>${errorCard('the trail map')}`;
     return;
@@ -416,7 +416,7 @@ async function renderTrailMap(view) {
     <div class="legend">${Object.keys(DIFFICULTY).map(diffBadge).join('')}</div>
     <div class="map-frame">
       <div class="map-canvas" style="aspect-ratio:${data.mapWidth}/${data.mapHeight}">
-        <img src="${esc(data.mapImage)}" alt="Lapland Lake cross-country ski trail map" draggable="false">
+        <img src="${esc(data.mapImage)}" alt="Lapland Lake cross-country ski trail map" draggable="false" fetchpriority="high">
         ${items.flatMap((it) => (it.spots || []).map((spot) => pin(it, spot))).join('')}
       </div>
       <div class="map-controls">
@@ -1000,7 +1000,7 @@ async function renderPhotos(view) {
   const sized = (src, w) => src.replace(/=w\d+$/, `=w${w}`);
   const galleryHtml = () => photos.map((ph, i) => `
     <button type="button" class="gallery-item${i === 0 ? ' first' : ''}" data-i="${i}">
-      <img src="${esc(sized(ph.src, i === 0 ? 1000 : 500))}" alt="Guest photo${ph.date ? ', ' + esc(photoDate(ph.date)) : ''}" loading="lazy">
+      <img src="${esc(sized(ph.src, i === 0 ? 1000 : 500))}" alt="Guest photo${ph.date ? ', ' + esc(photoDate(ph.date)) : ''}" ${i < 3 ? 'fetchpriority="high"' : 'loading="lazy"'}>
       ${caption(ph) ? `<span class="gallery-cap">${caption(ph)}</span>` : ''}
     </button>`).join('');
   view.innerHTML = `

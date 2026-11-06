@@ -2,6 +2,7 @@
 
 Newest first. One plain-English line per change.
 
+- 2026-11-06: Checkup: on weak signal, Trail Conditions and the café menu show the saved copy after 4 seconds instead of waiting (was 20+ s); trail map opens instantly from the saved copy; trail map and first guest photos load first. Speed/accessibility scores 91–100 on every screen; works offline on every screen; no sideways scrolling on small phones or with large text.
 - 2026-11-06: Trail Conditions: "Coming up" shows the next 3 events (content/events.json, from Paul's Oct 14 draft; past events drop off on their own) with a "More Events" link to laplandlake.com/events.
 - 2026-11-06: Trail Passes & Rentals: small "Good to know" note at the bottom (no dogs, snowshoe trails separate, night skiing for lodging guests only).
 - 2026-11-06: Lodge With Us shows "Check-out time: 11am".

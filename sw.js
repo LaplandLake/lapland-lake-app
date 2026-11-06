@@ -3,7 +3,7 @@
    - Content files (trail report, soup, menu) always try the internet first, and fall back
      to the last saved copy if there's no signal.
    Bump VERSION whenever app files (not content) change, so phones pick up the new version. */
-const VERSION = 'v49';
+const VERSION = 'v50';
 const APP_FILES = [
   './',
   'index.html',
@@ -58,16 +58,22 @@ self.addEventListener('fetch', (event) => {
 
   const isContent = new URL(req.url).pathname.includes('/content/');
   if (isContent) {
-    // Internet first, saved copy if offline
-    event.respondWith(
-      fetch(req)
-        .then((res) => {
-          const copy = res.clone();
-          caches.open(VERSION).then((c) => c.put(req, copy));
-          return res;
-        })
-        .catch(() => caches.match(req, { ignoreSearch: true }))
-    );
+    // Internet first, saved copy if offline. On weak signal, don't wait more than
+    // 4 seconds: show the saved copy, and keep fetching in the background for next time.
+    const fresh = fetch(req).then((res) => {
+      if (res.ok) {
+        const copy = res.clone();
+        caches.open(VERSION).then((c) => c.put(req, copy));
+      }
+      return res;
+    });
+    event.waitUntil(fresh.catch(() => {}));
+    event.respondWith((async () => {
+      const saved = await caches.match(req, { ignoreSearch: true });
+      if (!saved) return fresh;
+      const timer = new Promise((resolve) => setTimeout(() => resolve(saved), 4000));
+      return Promise.race([fresh.catch(() => saved), timer]);
+    })());
   } else {
     // Saved copy first (fast), then refresh it in the background
     event.respondWith(
