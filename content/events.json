@@ -1,0 +1,14 @@
+{
+  "source": "Company Brain, '2 - About Lapland Lake', 2026-27 events (Paul's draft, Oct 14, 2026). Past events drop off the app on their own.",
+  "show": 3,
+  "events": [
+    { "start": "2026-12-12", "name": "10K Freestyle Race" },
+    { "start": "2026-12-12", "end": "2026-12-13", "name": "Early Season Sale" },
+    { "start": "2027-01-23", "name": "Ladies Day Skate" },
+    { "start": "2027-01-30", "name": "Hills Clinic" },
+    { "start": "2027-01-31", "name": "Family Sunday" },
+    { "start": "2027-02-06", "name": "Ladies Day Classic" },
+    { "start": "2027-02-20", "name": "Open Skate Clinic" },
+    { "start": "2027-03-14", "name": "Pie Day" }
+  ]
+}

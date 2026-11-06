@@ -30,6 +30,7 @@ const APP_FILES = [
   'content/photos.json',
   'content/prices.json',
   'content/lodging.json',
+  'content/events.json',
 ];
 
 self.addEventListener('install', (event) => {

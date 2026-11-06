@@ -311,10 +311,27 @@ async function renderLodging(view) {
   }
 }
 
+// The next few events (content/events.json). Past events drop off on their own.
+function upcomingHtml(data) {
+  const today = todayString();
+  const next = (data?.events || []).filter((e) => (e.end || e.start) >= today).slice(0, data?.show || 3);
+  if (!next.length) return '';
+  const day = (v, opts) => new Date(v + 'T12:00:00').toLocaleDateString('en-US', opts);
+  const when = (e) => {
+    if (!e.end || e.end === e.start) return day(e.start, { weekday: 'short', month: 'short', day: 'numeric' });
+    return `${day(e.start, { weekday: 'short' })}–${day(e.end, { weekday: 'short' })}, ${day(e.start, { month: 'short', day: 'numeric' })}–${day(e.end, { day: 'numeric' })}`;
+  };
+  return `
+    <section class="menu-section">
+      <h2>Coming up</h2>
+      ${priceCard(next.map((e) => ({ name: e.name, note: when(e), price: '' })))}
+    </section>`;
+}
+
 async function renderConditions(view) {
   view.innerHTML = `<h1>Trail Conditions</h1>${loading}`;
   try {
-    const [report, settings] = await Promise.all([loadContent('trail-report.json'), loadContent('settings.json')]);
+    const [report, settings, events] = await Promise.all([loadContent('trail-report.json'), loadContent('settings.json'), loadSaved('events.json').catch(() => null)]);
     // "Last updated" is when the report on the website last changed (noticed within 30 minutes),
     // not the "Current Date" typed into the report, which doesn't always get changed.
     // Out of date if the last copy from the website failed, or the report hasn't changed in a while.
@@ -333,6 +350,7 @@ async function renderConditions(view) {
       ${report.notes?.length ? `<div class="card notes">${report.notes.map((n) => `<p>${noteHtml(n)}</p>`).join('')}</div>` : ''}
       ${report.text ? `<div class="card"><div class="report-text">${esc(report.text)}</div></div>` : ''}
       ${report.hours ? `<p class="meta">${esc(report.hours)}</p>` : ''}
+      ${upcomingHtml(events)}
       ${/^https?:/.test(report.source || '') ? `<p class="meta">From the <a href="${esc(report.source)}" target="_blank" rel="noopener">trail report on our website</a>. Checked for changes every 30 minutes.</p>` : ''}`;
   } catch {
     view.innerHTML = `<h1>Trail Conditions</h1>${errorCard("today's trail report")}`;
