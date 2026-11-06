@@ -20,6 +20,7 @@ const ICONS = {
   photos: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/>',
   camera: '<path d="M3 8a2 2 0 0 1 2-2h2l2-2h6l2 2h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="4"/>',
   addapp: '<rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M10 18.5h4M12 7v6M9 10h6"/>',
+  qr:     '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 17h4v4h-4"/>',
   bed:    '<path d="M3 19V6M3 15h18v4M21 15v-3a3 3 0 0 0-3-3h-7v6"/><circle cx="7" cy="11" r="2"/>',
 };
 const svg = (name, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[name]}</svg>`;
@@ -107,12 +108,44 @@ function renderHome(view) {
       </div>
     </footer>
     ${installButton()}
+    <button type="button" class="install-btn share-app-btn">${svg('qr')} Share this app</button>
     ${samsungTip()}`;
   view.querySelector('.tip-close')?.addEventListener('click', (e) => {
     try { localStorage.setItem('hideSamsungTip', '1'); } catch {}
     e.target.closest('.tip').remove();
   });
   setUpInstall(view);
+  view.querySelector('.share-app-btn').addEventListener('click', showShareCode);
+}
+
+// "Share this app": a big QR code someone nearby can scan with their camera,
+// plus a button to text or email the link.
+const APP_URL = 'https://laplandlake.github.io/lapland-lake-app/';
+function showShareCode() {
+  const box = document.createElement('div');
+  box.className = 'lightbox share-box';
+  box.setAttribute('role', 'dialog');
+  box.setAttribute('aria-label', 'Share this app');
+  box.innerHTML = `
+    <button type="button" class="lightbox-close" aria-label="Close">${svg('close')}</button>
+    <div class="share-card">
+      <h2>Share this app</h2>
+      <p>Point your phone's camera here.</p>
+      <img src="images/share-qr.svg" alt="QR code for the Lapland Lake app" width="260" height="260">
+      ${navigator.share ? '<button type="button" class="btn send-link">Send the link</button>' : `<p class="meta">${APP_URL}</p>`}
+    </div>`;
+  const close = () => { box.remove(); document.removeEventListener('keydown', onKey); };
+  const onKey = (e) => { if (e.key === 'Escape') close(); };
+  document.addEventListener('keydown', onKey);
+  box.addEventListener('click', (e) => {
+    if (e.target.closest('.send-link')) {
+      navigator.share({ title: 'Lapland Lake', text: 'The Lapland Lake app', url: APP_URL }).catch(() => {});
+      return;
+    }
+    if (e.target === box || e.target.closest('.lightbox-close')) close();
+  });
+  document.body.append(box);
+  box.querySelector('.lightbox-close').focus();
 }
 
 /* ---------- "Add this app to your phone" ---------- */

@@ -507,3 +507,10 @@ button.trail-row { cursor: pointer; }
 .more-link { margin: 10px 0 0; }
 .more-link a { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; font-weight: 700; color: var(--link); }
 .more-link svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.share-app-btn { margin-top: 10px; }
+.share-card { background: #fff; border-radius: var(--radius); padding: 22px 20px; text-align: center; width: min(340px, 100%); }
+.share-card h2 { margin: 0 0 4px; }
+.share-card p { color: var(--ink); margin: 0 0 12px; }
+.share-card img { display: block; width: 260px; height: 260px; max-width: 100%; margin: 0 auto 14px; }
+.share-card .btn { width: 100%; }
+.share-card .meta { color: var(--ink-soft); word-break: break-all; margin: 0; }
