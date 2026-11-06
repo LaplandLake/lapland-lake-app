@@ -503,3 +503,4 @@ button.trail-row { cursor: pointer; }
 .lodging-photos img { display: block; width: 100%; border-radius: var(--radius); }
 .lodging-photos figcaption { font-size: 15px; color: var(--ink-soft); margin-top: 4px; }
 .lightbox img { transition: transform .15s; touch-action: pan-y; }
+.good-to-know { margin-top: 18px; }

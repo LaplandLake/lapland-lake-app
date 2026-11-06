@@ -232,7 +232,8 @@ async function renderTickets(view) {
           ${priceCard(prices.rentals)}
         </section>
         ${prices.rentalSwitchNote ? `<p class="price-note">${esc(prices.rentalSwitchNote)}</p>` : ''}
-        ${prices.rentalNote ? `<p class="meta">${esc(prices.rentalNote)}</p>` : ''}` : ''}`;
+        ${prices.rentalNote ? `<p class="meta">${esc(prices.rentalNote)}</p>` : ''}
+        ${prices.goodToKnow ? `<p class="meta good-to-know">* <strong>Good to know:</strong> ${esc(prices.goodToKnow)}</p>` : ''}` : ''}`;
   } catch {
     view.innerHTML = `<h1>Trail Passes &amp; Rentals</h1>${errorCard('the booking link')}`;
   }
