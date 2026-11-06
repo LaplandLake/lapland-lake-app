@@ -26,8 +26,8 @@ const svg = (name, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" aria-hi
 
 const SCREENS = [
   { path: 'trails',  title: 'Trail Conditions',  sub: 'Grooming report, km open & more',                   icon: 'snow',   render: renderConditions },
-  { path: 'tickets', title: 'Buy Tickets',       sub: 'Trail passes, equipment rentals, lessons, season passes', icon: 'ticket', render: renderTickets },
-  { path: 'lessons', title: 'Lessons',           sub: 'Already have a ticket, season pass, or lodging with us? Book your lesson here.', icon: 'skier',  render: renderLessons },
+  { path: 'tickets', title: 'Trail Passes & Rentals', sub: 'Trail passes, equipment rentals, lessons, season passes', icon: 'ticket', render: renderTickets },
+  { path: 'lessons', title: 'Lessons',           sub: 'Have a trail pass, season pass, or lodging with us? Book your lesson here.', icon: 'skier',  render: renderLessons },
   { path: 'map',     title: 'Trail Maps',        sub: 'Trail map & live trail status',                        icon: 'map',    render: renderTrailMap },
   { path: 'menu',    title: 'Upstairs Café',     sub: "Today's soup, food & drinks menu",                     icon: 'soup',   render: renderMenu },
   { path: 'stay',    title: 'Lodge With Us',     sub: 'Our cabins, studios & farmhouse',                       icon: 'bed',    render: renderLodging },
@@ -210,14 +210,14 @@ const priceCard = (items) => `
 const loadPrices = () => loadSaved('prices.json').catch(() => null);
 
 async function renderTickets(view) {
-  view.innerHTML = `<h1>Buy Tickets</h1>${loading}`;
+  view.innerHTML = `<h1>Trail Passes &amp; Rentals</h1>${loading}`;
   try {
     const [settings, prices] = await Promise.all([loadSaved('settings.json'), loadPrices()]);
     view.innerHTML = `
-      <h1>Buy Tickets</h1>
+      <h1>Trail Passes &amp; Rentals</h1>
       <p>Buy trail passes, equipment rentals, lessons, and season passes online. You'll go to our secure booking page.</p>
       <a class="btn" href="${esc(settings.fareharborUrl)}" target="_blank" rel="noopener">
-        Buy Tickets Now ${svg('ext')}
+        Buy Now ${svg('ext')}
       </a>
       <p class="meta" style="margin-top:12px">Booking and payment are handled by FareHarbor.</p>
       ${prices?.trailHours ? `<p class="hours-line"><strong>Trail hours:</strong> ${esc(prices.trailHours)}</p>` : ''}
@@ -234,7 +234,7 @@ async function renderTickets(view) {
         ${prices.rentalSwitchNote ? `<p class="price-note">${esc(prices.rentalSwitchNote)}</p>` : ''}
         ${prices.rentalNote ? `<p class="meta">${esc(prices.rentalNote)}</p>` : ''}` : ''}`;
   } catch {
-    view.innerHTML = `<h1>Buy Tickets</h1>${errorCard('the booking link')}`;
+    view.innerHTML = `<h1>Trail Passes &amp; Rentals</h1>${errorCard('the booking link')}`;
   }
 }
 
@@ -255,7 +255,7 @@ async function renderLessons(view) {
     const [settings, prices] = await Promise.all([loadSaved('settings.json'), loadPrices()]);
     view.innerHTML = `
       <h1>Lessons</h1>
-      <p>Already have a ticket, season pass, or lodging with us? Book a lesson here.</p>
+      <p><strong>Lessons don’t include a trail pass or rental equipment.</strong> To take a lesson, you need a trail pass, a season pass, or lodging with us. If you don’t have one, <a href="#/tickets">buy a trail pass</a> too.</p>
       <a class="btn" href="${esc(settings.lessonsUrl || settings.fareharborUrl)}" target="_blank" rel="noopener">
         Book a Lesson ${svg('ext')}
       </a>
