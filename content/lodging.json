@@ -1,24 +1,70 @@
 {
-  "source": "Lapland Company Brain, '2 - About Lapland Lake' (Lodging details), Nov 2026",
+  "source": "Beds: Drive sheet 'Lapland Lake Lodging – Beds and Sleeping' (from laplandlake.com/lodging, Oct 30, 2026). Other facts: Company Brain.",
   "intro": "Every unit has a full kitchen, linens and Wi-Fi. No pets.",
   "groups": [
-    { "title": "Studios", "note": "adults only", "units": [
-      { "name": "Owl's Nest", "note": "Sleeps 2 · propane fireplace" },
-      { "name": "Fox Den", "note": "Sleeps 2 · propane fireplace" }
-    ]},
-    { "title": "Cabins", "units": [
-      { "name": "Pohjan", "note": "Sleeps 4 · wood or propane stove" },
-      { "name": "Suksi", "note": "Sleeps 6 · propane fireplace" },
-      { "name": "Kota", "note": "Sleeps 6 · woodstove" },
-      { "name": "Poro", "note": "Sleeps 6 · wood or propane stove" },
-      { "name": "Pulkka", "note": "Sleeps 6 · wood or propane stove · wheelchair ramp" },
-      { "name": "Ruska", "note": "Sleeps 6 · woodstove" },
-      { "name": "Tunturi", "note": "Sleeps 6 · woodstove" },
-      { "name": "Lumi", "note": "Sleeps 8 · woodstove" },
-      { "name": "Latu", "note": "Sleeps 10 · woodstove" }
-    ]},
-    { "title": "Farmhouse", "units": [
-      { "name": "Lapin Farmhouse", "note": "Sleeps 10 · 4 bedrooms, 2 baths · dishwasher" }
-    ]}
+    {
+      "title": "Studios",
+      "note": "adults only",
+      "units": [
+        {
+          "name": "Owl's Nest",
+          "note": "Sleeps 2 · 1 queen"
+        },
+        {
+          "name": "Fox Den",
+          "note": "Sleeps 2 · 1 queen"
+        }
+      ]
+    },
+    {
+      "title": "Cabins",
+      "units": [
+        {
+          "name": "Pohjan",
+          "note": "Sleeps 4 · 2 bedrooms: 1 full, 2 twins"
+        },
+        {
+          "name": "Suksi",
+          "note": "Sleeps 6 · 2 bedrooms: 2 fulls, plus a queen pull-out couch"
+        },
+        {
+          "name": "Kota",
+          "note": "Sleeps 6 · 2 bedrooms: 2 fulls, plus a queen pull-out couch"
+        },
+        {
+          "name": "Poro",
+          "note": "Sleeps 6 · 2 bedrooms: 1 queen, 2 twins, plus a full pull-out couch"
+        },
+        {
+          "name": "Pulkka",
+          "note": "Sleeps 6 · 2 bedrooms: 1 queen, 2 twins, plus a full pull-out couch · wheelchair ramp"
+        },
+        {
+          "name": "Ruska",
+          "note": "Sleeps 6 · 3 bedrooms: 1 queen, 1 full, 1 set of bunk beds"
+        },
+        {
+          "name": "Tunturi",
+          "note": "Sleeps 6 · 3 bedrooms: 1 queen, 1 full, 1 set of bunk beds"
+        },
+        {
+          "name": "Lumi",
+          "note": "Sleeps 8 · 3 bedrooms: 2 fulls, 1 set of bunk beds, plus a queen pull-out couch"
+        },
+        {
+          "name": "Latu",
+          "note": "Sleeps 10 · 4 bedrooms: 2 queens, 4 twins, plus a full pull-out couch"
+        }
+      ]
+    },
+    {
+      "title": "Farmhouse",
+      "units": [
+        {
+          "name": "Lapin Farmhouse",
+          "note": "Sleeps 10 · 4 bedrooms, 2 baths: 1 full, 1 queen, 4 twins, plus a full pull-out couch · dishwasher"
+        }
+      ]
+    }
   ]
 }
