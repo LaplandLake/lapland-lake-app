@@ -286,6 +286,7 @@ async function renderLodging(view) {
       </a>
       <p class="tip-line"><strong>Tip:</strong> The booking calendar is much easier to see on a computer screen.</p>
       <p class="meta">Reservations are handled by RezStream.</p>
+      <p class="hours-line"><strong>Check-out time:</strong> 11am</p>
       ${lodging ? `
         ${lodging.included?.length ? `
           <h2 class="lodging-title">What comes with a stay</h2>
