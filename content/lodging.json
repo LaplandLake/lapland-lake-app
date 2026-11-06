@@ -4,16 +4,16 @@
     {
       "title": "Every stay",
       "items": [
-        "Full kitchen",
+        "Full private kitchen: refrigerator, stove with oven, microwave, drip coffee maker, toaster, dishes, utensils, pots and pans, and kitchen towels",
         "Bed linens and towels included",
+        "Sauna, with men’s and women’s hours",
         "No cleaning fees"
       ]
     },
     {
-      "title": "Winter",
+      "title": "Winter Lodging",
       "items": [
         "Free trail pass for every registered lodging guest",
-        "Sauna, with men’s and women’s hours",
         "Night skiing on the Lake Trail, 6–9 pm, for lodging guests only",
         "Night tubing on the junior tubing hill, 6–9 pm, for lodging guests only",
         "Electric heat in every unit, and a forced hot air furnace in the farmhouse",
@@ -21,15 +21,14 @@
       ]
     },
     {
-      "title": "Summer and Fall",
+      "title": "Summer and Fall Lodging",
       "items": [
         "Private beach",
         "Kayaks, canoes and rowboats, free to use",
         "Life jackets and paddles, free to use",
         "Two playgrounds",
         "Each unit has a campfire ring, outdoor chairs, picnic table and charcoal grill",
-        "Campfire wood delivered daily, free",
-        "Sauna"
+        "Campfire wood delivered daily, free"
       ]
     }
   ],
