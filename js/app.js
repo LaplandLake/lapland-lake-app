@@ -170,17 +170,43 @@ function samsungTip() {
     </aside>`;
 }
 
+// A price list card (same look as the café menu)
+const priceCard = (items) => `
+  <div class="card">
+    ${items.map((it) => `
+      <div class="menu-item">
+        <div>
+          <div class="name">${esc(it.name)}</div>
+          ${it.note ? `<div class="desc">${esc(it.note)}</div>` : ''}
+        </div>
+        <div class="price">${esc(it.price)}</div>
+      </div>`).join('')}
+  </div>`;
+
+// Ticket and lesson prices live in content/prices.json (copied from the website each season)
+const loadPrices = () => loadContent('prices.json').catch(() => null);
+
 async function renderTickets(view) {
   view.innerHTML = `<h1>Buy Tickets</h1>${loading}`;
   try {
-    const settings = await loadContent('settings.json');
+    const [settings, prices] = await Promise.all([loadContent('settings.json'), loadPrices()]);
     view.innerHTML = `
       <h1>Buy Tickets</h1>
       <p>Buy trail passes, equipment rentals, lessons, and season passes online. You'll go to our secure booking page.</p>
       <a class="btn" href="${esc(settings.fareharborUrl)}" target="_blank" rel="noopener">
         Buy Tickets Now ${svg('ext')}
       </a>
-      <p class="meta" style="margin-top:12px">Booking and payment are handled by FareHarbor.</p>`;
+      <p class="meta" style="margin-top:12px">Booking and payment are handled by FareHarbor.</p>
+      ${prices ? `
+        <section class="menu-section">
+          <h2>Day Passes <span class="section-note">${esc(prices.season)} · full day</span></h2>
+          ${priceCard(prices.dayPasses)}
+        </section>
+        <section class="menu-section">
+          <h2>Day Rentals</h2>
+          ${priceCard(prices.rentals)}
+        </section>
+        ${prices.rentalNote ? `<p class="meta">${esc(prices.rentalNote)}</p>` : ''}` : ''}`;
   } catch {
     view.innerHTML = `<h1>Buy Tickets</h1>${errorCard('the booking link')}`;
   }
@@ -200,14 +226,23 @@ function noteHtml(note) {
 async function renderLessons(view) {
   view.innerHTML = `<h1>Lessons</h1>${loading}`;
   try {
-    const settings = await loadContent('settings.json');
+    const [settings, prices] = await Promise.all([loadContent('settings.json'), loadPrices()]);
     view.innerHTML = `
       <h1>Lessons</h1>
       <p>Already have a ticket, season pass, or lodging with us? Book a lesson here.</p>
       <a class="btn" href="${esc(settings.lessonsUrl || settings.fareharborUrl)}" target="_blank" rel="noopener">
         Book a Lesson ${svg('ext')}
       </a>
-      <p class="meta" style="margin-top:12px">Booking and payment are handled by FareHarbor.</p>`;
+      <p class="meta" style="margin-top:12px">Booking and payment are handled by FareHarbor.</p>
+      ${prices?.lessons ? `
+        <section class="menu-section">
+          <h2>Lesson Prices <span class="section-note">${esc(prices.season)}</span></h2>
+          ${priceCard([
+            { name: 'First person', price: prices.lessons.first },
+            { name: 'Each additional person', note: 'Same lesson, up to 6', price: prices.lessons.additional },
+          ])}
+          <p class="meta">${esc(prices.lessons.text)}</p>
+        </section>` : ''}`;
   } catch {
     view.innerHTML = `<h1>Lessons</h1>${errorCard('the booking link')}`;
   }

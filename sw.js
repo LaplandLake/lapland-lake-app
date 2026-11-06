@@ -28,6 +28,7 @@ const APP_FILES = [
   'content/soup.json',
   'content/settings.json',
   'content/photos.json',
+  'content/prices.json',
 ];
 
 self.addEventListener('install', (event) => {
