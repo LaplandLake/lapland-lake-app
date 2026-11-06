@@ -220,4 +220,4 @@ Readable prices (last season; owner said menu prices may change):
 - Buy Tickets shows full-day pass prices (Todd: no After 2pm prices) and day rental prices; Lessons shows $50 first person / $25 each additional. Copied from laplandlake.com/rates and /lessons-intro (2026-27). Stored in `content/prices.json`. Update every season from the website (the Company Brain doesn't keep prices).
 - No prices on Lodge With Us (Todd's call).
 - Flagged to Todd: CLAUDE.md says "never put prices in this repo"; guest-facing prices are in the app (café menu, tickets, lessons). Todd may ask Col to reword it.
-- Open: Company Brain says "cabins, never cottages"; the app still says "Our cottages, studios & farmhouse" (Lodge With Us button) and "Rental Cottages" (trail map Places). Offered to fix; waiting on Todd.
+- Done Nov 6: app now says "cabins" (Lodge With Us button, trail map Places), per the Company Brain (never "cottages").
