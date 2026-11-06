@@ -94,6 +94,10 @@ Open questions: name for the lounge room; whether the café = Kuuma Feeding Stat
 
 ## Lodging
 
+- Nov 6: cabin photos skipped for now (Todd). lodging.json has an empty "photos" list ready: add {src, caption} items when Todd picks photos.
+- Home email uses vacation@laplandlake.com; Facebook/Instagram links are facebook.com/laplandlake and instagram.com/laplandlake (not checked from here; Todd to tap them).
+- Todd: say "trail pass," never "ticket," in the guest app.
+
 - Nov 6, 2026: lodging list published (sleeps + beds per unit, from Drive sheet "Lapland Lake Lodging – Beds and Sleeping"). Todd: no stoves, no grills/fire pits (none in winter), no dishwasher, no "No TVs". Todd confirmed Suksi has a queen pull-out couch (sheet still says CHECK). Company Brain still says every unit has a grill and fire pit; should say summer and fall only.
 - Trail hours on Buy Tickets live in content/prices.json (trailHours); check each season.
 - "Lodge With Us" opens RezStream. Owner chose to keep it simple for now.
