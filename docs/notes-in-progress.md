@@ -94,7 +94,7 @@ Open questions: name for the lounge room; whether the café = Kuuma Feeding Stat
 
 ## Photo inbox limits (Nov 7)
 
-- photo-inbox.gs: 3 MB max photo, 500/day plus 300/hour. Written on branch claude/photo-inbox-limits; WAITING for Todd to paste into Apps Script and deploy a new version (he wasn't at a computer).
+- photo-inbox.gs: 3 MB max photo, 500/day plus 300/hour. Written on branch claude/photo-inbox-limits; Todd pasted and deployed Nov 7. Test upload from the app is up to Todd (Apps Script unreachable from cloud sessions).
 
 ## Lodging
 
