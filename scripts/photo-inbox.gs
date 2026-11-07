@@ -22,7 +22,8 @@ const REVIEW_EMAIL = 'todd@laplandlake.com';
 // several Google accounts at once.)
 const REVIEW_PAGE = 'https://laplandlake.github.io/lapland-lake-app/review.html';
 const MAIN_FOLDER = 'Lapland Lake App Photos';
-const MAX_PHOTO_CHARS = 12 * 1024 * 1024; // the app sends photos well under this
+const MAX_PHOTO_CHARS = 4 * 1024 * 1024; // about 3 MB; the app shrinks photos to well under 1 MB
+const MAX_PER_DAY = 500; // with 300 an hour, caps how much anyone can add to Drive in a day
 const EMAIL_PHOTO_BYTES = 1500000; // bigger photos without a Drive preview are left out of the email
 
 function setup() {
@@ -88,8 +89,15 @@ function doPost(e) {
       const hourKey = 'uploads-' + Utilities.formatDate(new Date(), 'UTC', 'yyyyMMddHH');
       const count = Number(cache.get(hourKey) || 0);
       if (count >= 300) return reply_('busy');
-      cache.put(hourKey, String(count + 1), 3600);
+      // ...and at most 500 a day
+      const props = PropertiesService.getScriptProperties();
+      const today = Utilities.formatDate(new Date(), 'America/New_York', 'yyyy-MM-dd');
+      const [day, dayCount] = String(props.getProperty('uploadsToday') || '').split(' ');
+      const todayCount = day === today ? Number(dayCount) || 0 : 0;
+      if (todayCount >= MAX_PER_DAY) return reply_('busy');
       if (typeof msg.photo !== 'string' || msg.photo.length > MAX_PHOTO_CHARS) return reply_('too big');
+      cache.put(hourKey, String(count + 1), 3600);
+      props.setProperty('uploadsToday', today + ' ' + (todayCount + 1));
       const stamp = Utilities.formatDate(new Date(), 'America/New_York', 'yyyy-MM-dd HHmmss');
       const blob = Utilities.newBlob(Utilities.base64Decode(msg.photo), 'image/jpeg', stamp + ' ' + batch + '.jpg');
       review.createFile(blob);

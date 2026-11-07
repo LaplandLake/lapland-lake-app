@@ -2,6 +2,7 @@
 
 Newest first. One plain-English line per change.
 
+- 2026-11-07: Photo inbox (scripts/photo-inbox.gs): largest photo lowered to about 3 MB and a limit of 500 photos a day, on top of 300 an hour, so nobody can fill the Drive. Needs Todd to paste the script and deploy a new version.
 - 2026-11-07: Trail Passes page: removed "Ask us about season passes" (sold on the same booking page); rental labels (Adult/Youth/Junior) now sit under each price. Season pass prices stay off the app (Todd).
 - 2026-11-07: Links ending in /maps open Trail Maps (maps/index.html redirect). Lodge With Us opens with "Stay with us in winter, summer or fall." Fox Den listed before Owl's Nest, matching RezStream.
 - 2026-11-06: Home Lessons button: "Book a lesson with our certified instructors" (shorter).

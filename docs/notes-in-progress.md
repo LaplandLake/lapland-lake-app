@@ -92,6 +92,10 @@ Open questions: name for the lounge room; whether the café = Kuuma Feeding Stat
 - Lessons button: `lessonsUrl` in `content/settings.json` is FareHarbor item 328289 (lessons calendar), tracking codes removed.
 - **Menu prices published (2026-10-06)** from last season's café chalkboards (photo `docs/photos/promo/cafe-counter.jpg`), including salads, breakfast, snacks, scones and cinnamon rolls. Blank (no price shown): chili, mac and cheese, soup (cup $5.__/bowl $7.__), decorated sugar cookies, NA beer, all snacks. Muffin $4.50 was smudged. The café chalkboards have been erased for the off-season, so **this year's prices wait until the season starts**; then get a photo of the boards and update `content/menu.json`.
 
+## Photo inbox limits (Nov 7)
+
+- photo-inbox.gs: 3 MB max photo, 500/day plus 300/hour. Written on branch claude/photo-inbox-limits; WAITING for Todd to paste into Apps Script and deploy a new version (he wasn't at a computer).
+
 ## Lodging
 
 - Nov 7: tappable unit names linking to each RezStream unit page: dropped. RezStream's address doesn't change per unit (Todd), so there's no link to use.
