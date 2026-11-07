@@ -314,7 +314,7 @@ async function renderLodging(view) {
     const [settings, lodging] = await Promise.all([loadSaved('settings.json'), loadSaved('lodging.json').catch(() => null)]);
     view.innerHTML = `
       <h1>Lodge With Us</h1>
-      <p>Stay at Lapland Lake, Winter, Summer, or Fall. See available lodging and book online.</p>
+      <p>Stay with us in winter, summer or fall.</p>
       <a class="btn" href="${esc(settings.lodgingUrl)}" target="_blank" rel="noopener">
         Book Lodging ${svg('ext')}
       </a>
@@ -1106,7 +1106,8 @@ async function renderPhotos(view) {
 /* ---------- Navigation ---------- */
 
 function route() {
-  const path = location.hash.replace(/^#\/?/, '');
+  let path = location.hash.replace(/^#\/?/, '');
+  if (path === 'maps') path = 'map'; // "maps" with an s also opens Trail Maps
   const screen = SCREENS.find((s) => s.path === path);
   // Swap in a fresh page area, so a slow screen that finishes loading after the guest
   // has already moved on can't draw over the screen they're on now
