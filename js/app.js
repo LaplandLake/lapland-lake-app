@@ -226,17 +226,26 @@ function samsungTip() {
     </aside>`;
 }
 
-// A price list card (same look as the café menu)
+// A price list card (same look as the café menu).
+// When an item has several prices with matching labels ("$28 · $22 · $18" and
+// "Adult · Youth · Junior"), each label sits right under its own price.
 const priceCard = (items) => `
   <div class="card">
-    ${items.map((it) => `
+    ${items.map((it) => {
+      const prices = String(it.price || '').split(' · ');
+      const labels = String(it.note || '').split(' · ');
+      const paired = prices.length > 1 && prices.length === labels.length;
+      return `
       <div class="menu-item">
         <div>
           <div class="name">${esc(it.name)}</div>
-          ${it.note ? `<div class="desc">${esc(it.note)}</div>` : ''}
+          ${it.note && !paired ? `<div class="desc">${esc(it.note)}</div>` : ''}
         </div>
-        <div class="price">${esc(it.price)}</div>
-      </div>`).join('')}
+        ${paired
+          ? `<div class="price-grid">${prices.map((pr, i) => `<div><div class="price">${esc(pr)}</div><div class="desc">${esc(labels[i])}</div></div>`).join('')}</div>`
+          : `<div class="price">${esc(it.price)}</div>`}
+      </div>`;
+    }).join('')}
   </div>`;
 
 // Ticket and lesson prices live in content/prices.json (copied from the website each season)

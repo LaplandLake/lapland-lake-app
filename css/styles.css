@@ -514,3 +514,5 @@ button.trail-row { cursor: pointer; }
 .share-card img { display: block; width: 260px; height: 260px; max-width: 100%; margin: 0 auto 14px; }
 .share-card .btn { width: 100%; }
 .share-card .meta { color: var(--ink-soft); word-break: break-all; margin: 0; }
+.price-grid { display: flex; gap: 14px; text-align: center; }
+.price-grid .desc { font-size: 14px; white-space: nowrap; }
