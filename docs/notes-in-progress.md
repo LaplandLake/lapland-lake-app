@@ -94,6 +94,8 @@ Open questions: name for the lounge room; whether the café = Kuuma Feeding Stat
 
 ## Lodging
 
+- Nov 7: tappable unit names linking to each RezStream unit page: dropped. RezStream's address doesn't change per unit (Todd), so there's no link to use.
+
 - Nov 6: events published from Paul's Oct 14 draft. If dates change, edit content/events.json. Add next season's events each fall.
 - Todd's test for new ideas: would a guest who's here today need it? Planning info belongs on the website. Next step: beta test.
 

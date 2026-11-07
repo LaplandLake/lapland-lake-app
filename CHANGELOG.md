@@ -2,6 +2,7 @@
 
 Newest first. One plain-English line per change.
 
+- 2026-11-07: Links ending in /maps open Trail Maps (maps/index.html redirect). Lodge With Us opens with "Stay with us in winter, summer or fall." Fox Den listed before Owl's Nest, matching RezStream.
 - 2026-11-06: Home Lessons button: "Book a lesson with our certified instructors" (shorter).
 - 2026-11-06: Home: "Share this app" button shows a big QR code (images/share-qr.svg, works offline) and a "Send the link" button. Make a new QR when the app moves to app.laplandlake.com.
 - 2026-11-06: Checkup: on weak signal, Trail Conditions and the café menu show the saved copy after 4 seconds instead of waiting (was 20+ s); trail map opens instantly from the saved copy; trail map and first guest photos load first. Speed/accessibility scores 91–100 on every screen; works offline on every screen; no sideways scrolling on small phones or with large text.
