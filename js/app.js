@@ -302,7 +302,8 @@ async function renderLessons(view) {
       <a class="btn" href="${esc(settings.lessonsUrl || settings.fareharborUrl)}" target="_blank" rel="noopener">
         Book a Lesson ${svg('ext')}
       </a>
-      <p class="meta" style="margin-top:12px">Booking and payment are handled by FareHarbor.</p>
+      <p class="book-ahead">See open times and book online. Lessons often fill up, especially on weekends.</p>
+      <p class="meta">Booking and payment are handled by FareHarbor.</p>
       ${prices?.lessons ? `
         <section class="menu-section">
           <h2>Lesson Prices <span class="section-note">${esc(prices.season)}</span></h2>

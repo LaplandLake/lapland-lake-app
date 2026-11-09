@@ -530,3 +530,4 @@ button.trail-row { cursor: pointer; }
 .program-facts { margin: 0 0 12px; padding-left: 20px; color: var(--ink-soft); }
 .program-facts li { padding: 2px 0; }
 .program-btn { margin: 0; }
+.book-ahead { margin: 12px 0 4px; font-weight: 600; }
