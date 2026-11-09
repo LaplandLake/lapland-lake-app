@@ -206,7 +206,10 @@ function installSteps() {
   const iPad = /Macintosh/.test(ua) && navigator.maxTouchPoints > 1;
   const apple = /iPhone|iPad|iPod/.test(ua) || iPad;
   // Opened inside Facebook, Instagram, the Google app, etc.: their built-in browsers can't add apps
-  if (/FBAN|FBAV|FB_IAB|Instagram|GSA\/|Line\/|Snapchat|LinkedInApp|Pinterest|Twitter/.test(ua)) {
+  // On iPhone, real Safari (and Chrome/Firefox/Edge) say "Safari/" in their name; built-in
+  // browsers inside other apps, such as Gmail's, leave it out.
+  const appleInApp = apple && !/Safari\//.test(ua) && !/CriOS|FxiOS|EdgiOS/.test(ua);
+  if (appleInApp || /FBAN|FBAV|FB_IAB|Instagram|GSA\/|Line\/|Snapchat|LinkedInApp|Pinterest|Twitter|GmailiOS/.test(ua)) {
     return `<p><b>Open this page in ${apple ? 'Safari' : 'Chrome'} first.</b> You're viewing it inside another app, which can't add apps to your home screen.</p>
       <p>Tap the <b>⋯</b> or <b>⋮</b> menu in the corner and choose <b>Open in ${apple ? 'Safari' : 'Chrome'}</b> (or <b>Open in browser</b>), then tap <b>Add this app to your phone</b> again.</p>`;
   }

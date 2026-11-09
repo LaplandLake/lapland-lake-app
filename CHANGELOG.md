@@ -2,6 +2,7 @@
 
 Newest first. One plain-English line per change.
 
+- 2026-11-09: Add-to-phone: on iPhone, any built-in browser inside another app (such as Gmail's) now gets "Open this page in Safari first", like Facebook/Instagram already did. Can't detect Gmail's Safari-view mode.
 - 2026-11-09: iPhone add-to-phone steps show small pictures of each button (Share, the lines icon, View More, Add to Home Screen). Not yet checked against a real iPhone.
 - 2026-11-09: iPhone add-to-phone steps rewritten from Paul's real test on newer iPhones: Share (or ≡ → Share), View More, Add to Home Screen, Add.
 - 2026-11-09: "Add this app to your phone": iPhone steps cover the new Safari layout (⋯ menu → Share → Add to Home Screen); inside Facebook/Instagram/Google app it says to open the page in Safari (or Chrome) first. Paul's iPhone install didn't work; this should fix it.
