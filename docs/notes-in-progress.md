@@ -94,7 +94,7 @@ Open questions: name for the lounge room; whether the café = Kuuma Feeding Stat
 
 ## Getting the app onto phones (Todd's plan, Nov 9; one at a time, preview + yes each)
 
-1. iPhone steps (done, published). 2. Move the button up: tried at the top, Todd didn't like it; DROPPED, the banner (#5) will do the job. 3. Small pictures (published Nov 9; check against a real iPhone when one is handy). 4. Detect the Gmail app on iPhone and say open in Safari first. 5. Gentle "Add to your phone" banner after a guest has looked around.
+1. iPhone steps (done, published). 2. Move the button up: tried at the top, Todd didn't like it; DROPPED, the banner (#5) will do the job. 3. Small pictures (published Nov 9; check against a real iPhone when one is handy). 4. Detect the Gmail app on iPhone and say open in Safari first. 5. Banner: built on branch claude/install-banner but NOT used. Todd (Nov 9): keep Home clean so guests first see what the app is; the add-to-phone button stays at the bottom, and QR signs will tell guests to scroll to the bottom and tap it. Don't add install banners or top-of-page install prompts.
 
 ## Beta feedback (Nov 9)
 
