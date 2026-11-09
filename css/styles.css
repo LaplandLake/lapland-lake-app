@@ -534,3 +534,4 @@ button.trail-row { cursor: pointer; }
 .event-note { color: var(--ink); font-weight: 600; }
 .rental-ages { margin: -4px 0 10px; }
 .rental-intro { margin: -2px 0 8px; }
+.nowrap { white-space: nowrap; }

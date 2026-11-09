@@ -215,8 +215,8 @@ function installSteps() {
       return `<p>On iPhone, apps are added from <b>Safari</b>. Copy this page's address, open it in Safari, then follow the steps there.</p>`;
     }
     return `<ol>
-      <li>Tap <b>⋯</b> at the bottom right (or the <b>Share</b> button <span class="key">⬆︎</span> on older iPhones).</li>
-      <li>Tap <b>Share</b>, then scroll down and tap <b>Add to Home Screen</b>.</li>
+      <li>In Safari, tap the <b>Share</b> <span class="nowrap">button <span class="key">⬆︎</span>.</span> On newer iPhones, first tap the <b>≡</b> icon at the left of the address bar, then tap <b>Share</b>.</li>
+      <li>Tap <b>View More</b> if you see it, then tap <b>Add to Home Screen</b>.</li>
       <li>Tap <b>Add</b>.</li></ol>`;
   }
   if (/SamsungBrowser/.test(ua)) {
