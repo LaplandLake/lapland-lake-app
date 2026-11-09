@@ -531,3 +531,4 @@ button.trail-row { cursor: pointer; }
 .program-facts li { padding: 2px 0; }
 .program-btn { margin: 0; }
 .book-ahead { margin: 12px 0 4px; font-weight: 600; }
+.event-note { color: var(--ink); font-weight: 600; }

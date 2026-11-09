@@ -386,6 +386,7 @@ function upcomingHtml(data) {
           <div>
             <div class="name">${esc(e.name)}</div>
             <div class="desc">${esc(when(e))}</div>
+            ${e.note ? `<div class="desc event-note">${esc(e.note)}</div>` : ''}
           </div>
           ${e.signUpUrl ? `<a class="event-link" href="${esc(e.signUpUrl)}" target="_blank" rel="noopener">Sign up ${svg('ext')}</a>` : ''}
         </div>`).join('')}

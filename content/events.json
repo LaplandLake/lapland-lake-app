@@ -1,5 +1,5 @@
 {
-  "source": "Company Brain, '2 - About Lapland Lake', 2026-27 events (Paul's draft, Oct 14, 2026). Past events drop off the app on their own. Savor Winter added from laplandlake.com/events, Nov 9, 2026.",
+  "source": "Company Brain, '2 - About Lapland Lake', 2026-27 events (Paul's draft, Oct 14, 2026). Past events drop off the app on their own. Savor Winter added from laplandlake.com/events, Nov 9, 2026. High school race days (trail closures) from laplandlake.com/events, Nov 9, 2026.",
   "show": 3,
   "moreUrl": "https://laplandlake.com/events/",
   "events": [
@@ -13,8 +13,18 @@
       "name": "Early Season Sale"
     },
     {
+      "start": "2027-01-05",
+      "name": "High School Race",
+      "note": "Practice field and West Side trails close to the public at 1pm"
+    },
+    {
       "start": "2027-01-09",
       "name": "Savor Winter (guided ski or snowshoe outing)"
+    },
+    {
+      "start": "2027-01-13",
+      "name": "High School Race",
+      "note": "Practice field and West Side trails close to the public at 1pm"
     },
     {
       "start": "2027-01-23",
