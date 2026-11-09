@@ -3,7 +3,7 @@
    - Content files (trail report, soup, menu) always try the internet first, and fall back
      to the last saved copy if there's no signal.
    Bump VERSION whenever app files (not content) change, so phones pick up the new version. */
-const VERSION = 'v56';
+const VERSION = 'v57';
 const APP_FILES = [
   './',
   'index.html',
@@ -61,17 +61,20 @@ self.addEventListener('fetch', (event) => {
   if (isContent) {
     // Internet first, saved copy if offline. On weak signal, don't wait more than
     // 4 seconds: show the saved copy, and keep fetching in the background for next time.
-    const fresh = fetch(req).then((res) => {
-      if (res.ok) {
-        const copy = res.clone();
-        caches.open(VERSION).then((c) => c.put(req, copy));
-      }
+    // A server error (404, 500…) counts as a failure, so the last good copy is used instead
+    // (and so does a broken file: it's checked before it can replace the good saved copy)
+    const fresh = fetch(req).then(async (res) => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.clone().text();
+      JSON.parse(text); // throws if the file is broken
+      const copy = res.clone();
+      caches.open(VERSION).then((c) => c.put(req, copy));
       return res;
     });
     event.waitUntil(fresh.catch(() => {}));
     event.respondWith((async () => {
       const saved = await caches.match(req, { ignoreSearch: true });
-      if (!saved) return fresh;
+      if (!saved) return fresh.catch(() => new Response('', { status: 503 }));
       const timer = new Promise((resolve) => setTimeout(() => resolve(saved), 4000));
       return Promise.race([fresh.catch(() => saved), timer]);
     })());

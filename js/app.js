@@ -40,17 +40,37 @@ const SCREENS = [
 // Loads one of the editable files in /content. Always asks for a fresh copy;
 // if the phone is offline, the saved copy from the last visit is used instead.
 async function loadContent(file) {
-  const res = await fetch(`content/${file}`, { cache: 'no-cache' });
-  if (!res.ok) throw new Error(`Could not load ${file}`);
-  return res.json();
+  try {
+    const res = await fetch(`content/${file}`, { cache: 'no-cache' });
+    if (!res.ok) throw new Error(`Could not load ${file}`);
+    const data = await res.json();
+    freshData[file] = { data, at: Date.now() };
+    return data;
+  } catch (err) {
+    // Server error or a broken file: use the last good copy saved on the phone, if there is one
+    const saved = await caches.match(`content/${file}`, { ignoreSearch: true }).catch(() => null);
+    if (saved) return saved.json();
+    throw err;
+  }
 }
+const freshData = {};
 
 // For content that rarely changes (prices, lodging, photos, settings): show the copy saved
 // on the phone right away, and quietly fetch a fresh one for next time. No "Loading…" wait.
+// If the fresh copy turns out to be different, the screen quietly redraws with it.
 async function loadSaved(file) {
+  const recent = freshData[file];
+  if (recent && Date.now() - recent.at < 10 * 60000) return recent.data; // fetched in the last 10 minutes
   try {
     const hit = await caches.match(`content/${file}`, { ignoreSearch: true });
-    if (hit) { loadContent(file).catch(() => {}); return await hit.json(); }
+    if (hit) {
+      const saved = await hit.json();
+      const screenNow = currentHash;
+      loadContent(file).then((fresh) => {
+        if (JSON.stringify(fresh) !== JSON.stringify(saved) && location.hash === screenNow) refreshScreen();
+      }).catch(() => {});
+      return saved;
+    }
   } catch {}
   return loadContent(file);
 }
@@ -118,6 +138,18 @@ function renderHome(view) {
   view.querySelector('.share-app-btn').addEventListener('click', showShareCode);
 }
 
+// Overlays (photo viewer, share dialog) register their close function here, so leaving
+// the screen any way (Back, Home, Escape, Close) always cleans them up completely.
+const openOverlays = new Set();
+function trapFocus(box, e) {
+  if (e.key !== 'Tab') return;
+  const stops = [...box.querySelectorAll('button, a[href]')].filter((el) => el.offsetParent !== null);
+  if (!stops.length) return;
+  const at = stops.indexOf(document.activeElement);
+  e.preventDefault();
+  stops[(at + (e.shiftKey ? -1 : 1) + stops.length) % stops.length].focus();
+}
+
 // "Share this app": a big QR code someone nearby can scan with their camera,
 // plus a button to text or email the link.
 const APP_URL = 'https://laplandlake.github.io/lapland-lake-app/';
@@ -134,9 +166,14 @@ function showShareCode() {
       <img src="images/share-qr.svg" alt="QR code for the Lapland Lake app" width="260" height="260">
       ${navigator.share ? '<button type="button" class="btn send-link">Send the link</button>' : `<p class="meta">${APP_URL}</p>`}
     </div>`;
-  const close = () => { box.remove(); document.removeEventListener('keydown', onKey); };
-  const onKey = (e) => { if (e.key === 'Escape') close(); };
+  const opener = document.activeElement;
+  const close = ({ restoreFocus = true } = {}) => {
+    box.remove(); document.removeEventListener('keydown', onKey); openOverlays.delete(close);
+    if (restoreFocus && opener?.isConnected) opener.focus();
+  };
+  const onKey = (e) => { if (e.key === 'Escape') close(); else trapFocus(box, e); };
   document.addEventListener('keydown', onKey);
+  openOverlays.add(close);
   box.addEventListener('click', (e) => {
     if (e.target.closest('.send-link')) {
       navigator.share({ title: 'Lapland Lake', text: 'The Lapland Lake app', url: APP_URL }).catch(() => {});
@@ -878,14 +915,22 @@ async function shrinkPhoto(file, max = 1600) {
 
 async function sendToInbox(uploadUrl, message) {
   if (!uploadUrl) return new Promise((r) => setTimeout(r, 800)); // preview: pretend to send
-  const res = await fetch(uploadUrl, { method: 'POST', body: JSON.stringify(message) });
-  const reply = res.ok ? await res.json().catch(() => ({})) : {};
-  if (reply.status !== 'ok') throw new Error('Upload failed');
+  // Give up after 60 seconds, so a dead connection shows "Try again" instead of spinning forever
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 60000);
+  try {
+    const res = await fetch(uploadUrl, { method: 'POST', body: JSON.stringify(message), signal: ctrl.signal });
+    const reply = res.ok ? await res.json().catch(() => ({})) : {};
+    if (reply.status !== 'ok') throw new Error('Upload failed');
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 let sharingPhoto = false;
 // True while a photo is still sending: leaving the page then would lose it, so ask first.
-let photoUploading = false;
+let activeUploads = 0; // batches still sending (a guest can send a second batch while one is going)
+let photoUploading = false; // kept in step with activeUploads
 const LEAVE_WARNING = 'Your photo is still sending. Leave anyway?';
 window.addEventListener('beforeunload', (e) => { if (photoUploading) { e.preventDefault(); e.returnValue = LEAVE_WARNING; } });
 
@@ -948,8 +993,9 @@ async function sendPhotos(box, uploadUrl, files) {
         <button class="btn btn-secondary" type="submit">Credit Me</button>
       </form>
     </div>
-    <button type="button" class="link-btn share-again">Share another photo</button>`;
+    <button type="button" class="link-btn share-again" hidden>Share another photo</button>`;
   const line = box.querySelector('.upload-line');
+  const shareAgain = box.querySelector('.share-again'); // shown once this batch has finished
   const heading = box.querySelector('.share-done strong');
 
   // Upload: shrink one photo at a time (easy on memory), send up to 3 at once.
@@ -965,7 +1011,7 @@ async function sendPhotos(box, uploadUrl, files) {
       line.textContent = `Uploading${plural ? ` ${Math.min(sentCount + 1, files.length)} of ${files.length}` : ''}… please keep this page open.`;
     };
     show();
-    photoUploading = true;
+    activeUploads++; photoUploading = true;
     const worker = async () => {
       while (queue.length) {
         const file = queue.shift();
@@ -988,8 +1034,10 @@ async function sendPhotos(box, uploadUrl, files) {
       }
     };
     await Promise.all([worker(), worker(), worker()]);
-    photoUploading = false;
+    activeUploads = Math.max(0, activeUploads - 1); photoUploading = activeUploads > 0;
     waiting = failed;
+    shareAgain.hidden = false;
+    if (!line.isConnected) return !failed.length; // the guest already moved on to another photo
     if (unreadable.length && !failed.length && !sentCount) {
       heading.textContent = `Sorry, we couldn't open ${plural ? 'those photos' : 'that photo'}.`;
       line.className = 'upload-line failed';
@@ -1000,15 +1048,16 @@ async function sendPhotos(box, uploadUrl, files) {
       heading.textContent = sentCount ? 'Almost there!' : `Oops, ${plural ? 'your photos haven\'t' : 'your photo hasn\'t'} sent yet.`;
       line.className = 'upload-line failed';
       line.innerHTML = `${plural ? `${failed.length} photo${failed.length > 1 ? 's' : ''}` : 'Your photo'} didn't send. <button type="button" class="link-btn retry">Try again</button>`;
-      line.querySelector('.retry').addEventListener('click', () => { uploads = upload(); });
+      line.querySelector('.retry').addEventListener('click', () => { shareAgain.hidden = true; uploads = upload(); });
       return false;
     }
     heading.textContent = 'Got it!';
     line.className = 'upload-line sent';
     line.textContent = `✓ Sent`;
     if (unreadable.length) line.textContent += ` (${unreadable.length} couldn't be opened, so ${unreadable.length > 1 ? 'they weren\'t' : 'it wasn\'t'} sent)`;
-    box.querySelector('.share-next').hidden = false;
-    snowBurst(box.querySelector('.share-done'));
+    box.querySelector('.share-next')?.removeAttribute('hidden');
+    const done = box.querySelector('.share-done');
+    if (done) snowBurst(done);
     sharingPhoto = false;
     return true;
   };
@@ -1122,20 +1171,18 @@ async function renderPhotos(view) {
       [i + 1, i - 1].forEach((k) => { new Image().src = sized(photos[(k + photos.length) % photos.length].src, 1600); });
     };
     show(i);
-    const close = () => { box.remove(); item.focus(); document.removeEventListener('keydown', onKey); };
+    const close = ({ restoreFocus = true } = {}) => {
+      box.remove(); document.removeEventListener('keydown', onKey); openOverlays.delete(close);
+      if (restoreFocus && item.isConnected) item.focus();
+    };
     const onKey = (e) => {
       if (e.key === 'Escape') close();
       if (e.key === 'ArrowRight') show(i + 1);
       if (e.key === 'ArrowLeft') show(i - 1);
-      // Keep Tab inside the photo viewer (close, previous, next)
-      if (e.key === 'Tab') {
-        const stops = [...box.querySelectorAll('button')];
-        const at = stops.indexOf(document.activeElement);
-        e.preventDefault();
-        stops[(at + (e.shiftKey ? -1 : 1) + stops.length) % stops.length].focus();
-      }
+      trapFocus(box, e); // keep Tab inside the photo viewer
     };
     document.addEventListener('keydown', onKey);
+    openOverlays.add(close);
     // Swipe left = next photo, swipe right = previous. A plain tap closes, like before.
     let start = null, swiped = false;
     box.addEventListener('touchstart', (e) => { start = [e.touches[0].clientX, e.touches[0].clientY]; swiped = false; }, { passive: true });
@@ -1165,7 +1212,14 @@ async function renderPhotos(view) {
 /* ---------- Navigation ---------- */
 
 let currentHash = location.hash;
-function route() {
+// Redraw the current screen in place (fresh content arrived), keeping the scroll position
+function refreshScreen() {
+  const y = window.scrollY;
+  if (document.querySelector('.lightbox')) return; // don't yank a photo or dialog away
+  route({ keepScroll: true });
+  requestAnimationFrame(() => window.scrollTo(0, y));
+}
+function route({ keepScroll = false } = {}) {
   // Moving to another screen in the app while a photo is sending: ask first
   if (photoUploading && location.hash !== currentHash) {
     if (!confirm(LEAVE_WARNING)) { history.replaceState(null, '', currentHash || '#/'); return; }
@@ -1183,11 +1237,12 @@ function route() {
   document.getElementById('back').hidden = !screen;
   view.className = '';
   // Close anything left open on top (a photo, the camera)
+  openOverlays.forEach((close) => close({ restoreFocus: false }));
   document.querySelectorAll('.lightbox').forEach((el) => el.remove());
   document.title = screen ? `${screen.title} · Lapland Lake` : 'Lapland Lake';
   (screen ? screen.render : renderHome)(view);
-  window.scrollTo(0, 0);
-  if (screen) view.focus({ preventScroll: true });
+  if (!keepScroll) window.scrollTo(0, 0);
+  if (screen && !keepScroll) view.focus({ preventScroll: true });
 }
 
 window.addEventListener('hashchange', route);
