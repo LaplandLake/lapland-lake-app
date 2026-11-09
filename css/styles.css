@@ -538,3 +538,19 @@ button.trail-row { cursor: pointer; }
 .install-help .key-pic { padding: 2px 5px; line-height: 0; vertical-align: -6px; background: #fff; }
 .install-help .key-pic svg { width: 22px; height: 22px; fill: none; stroke: #0a84ff; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .install-help li { margin-bottom: 8px; line-height: 1.6; }
+/* Gentle "add to your phone" banner on Home */
+.install-banner {
+  position: fixed; z-index: 30; left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom) + 12px);
+  max-width: 616px; margin: 0 auto; display: flex; gap: 12px; align-items: flex-start;
+  padding: 14px 16px; background: var(--card); border: 2px solid var(--brand); border-radius: var(--radius);
+  box-shadow: 0 6px 24px rgba(0,0,0,.22); animation: banner-up .3s ease-out;
+}
+.install-banner .icon { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: var(--brand); }
+.install-banner .icon svg { width: 26px; height: 26px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.install-banner-text strong { display: block; font-size: 18px; }
+.install-banner-text span { display: block; font-size: 16px; color: var(--ink-soft); margin-top: 2px; }
+.install-banner-buttons { display: flex; align-items: center; gap: 16px; margin-top: 10px; }
+.install-banner-buttons .btn { width: auto; min-height: 44px; padding: 8px 18px; font-size: 17px; }
+@keyframes banner-up { from { transform: translateY(30px); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .install-banner { animation: none; } }
+.install-banner-buttons .link-btn { display: inline; margin: 0; padding: 8px 4px; }

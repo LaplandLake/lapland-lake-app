@@ -135,6 +135,7 @@ function renderHome(view) {
     e.target.closest('.tip').remove();
   });
   setUpInstall(view);
+  maybeShowInstallBanner();
   view.querySelector('.share-app-btn').addEventListener('click', showShareCode);
 }
 
@@ -238,6 +239,58 @@ function installSteps() {
     <li>Tap the <b>⋮</b> menu at the top right.</li>
     <li>Tap <b>Add to home screen</b> or <b>Install app</b>.</li>
     <li>Tap <b>Install</b>.</li></ol>`;
+}
+
+// A gentle "add to your phone" banner. It only appears on Home, on a phone, when the app
+// isn't on the home screen yet, and only after the guest has looked at 2 other screens
+// this visit. "Not now" hides it for 2 weeks.
+function noteScreenSeen(path) {
+  if (!path) return;
+  try { sessionStorage.setItem('screensSeen', String(Number(sessionStorage.getItem('screensSeen') || 0) + 1)); } catch {}
+}
+function maybeShowInstallBanner() {
+  if (isInstalled() || !matchMedia('(pointer: coarse)').matches || document.querySelector('.install-banner')) return;
+  let seen = 0, snoozed = 0, shownThisVisit = false;
+  try {
+    seen = Number(sessionStorage.getItem('screensSeen') || 0);
+    shownThisVisit = sessionStorage.getItem('bannerShown') === '1';
+    snoozed = Number(localStorage.getItem('installBannerSnoozed') || 0);
+  } catch {}
+  if (seen < 2 || shownThisVisit || Date.now() - snoozed < 14 * 864e5) return;
+  try { sessionStorage.setItem('bannerShown', '1'); } catch {}
+  const bar = document.createElement('div');
+  bar.className = 'install-banner';
+  bar.setAttribute('role', 'region');
+  bar.setAttribute('aria-label', 'Add this app to your phone');
+  bar.innerHTML = `
+    <span class="icon">${svg('addapp')}</span>
+    <div class="install-banner-text">
+      <strong>Keep Lapland Lake on your phone</strong>
+      <span>Add it to your home screen. It opens like an app and works without signal.</span>
+      <div class="install-banner-buttons">
+        <button type="button" class="btn install-banner-how">Show me how</button>
+        <button type="button" class="link-btn install-banner-later">Not now</button>
+      </div>
+    </div>`;
+  const hide = () => bar.remove();
+  window.addEventListener('hashchange', hide, { once: true });
+  bar.querySelector('.install-banner-later').addEventListener('click', () => {
+    try { localStorage.setItem('installBannerSnoozed', String(Date.now())); } catch {}
+    hide();
+  });
+  bar.querySelector('.install-banner-how').addEventListener('click', async () => {
+    hide();
+    if (installPrompt) { // Android Chrome: one tap
+      installPrompt.prompt();
+      await installPrompt.userChoice.catch(() => {});
+      installPrompt = null;
+      return;
+    }
+    // Everyone else: open the steps by the "Add this app to your phone" button
+    const btn = document.querySelector('.install-btn:not(.share-app-btn)');
+    if (btn) { btn.click(); btn.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  });
+  document.body.append(bar);
 }
 
 function setUpInstall(view) {
@@ -1243,6 +1296,7 @@ function route({ keepScroll = false } = {}) {
     photoUploading = false;
   }
   currentHash = location.hash;
+  noteScreenSeen(location.hash.replace(/^#\/?/, ''));
   let path = location.hash.replace(/^#\/?/, '');
   if (path === 'maps') path = 'map'; // "maps" with an s also opens Trail Maps
   const screen = SCREENS.find((s) => s.path === path);
