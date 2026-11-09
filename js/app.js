@@ -101,6 +101,7 @@ function renderHome(view) {
       <h1>Welcome to Lapland Lake</h1>
       <p>Cross-Country Ski Area &amp; Lodging</p>
     </section>
+    ${installButton()}
     <nav class="tiles" aria-label="Main menu">
       ${SCREENS.map((s) => `
         <a class="tile${s.primary ? ' primary' : ''}" href="#/${s.path}">
@@ -127,7 +128,6 @@ function renderHome(view) {
         <a href="https://www.instagram.com/laplandlake" target="_blank" rel="noopener">Instagram</a>
       </div>
     </footer>
-    ${installButton()}
     <button type="button" class="install-btn share-app-btn">${svg('qr')} Share this app</button>
     ${samsungTip()}`;
   view.querySelector('.tip-close')?.addEventListener('click', (e) => {
