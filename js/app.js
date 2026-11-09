@@ -298,7 +298,7 @@ async function renderLessons(view) {
     const [settings, prices] = await Promise.all([loadSaved('settings.json'), loadPrices()]);
     view.innerHTML = `
       <h1>Lessons</h1>
-      <p><strong>Lessons don’t include a trail pass or rental equipment.</strong> To take a lesson, you need a trail pass, a season pass, or lodging with us. If you don’t have one, <a href="#/tickets">buy a trail pass</a> too.</p>
+      <p><strong>Lessons don’t include a trail pass or rental equipment.</strong> To take a lesson, you’ll need a trail pass for the day. Season pass holders and lodging guests are already covered. If you don’t have one, <a href="#/tickets">buy a trail pass</a> too.</p>
       <a class="btn" href="${esc(settings.lessonsUrl || settings.fareharborUrl)}" target="_blank" rel="noopener">
         Book a Lesson ${svg('ext')}
       </a>
