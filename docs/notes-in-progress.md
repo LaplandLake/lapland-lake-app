@@ -94,6 +94,8 @@ Open questions: name for the lounge room; whether the café = Kuuma Feeding Stat
 
 ## Beta feedback (Nov 9)
 
+- Trail map image key says "Rental Cottages": Todd is working on a new map file. Todd wants to keep "Reserve ahead; same-day only if space allows" on Lessons.
+
 - Built and published items 1–8 from the Nov 9 fix list. Open: Skate Ski Clinic (Feb 20 "Open Skate Clinic" on the website) waits for its FareHarbor page (item 766379 currently holds a copy of the Ladies text). Paul to fix the FareHarbor Ladies description dates (says Jan 24 / Feb 7; right: Jan 23 / Feb 6). Kids Group Lesson is offered this year (Todd), though the website and Company Brain say Reindeer Rally is the only group lesson; they need updating. Ladies Day $75 per Todd (FareHarbor).
 
 ## Photo inbox limits (Nov 7)

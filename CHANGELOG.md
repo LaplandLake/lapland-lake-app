@@ -2,6 +2,7 @@
 
 Newest first. One plain-English line per change.
 
+- 2026-11-09: Coming up: high school race days (Jan 5, Jan 13) with "Practice field and West Side trails close to the public at 1pm." Lessons top line reworded: "To take a lesson, you'll need a trail pass for the day. Season pass holders and lodging guests are already covered."
 - 2026-11-09: Lessons: "See open times and book online. Lessons often fill up, especially on weekends." under Book a Lesson; Kids & Clinics buttons say "See dates & book" (gently steers guests to book online, not at the counter).
 - 2026-11-09: Beta fixes: photo upload says "uploading…" then "Got it!" only when it arrives, and warns before leaving mid-upload; Lessons page "Kids & Clinics" (Kids Group Lesson $25, Reindeer Rally $20, Ladies Day $75, each with its FareHarbor link); Adults "Ages 18–64"; event dates show the year, Ladies Day gets a Sign up link, Savor Winter (Jan 9) added; photo viewer arrows and keyboard focus on computers; Share this app no longer errors on computers; trail card scrolls the map up so it isn't covered.
 - 2026-11-08: Photo sharing note now says photos can be used in our app, website, emails & social media (added "emails" so Notes From Lapland is covered). Todd's yes in chat.
