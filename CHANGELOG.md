@@ -2,6 +2,7 @@
 
 Newest first. One plain-English line per change.
 
+- 2026-11-09: iPhone add-to-phone steps rewritten from Paul's real test on newer iPhones: Share (or ≡ → Share), View More, Add to Home Screen, Add.
 - 2026-11-09: "Add this app to your phone": iPhone steps cover the new Safari layout (⋯ menu → Share → Add to Home Screen); inside Facebook/Instagram/Google app it says to open the page in Safari (or Chrome) first. Paul's iPhone install didn't work; this should fix it.
 - 2026-11-09: Day Rentals: "price per day", rental ages (Adult 18+, Youth 12–17, Junior 11 and under, from laplandlake.com/rates), and "Ski packages include skis, boots and poles; snowshoes come with poles upon request. Rentals don't include a trail pass, so you'll need one too."
 - 2026-11-09: Reliability (from an outside review): "Share another photo" waits until the current upload finishes and overlapping batches no longer error or drop the leave warning; photo viewer and share dialog always clean up (Back no longer breaks the Tab key) and keep keyboard focus inside; fresh prices/lodging/events redraw the screen when they arrive; a server error or broken file falls back to the last good saved copy; uploads give up after 60 s and show Try again.

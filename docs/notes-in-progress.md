@@ -92,6 +92,10 @@ Open questions: name for the lounge room; whether the café = Kuuma Feeding Stat
 - Lessons button: `lessonsUrl` in `content/settings.json` is FareHarbor item 328289 (lessons calendar), tracking codes removed.
 - **Menu prices published (2026-10-06)** from last season's café chalkboards (photo `docs/photos/promo/cafe-counter.jpg`), including salads, breakfast, snacks, scones and cinnamon rolls. Blank (no price shown): chili, mac and cheese, soup (cup $5.__/bowl $7.__), decorated sugar cookies, NA beer, all snacks. Muffin $4.50 was smudged. The café chalkboards have been erased for the off-season, so **this year's prices wait until the season starts**; then get a photo of the boards and update `content/menu.json`.
 
+## Getting the app onto phones (Todd's plan, Nov 9; one at a time, preview + yes each)
+
+1. iPhone steps (done, published). 2. Move "Add this app to your phone" up from the bottom of Home. 3. Small pictures of the button at each step. 4. Detect the Gmail app on iPhone and say open in Safari first. 5. Gentle "Add to your phone" banner after a guest has looked around.
+
 ## Beta feedback (Nov 9)
 
 - Trail map image key says "Rental Cottages": Todd is working on a new map file. Todd wants to keep "Reserve ahead; same-day only if space allows" on Lessons.
