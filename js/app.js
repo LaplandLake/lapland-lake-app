@@ -204,13 +204,19 @@ function installButton() {
 function installSteps() {
   const ua = navigator.userAgent;
   const iPad = /Macintosh/.test(ua) && navigator.maxTouchPoints > 1;
+  const apple = /iPhone|iPad|iPod/.test(ua) || iPad;
+  // Opened inside Facebook, Instagram, the Google app, etc.: their built-in browsers can't add apps
+  if (/FBAN|FBAV|FB_IAB|Instagram|GSA\/|Line\/|Snapchat|LinkedInApp|Pinterest|Twitter/.test(ua)) {
+    return `<p><b>Open this page in ${apple ? 'Safari' : 'Chrome'} first.</b> You're viewing it inside another app, which can't add apps to your home screen.</p>
+      <p>Tap the <b>⋯</b> or <b>⋮</b> menu in the corner and choose <b>Open in ${apple ? 'Safari' : 'Chrome'}</b> (or <b>Open in browser</b>), then tap <b>Add this app to your phone</b> again.</p>`;
+  }
   if (/iPhone|iPad|iPod/.test(ua) || iPad) {
     if (/CriOS|FxiOS|EdgiOS/.test(ua)) {
       return `<p>On iPhone, apps are added from <b>Safari</b>. Copy this page's address, open it in Safari, then follow the steps there.</p>`;
     }
     return `<ol>
-      <li>Tap the <b>Share</b> button <span class="key">⬆︎</span> at the bottom of the screen.</li>
-      <li>Scroll down and tap <b>Add to Home Screen</b>.</li>
+      <li>Tap <b>⋯</b> at the bottom right (or the <b>Share</b> button <span class="key">⬆︎</span> on older iPhones).</li>
+      <li>Tap <b>Share</b>, then scroll down and tap <b>Add to Home Screen</b>.</li>
       <li>Tap <b>Add</b>.</li></ol>`;
   }
   if (/SamsungBrowser/.test(ua)) {
