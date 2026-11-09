@@ -92,6 +92,10 @@ Open questions: name for the lounge room; whether the café = Kuuma Feeding Stat
 - Lessons button: `lessonsUrl` in `content/settings.json` is FareHarbor item 328289 (lessons calendar), tracking codes removed.
 - **Menu prices published (2026-10-06)** from last season's café chalkboards (photo `docs/photos/promo/cafe-counter.jpg`), including salads, breakfast, snacks, scones and cinnamon rolls. Blank (no price shown): chili, mac and cheese, soup (cup $5.__/bowl $7.__), decorated sugar cookies, NA beer, all snacks. Muffin $4.50 was smudged. The café chalkboards have been erased for the off-season, so **this year's prices wait until the season starts**; then get a photo of the boards and update `content/menu.json`.
 
+## Beta feedback (Nov 9)
+
+- Built and published items 1–8 from the Nov 9 fix list. Open: Skate Ski Clinic (Feb 20 "Open Skate Clinic" on the website) waits for its FareHarbor page (item 766379 currently holds a copy of the Ladies text). Paul to fix the FareHarbor Ladies description dates (says Jan 24 / Feb 7; right: Jan 23 / Feb 6). Kids Group Lesson is offered this year (Todd), though the website and Company Brain say Reindeer Rally is the only group lesson; they need updating. Ladies Day $75 per Todd (FareHarbor).
+
 ## Photo inbox limits (Nov 7)
 
 - photo-inbox.gs: 3 MB max photo, 500/day plus 300/hour. Written on branch claude/photo-inbox-limits; Todd pasted and deployed Nov 7. Test upload from the app is up to Todd (Apps Script unreachable from cloud sessions).
