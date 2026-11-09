@@ -307,7 +307,8 @@ async function renderTickets(view) {
         </section>
         ${prices.seasonPassNote ? `<p class="price-note">${esc(prices.seasonPassNote)}</p>` : ''}
         <section class="menu-section">
-          <h2>Day Rentals</h2>
+          <h2>Day Rentals <span class="section-note">price per day</span></h2>
+          ${prices.rentalAges ? `<p class="meta rental-ages">${esc(prices.rentalAges)}</p>` : ''}
           ${priceCard(prices.rentals)}
         </section>
         ${prices.rentalSwitchNote ? `<p class="price-note">${esc(prices.rentalSwitchNote)}</p>` : ''}

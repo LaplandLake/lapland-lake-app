@@ -532,3 +532,4 @@ button.trail-row { cursor: pointer; }
 .program-btn { margin: 0; }
 .book-ahead { margin: 12px 0 4px; font-weight: 600; }
 .event-note { color: var(--ink); font-weight: 600; }
+.rental-ages { margin: -4px 0 10px; }
