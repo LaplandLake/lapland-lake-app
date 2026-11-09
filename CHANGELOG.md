@@ -2,6 +2,7 @@
 
 Newest first. One plain-English line per change.
 
+- 2026-11-09: Lessons: "See open times and book online. Lessons often fill up, especially on weekends." under Book a Lesson; Kids & Clinics buttons say "See dates & book" (gently steers guests to book online, not at the counter).
 - 2026-11-09: Beta fixes: photo upload says "uploading…" then "Got it!" only when it arrives, and warns before leaving mid-upload; Lessons page "Kids & Clinics" (Kids Group Lesson $25, Reindeer Rally $20, Ladies Day $75, each with its FareHarbor link); Adults "Ages 18–64"; event dates show the year, Ladies Day gets a Sign up link, Savor Winter (Jan 9) added; photo viewer arrows and keyboard focus on computers; Share this app no longer errors on computers; trail card scrolls the map up so it isn't covered.
 - 2026-11-08: Photo sharing note now says photos can be used in our app, website, emails & social media (added "emails" so Notes From Lapland is covered). Todd's yes in chat.
 - 2026-11-07: Photo inbox (scripts/photo-inbox.gs): largest photo lowered to about 3 MB and a limit of 500 photos a day, on top of 300 an hour, so nobody can fill the Drive. Needs Todd to paste the script and deploy a new version.
