@@ -189,7 +189,7 @@ function installSteps() {
 }
 
 function setUpInstall(view) {
-  const button = view.querySelector('.install-btn');
+  const button = view.querySelector('.install-btn:not(.share-app-btn)');
   const help = view.querySelector('.install-help');
   if (!button) return;
   button.addEventListener('click', async () => {
@@ -311,6 +311,19 @@ async function renderLessons(view) {
             { name: 'Each additional person', note: 'Same lesson, up to 6', price: prices.lessons.additional },
           ])}
           <p class="meta">${esc(prices.lessons.text)}</p>
+        </section>` : ''}
+      ${prices?.programs?.length ? `
+        <section class="menu-section">
+          <h2>Kids &amp; Clinics</h2>
+          ${prices.programs.map((pr) => `
+            <div class="card program">
+              <div class="menu-item">
+                <div class="name">${esc(pr.name)}</div>
+                <div class="price">${esc(pr.price)}</div>
+              </div>
+              <ul class="program-facts">${pr.details.map((d) => `<li>${esc(d)}</li>`).join('')}</ul>
+              <a class="btn btn-secondary program-btn" href="${esc(pr.url)}" target="_blank" rel="noopener">${esc(pr.button || 'Book')} ${svg('ext')}</a>
+            </div>`).join('')}
         </section>` : ''}`;
   } catch {
     view.innerHTML = `<h1>Lessons</h1>${errorCard('the booking link')}`;
@@ -360,13 +373,22 @@ function upcomingHtml(data) {
   if (!next.length) return '';
   const day = (v, opts) => new Date(v + 'T12:00:00').toLocaleDateString('en-US', opts);
   const when = (e) => {
-    if (!e.end || e.end === e.start) return day(e.start, { weekday: 'short', month: 'short', day: 'numeric' });
-    return `${day(e.start, { weekday: 'short' })}–${day(e.end, { weekday: 'short' })}, ${day(e.start, { month: 'short', day: 'numeric' })}–${day(e.end, { day: 'numeric' })}`;
+    const year = day(e.start, { year: 'numeric' });
+    if (!e.end || e.end === e.start) return `${day(e.start, { weekday: 'short', month: 'short', day: 'numeric' })}, ${year}`;
+    return `${day(e.start, { weekday: 'short' })}–${day(e.end, { weekday: 'short' })}, ${day(e.start, { month: 'short', day: 'numeric' })}–${day(e.end, { day: 'numeric' })}, ${year}`;
   };
   return `
     <section class="menu-section">
       <h2>Coming up</h2>
-      ${priceCard(next.map((e) => ({ name: e.name, note: when(e), price: '' })))}
+      <div class="card">${next.map((e) => `
+        <div class="menu-item">
+          <div>
+            <div class="name">${esc(e.name)}</div>
+            <div class="desc">${esc(when(e))}</div>
+          </div>
+          ${e.signUpUrl ? `<a class="event-link" href="${esc(e.signUpUrl)}" target="_blank" rel="noopener">Sign up ${svg('ext')}</a>` : ''}
+        </div>`).join('')}
+      </div>
       ${data.moreUrl ? `<p class="more-link"><a href="${esc(data.moreUrl)}" target="_blank" rel="noopener">More Events ${svg('ext')}</a></p>` : ''}
     </section>`;
 }
@@ -589,6 +611,12 @@ async function renderTrailMap(view) {
     info.hidden = false;
     // leave room at the bottom of the page so the card never covers the end of the page
     view.style.paddingBottom = `${info.offsetHeight + 28}px`;
+    // If the card covers part of the map (and its + / − buttons), scroll the map up above it
+    if (!focusMap) requestAnimationFrame(() => {
+      const f = frame.getBoundingClientRect(), cardTop = info.getBoundingClientRect().top;
+      const headerBottom = document.querySelector('.topbar')?.getBoundingClientRect().bottom || 0;
+      if (f.bottom > cardTop - 8) window.scrollBy({ top: Math.min(f.bottom - cardTop + 12, f.top - headerBottom - 8), behavior: 'smooth' });
+    });
     if (focusMap && it.spots?.length) {
       const [x, y] = it.spots[0];
       const w = canvas.offsetWidth, h = canvas.offsetHeight;
@@ -854,6 +882,10 @@ async function sendToInbox(uploadUrl, message) {
 }
 
 let sharingPhoto = false;
+// True while a photo is still sending: leaving the page then would lose it, so ask first.
+let photoUploading = false;
+const LEAVE_WARNING = 'Your photo is still sending. Leave anyway?';
+window.addEventListener('beforeunload', (e) => { if (photoUploading) { e.preventDefault(); e.returnValue = LEAVE_WARNING; } });
 
 // Google's photo program takes a few seconds to wake up; nudge it awake as soon as a guest
 // starts taking or choosing a photo, so it's ready by the time the photo is sent.
@@ -904,7 +936,7 @@ async function sendPhotos(box, uploadUrl, files) {
   try { saved = localStorage.getItem('photoCredit') || ''; } catch {}
   box.innerHTML = `
     <div class="share-done" role="status">
-      <strong>Thanks! We got your ${plural ? 'photos' : 'photo'}.</strong>
+      <strong>Thanks! Your ${plural ? 'photos are' : 'photo is'} uploading…</strong>
       <p class="upload-line" aria-live="polite"></p>
       <p class="share-next" hidden>We'll check ${plural ? 'them' : 'it'} soon — look for ${plural ? 'them' : 'it'} here in the gallery!</p>
       <p>Want credit when we post? <span class="meta">(optional)</span></p>
@@ -931,6 +963,7 @@ async function sendPhotos(box, uploadUrl, files) {
       line.textContent = `Uploading${plural ? ` ${Math.min(sentCount + 1, files.length)} of ${files.length}` : ''}… please keep this page open.`;
     };
     show();
+    photoUploading = true;
     const worker = async () => {
       while (queue.length) {
         const file = queue.shift();
@@ -953,6 +986,7 @@ async function sendPhotos(box, uploadUrl, files) {
       }
     };
     await Promise.all([worker(), worker(), worker()]);
+    photoUploading = false;
     waiting = failed;
     if (unreadable.length && !failed.length && !sentCount) {
       heading.textContent = `Sorry, we couldn't open ${plural ? 'those photos' : 'that photo'}.`;
@@ -967,7 +1001,7 @@ async function sendPhotos(box, uploadUrl, files) {
       line.querySelector('.retry').addEventListener('click', () => { uploads = upload(); });
       return false;
     }
-    heading.textContent = `Thanks! We got your ${plural ? 'photos' : 'photo'}.`;
+    heading.textContent = 'Got it!';
     line.className = 'upload-line sent';
     line.textContent = `✓ Sent`;
     if (unreadable.length) line.textContent += ` (${unreadable.length} couldn't be opened, so ${unreadable.length > 1 ? 'they weren\'t' : 'it wasn\'t'} sent)`;
@@ -1071,7 +1105,9 @@ async function renderPhotos(view) {
     box.setAttribute('aria-label', 'Photo. Swipe left or right for more.');
     box.innerHTML = `
       <button type="button" class="lightbox-close" aria-label="Close photo">${svg('close')}</button>
+      <button type="button" class="lightbox-nav prev" aria-label="Previous photo">${svg('chev')}</button>
       <img src="" alt="">
+      <button type="button" class="lightbox-nav next" aria-label="Next photo">${svg('chev')}</button>
       <p></p>`;
     const img = box.querySelector('img');
     const cap = box.querySelector('p');
@@ -1089,6 +1125,13 @@ async function renderPhotos(view) {
       if (e.key === 'Escape') close();
       if (e.key === 'ArrowRight') show(i + 1);
       if (e.key === 'ArrowLeft') show(i - 1);
+      // Keep Tab inside the photo viewer (close, previous, next)
+      if (e.key === 'Tab') {
+        const stops = [...box.querySelectorAll('button')];
+        const at = stops.indexOf(document.activeElement);
+        e.preventDefault();
+        stops[(at + (e.shiftKey ? -1 : 1) + stops.length) % stops.length].focus();
+      }
     };
     document.addEventListener('keydown', onKey);
     // Swipe left = next photo, swipe right = previous. A plain tap closes, like before.
@@ -1106,7 +1149,12 @@ async function renderPhotos(view) {
       start = null;
       if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) { swiped = true; show(i + (dx < 0 ? 1 : -1)); }
     });
-    box.addEventListener('click', () => { if (swiped) { swiped = false; return; } close(); });
+    box.addEventListener('click', (e) => {
+      if (swiped) { swiped = false; return; }
+      const nav = e.target.closest('.lightbox-nav');
+      if (nav) { show(i + (nav.classList.contains('next') ? 1 : -1)); return; }
+      close();
+    });
     document.body.append(box);
     box.querySelector('.lightbox-close').focus();
   });
@@ -1114,7 +1162,14 @@ async function renderPhotos(view) {
 
 /* ---------- Navigation ---------- */
 
+let currentHash = location.hash;
 function route() {
+  // Moving to another screen in the app while a photo is sending: ask first
+  if (photoUploading && location.hash !== currentHash) {
+    if (!confirm(LEAVE_WARNING)) { history.replaceState(null, '', currentHash || '#/'); return; }
+    photoUploading = false;
+  }
+  currentHash = location.hash;
   let path = location.hash.replace(/^#\/?/, '');
   if (path === 'maps') path = 'map'; // "maps" with an s also opens Trail Maps
   const screen = SCREENS.find((s) => s.path === path);

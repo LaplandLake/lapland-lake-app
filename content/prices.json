@@ -1,11 +1,12 @@
 {
   "season": "2026-27",
   "trailHours": "10am–4:30pm weekdays · 9am–4:30pm weekends and holidays",
-  "source": "Copied from laplandlake.com/rates and /lessons-intro. Update each season.",
+  "source": "Copied from laplandlake.com/rates, /lessons-intro, /events and FareHarbor. Update each season.",
   "dayPasses": [
     {
       "name": "Adults",
-      "price": "$30"
+      "price": "$30",
+      "note": "Ages 18–64"
     },
     {
       "name": "Silver Striders",
@@ -68,5 +69,42 @@
     "text": "One-hour private or shared lesson, classic or skate, for up to 6 people from your party. Trail pass and rentals not included. Reserve ahead; same-day only if space allows."
   },
   "rentalSwitchNote": "Every daily ski package rental includes one free switch to snowshoes.",
-  "goodToKnow": "No dogs on the trails. Snowshoe trails are separate from the ski trails. Night skiing is for lodging guests only."
+  "goodToKnow": "No dogs on the trails. Snowshoe trails are separate from the ski trails. Night skiing is for lodging guests only.",
+  "programs": [
+    {
+      "name": "Kids Group Lesson",
+      "price": "$25",
+      "details": [
+        "Ages 5–11 · 1 hour",
+        "Classic striding with our kid-friendly instructors",
+        "Trail pass sold separately"
+      ],
+      "button": "Book Kids Group Lesson",
+      "url": "https://fareharbor.com/embeds/book/laplandlake/items/328307/calendar/?full-items=yes"
+    },
+    {
+      "name": "Reindeer Rally",
+      "price": "$20",
+      "details": [
+        "Ages 5–11 · about 60 minutes",
+        "Games on skis. Parents can join in or ski on their own",
+        "Trail pass sold separately"
+      ],
+      "button": "Book Reindeer Rally",
+      "url": "https://fareharbor.com/embeds/book/laplandlake/items/328309/calendar/?full-items=yes"
+    },
+    {
+      "name": "Ladies Day",
+      "price": "$75",
+      "details": [
+        "Women 18+, beginner and intermediate",
+        "9:30am–2:30pm",
+        "Skate: Sat, Jan 23, 2027 · Classic: Sat, Feb 6, 2027",
+        "Trail pass included; rentals separate",
+        "Space is limited, so sign up ahead"
+      ],
+      "button": "Sign up for Ladies Day",
+      "url": "https://fareharbor.com/embeds/book/laplandlake/items/421691/calendar/?full-items=yes"
+    }
+  ]
 }

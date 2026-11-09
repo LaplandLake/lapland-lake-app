@@ -516,3 +516,17 @@ button.trail-row { cursor: pointer; }
 .share-card .meta { color: var(--ink-soft); word-break: break-all; margin: 0; }
 .price-grid { display: flex; gap: 14px; text-align: center; }
 .price-grid .desc { font-size: 14px; white-space: nowrap; }
+/* Photo viewer arrows: shown on computers (mouse), swipe on phones */
+.lightbox-nav { display: none; position: absolute; top: 50%; transform: translateY(-50%); width: 52px; height: 52px; border: 0; border-radius: 50%; background: rgba(255,255,255,.18); cursor: pointer; place-items: center; }
+.lightbox-nav svg { width: 28px; height: 28px; fill: none; stroke: #fff; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.lightbox-nav.prev { left: 12px; } .lightbox-nav.prev svg { transform: scaleX(-1); }
+.lightbox-nav.next { right: 12px; }
+.lightbox-nav:focus-visible { display: grid; outline: 3px solid #fff; }
+@media (hover: hover) and (pointer: fine) { .lightbox-nav { display: grid; } }
+.event-link { display: inline-flex; align-items: center; gap: 4px; align-self: center; font-weight: 700; color: var(--link); white-space: nowrap; min-height: 44px; }
+.event-link svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.program { margin-bottom: 14px; }
+.program .menu-item { border-bottom: 0; padding-bottom: 4px; }
+.program-facts { margin: 0 0 12px; padding-left: 20px; color: var(--ink-soft); }
+.program-facts li { padding: 2px 0; }
+.program-btn { margin: 0; }
