@@ -94,7 +94,7 @@ Open questions: name for the lounge room; whether the café = Kuuma Feeding Stat
 
 ## Getting the app onto phones (Todd's plan, Nov 9; one at a time, preview + yes each)
 
-1. iPhone steps (done, published). 2. Move "Add this app to your phone" up from the bottom of Home. 3. Small pictures of the button at each step. 4. Detect the Gmail app on iPhone and say open in Safari first. 5. Gentle "Add to your phone" banner after a guest has looked around.
+1. iPhone steps (done, published). 2. Move the button up: tried at the top, Todd didn't like it; DROPPED, the banner (#5) will do the job. 3. Small pictures (published Nov 9; check against a real iPhone when one is handy). 4. Detect the Gmail app on iPhone and say open in Safari first. 5. Gentle "Add to your phone" banner after a guest has looked around.
 
 ## Beta feedback (Nov 9)
 
