@@ -214,9 +214,15 @@ function installSteps() {
     if (/CriOS|FxiOS|EdgiOS/.test(ua)) {
       return `<p>On iPhone, apps are added from <b>Safari</b>. Copy this page's address, open it in Safari, then follow the steps there.</p>`;
     }
+    // Small drawings of the buttons to look for (same shapes as Safari's, drawn simply)
+    const pic = (path) => `<span class="key key-pic"><svg viewBox="0 0 24 24" aria-hidden="true">${path}</svg></span>`;
+    const share = pic('<path d="M12 3v12M8 7l4-4 4 4"/><path d="M7 10H6a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1h-1"/>');
+    const menu = pic('<path d="M5 7h14M7 12h10M9 17h6"/>');
+    const more = pic('<circle cx="12" cy="12" r="9"/><path d="M8 10.5l4 4 4-4"/>');
+    const add = pic('<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M12 8.5v7M8.5 12h7"/>');
     return `<ol>
-      <li>In Safari, tap the <b>Share</b> <span class="nowrap">button <span class="key">⬆︎</span>.</span> On newer iPhones, first tap the <b>≡</b> icon at the left of the address bar, then tap <b>Share</b>.</li>
-      <li>Tap <b>View More</b> if you see it, then tap <b>Add to Home Screen</b>.</li>
+      <li>In Safari, tap the <b>Share</b> <span class="nowrap">button ${share}.</span> On newer iPhones, first tap the <span class="nowrap">${menu} icon</span> at the left of the address bar, then tap <b>Share</b>.</li>
+      <li>Tap <span class="nowrap"><b>View More</b> ${more}</span> if you see it, then tap <span class="nowrap"><b>Add to Home Screen</b> ${add}.</span></li>
       <li>Tap <b>Add</b>.</li></ol>`;
   }
   if (/SamsungBrowser/.test(ua)) {
