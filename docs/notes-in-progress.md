@@ -96,6 +96,16 @@ Open questions: name for the lounge room; whether the café = Kuuma Feeding Stat
 
 1. iPhone steps (done, published). 2. Move the button up: tried at the top, Todd didn't like it; DROPPED, the banner (#5) will do the job. 3. Small pictures (published Nov 9; check against a real iPhone when one is handy). 4. Detect the Gmail app on iPhone and say open in Safari first. 5. Banner: built on branch claude/install-banner but NOT used. Todd (Nov 9): keep Home clean so guests first see what the app is; the add-to-phone button stays at the bottom, and QR signs will tell guests to scroll to the bottom and tap it. Don't add install banners or top-of-page install prompts.
 
+## Checkup (Nov 10): check-only session, then fixes one at a time with Todd's yes
+
+- Todd (Nov 10): the add-to-phone button stays at the bottom and there is no banner. Same as Nov 9; don't raise it again.
+- Fix 1 (on a branch, waiting for "publish"): the publish step in `.github/workflows/site.yml` now copies the `maps` folder, so links ending in /maps open Trail Maps. Any new top-level folder must be added to that line or it never goes live.
+- Still to offer Todd, one at a time: 2) the "Karhu Polku with upper expert loops" pop-up (the tallest) still covers part of the + − Reset buttons on iPhone-size and short Android screens; 3) the Ladies Day "Sign up" link in Coming up is hidden until about Jan 6 because only 3 events show; 4) CLAUDE.md says 50 km of trails (38 + 12) but the Company Brain and Paul's Nov 3 email say 40 km (30 + 10); 5) Supply Manager Admin > Import & backup says "Counts done with Claude or Hendrick" (a name in app text).
+- Facts not confirmed in the Company Brain or on the website, to ask Todd: "No cleaning fees"; "Two playgrounds"; "Electric heat in every unit, and a forced hot air furnace in the farmhouse"; "Indoor firewood delivered daily"; Latu's beds (Drive sheet: 4 twins; website: one twin room plus a bunk room); Ladies Day $75; "no cell service on most of the property" (Company Brain: none in the area); winter lodging opens Nov 25 (website report) or Nov 26 (Company Brain).
+- Not ours: FareHarbor's Ladies Day description still says Jan 24 / Feb 7 (its calendar is right: Jan 23 and Feb 6); the trail report typos come from the website.
+- Could not be checked from a cloud session: the live addresses (laplandlake.github.io is blocked by the session's network settings; Todd said no to changing them), real phones, a real photo upload, and the RezStream, Trailforks, Google Maps, Facebook and Instagram links.
+- For testing the Supply Manager in a cloud session, point `supply/node_modules/playwright` at the pre-installed Playwright (a link, not `npm install`); both test commands then pass.
+
 ## Beta feedback (Nov 9)
 
 - Trail map image key says "Rental Cottages": Todd is working on a new map file. Todd wants to keep "Reserve ahead; same-day only if space allows" on Lessons.

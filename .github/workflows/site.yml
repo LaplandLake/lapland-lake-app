@@ -53,7 +53,7 @@ jobs:
         if: github.event_name != 'schedule' || steps.report.outputs.changed == 'true'
         run: |
           mkdir _site
-          cp -r index.html review.html sw.js manifest.webmanifest css js content images _site/
+          cp -r index.html review.html sw.js manifest.webmanifest css js content images maps _site/
           # Supply Manager (staff site). Only the web files; never tests, dev tools or backend.
           mkdir -p _site/supply
           cp -r supply/index.html supply/app.js supply/admin.js supply/charts.js supply/config.js supply/styles.css supply/manifest.webmanifest supply/assets _site/supply/
