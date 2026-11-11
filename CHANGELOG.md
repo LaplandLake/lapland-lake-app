@@ -2,6 +2,7 @@
 
 Newest first. One plain-English line per change.
 
+- 2026-11-11: Soup file: "Grab & Go" switched off. It was left on from an October test, so the first real soup posted would have shown "No one at the café counter today" and hidden hot dogs and mac and cheese.
 - 2026-11-10: Links ending in /maps now really open Trail Maps: the publish step was leaving the maps folder out, so they gave "page not found". Found in the Nov 10 checkup.
 - 2026-11-09: Add-to-phone: on iPhone, any built-in browser inside another app (such as Gmail's) now gets "Open this page in Safari first", like Facebook/Instagram already did. Can't detect Gmail's Safari-view mode.
 - 2026-11-09: iPhone add-to-phone steps show small pictures of each button (Share, the lines icon, View More, Add to Home Screen). Not yet checked against a real iPhone.
