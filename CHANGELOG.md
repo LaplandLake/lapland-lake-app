@@ -2,7 +2,7 @@
 
 Newest first. One plain-English line per change.
 
-- 2026-11-16: Trail report: GitHub is now asked to check the website every 10 minutes (at :07, :17, :27…) instead of every 30. It had been running only about 5 checks a day. No change to what guests see.
+- 2026-11-16: Trail report: GitHub is now asked to check the website every 10 minutes from about 5am to 11am Eastern, every half hour until 3pm, and every hour until 5am (Todd's schedule), at odd minutes. It was every 30 minutes, 5am to 7pm, and GitHub had been running only about 5 checks a day. No change to what guests see.
 - 2026-11-16: Bob's instructions (CLAUDE.md): trail total corrected to 40 km (30 km groomed for classic and skate, plus 10 km of marked snowshoe trails), matching the Company Brain. It said about 50 km. Todd's yes in chat.
 - 2026-11-16: Guest Photos: HEIC photos (iPhone format) now work on Android phones and computers. A small converter (js/vendor/heic2any.min.js, MIT) loads only when a HEIC photo is picked and turns it into a JPEG before sending.
 - 2026-11-11: Soup file: "Grab & Go" switched off. It was left on from an October test, so the first real soup posted would have shown "No one at the café counter today" and hidden hot dogs and mac and cheese.
