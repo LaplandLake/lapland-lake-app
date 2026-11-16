@@ -2,6 +2,7 @@
 
 Newest first. One plain-English line per change.
 
+- 2026-11-16: Guest Photos: HEIC photos (iPhone format) now work on Android phones and computers. A small converter (js/vendor/heic2any.min.js, MIT) loads only when a HEIC photo is picked and turns it into a JPEG before sending.
 - 2026-11-11: Soup file: "Grab & Go" switched off. It was left on from an October test, so the first real soup posted would have shown "No one at the café counter today" and hidden hot dogs and mac and cheese.
 - 2026-11-10: Links ending in /maps now really open Trail Maps: the publish step was leaving the maps folder out, so they gave "page not found". Found in the Nov 10 checkup.
 - 2026-11-09: Add-to-phone: on iPhone, any built-in browser inside another app (such as Gmail's) now gets "Open this page in Safari first", like Facebook/Instagram already did. Can't detect Gmail's Safari-view mode.

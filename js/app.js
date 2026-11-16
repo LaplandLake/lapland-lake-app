@@ -912,12 +912,29 @@ async function toUploadSize(file, max = 1600) {
   return new Blob([bytes], { type: 'image/jpeg' });
 }
 
+// iPhone photos are often HEIC. iPhones (Safari) open those fine, but most Android phones and
+// computers can't, so then a small converter is loaded (only when needed) to turn it into a JPEG.
+const looksHeic = (file) => /hei[cf]/i.test(file.type) || /\.(heic|heif)$/i.test(file.name || '');
+async function heicToJpeg(file) {
+  await loadScript('js/vendor/heic2any.min.js');
+  const out = await window.heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 });
+  return Array.isArray(out) ? out[0] : out;
+}
+async function openPhoto(file, max) {
+  try {
+    return await createImageBitmap(file, { resizeWidth: max, resizeQuality: 'high' });
+  } catch {
+    return createImageBitmap(file); // older phones without shrink-while-opening
+  }
+}
+
 async function shrinkPhoto(file, max = 1600) {
   let img;
   try {
-    img = await createImageBitmap(file, { resizeWidth: max, resizeQuality: 'high' });
-  } catch {
-    img = await createImageBitmap(file); // older phones without shrink-while-opening
+    img = await openPhoto(file, max);
+  } catch (err) {
+    if (!looksHeic(file) && file.type) throw err; // not a HEIC photo: really can't open it
+    img = await openPhoto(await heicToJpeg(file), max);
   }
   const scale = Math.min(1, max / Math.max(img.width, img.height));
   const canvas = document.createElement('canvas');
