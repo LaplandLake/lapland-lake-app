@@ -1,12 +1,14 @@
-# Publishes the app to GitHub Pages, and every 30 minutes during the day
+# Publishes the app to GitHub Pages, and every 10 minutes during the day
 # copies the latest trail report from the Lapland Lake website.
+# GitHub's timer is only a request: it runs late or skips when busy, most of all on the
+# hour and half hour, so we ask often and at odd minutes.
 name: Update and publish app
 
 on:
   push:
     branches: [main]
   schedule:
-    - cron: '*/30 10-23 * * *'   # every 30 min, about 6am-8pm Eastern
+    - cron: '7,17,27,37,47,57 10-23 * * *'   # every 10 min; about 5am-7pm Eastern in winter, 6am-8pm in summer
   workflow_dispatch:              # "Run workflow" button on GitHub
 
 permissions:

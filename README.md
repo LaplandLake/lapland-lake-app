@@ -50,7 +50,7 @@ Guests tap **Share a Photo** in the app. Photos go to Todd's Google Drive (**Lap
 
 ## How the trail report updates itself
 
-Every 30 minutes during the day, GitHub reads the trail report page on laplandlake.com and copies the report into the app. Nobody has to retype it.
+About every 10 minutes during the day, GitHub is asked to read the trail report page on laplandlake.com and copy the report into the app. Nobody has to retype it. GitHub sometimes runs late or skips a turn, so a new report can take longer to show; the "Run workflow" button below updates it right away.
 
 - "Last updated" in the app shows when the report last changed.
 - If the website can't be read, the app keeps showing the last report with a note that it may be out of date. The same note appears if the report hasn't changed in 36 hours (change `trailReportStaleAfterHours` in `content/settings.json` to adjust).
