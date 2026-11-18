@@ -92,6 +92,10 @@ Open questions: name for the lounge room; whether the café = Kuuma Feeding Stat
 - Lessons button: `lessonsUrl` in `content/settings.json` is FareHarbor item 328289 (lessons calendar), tracking codes removed.
 - **Menu prices published (2026-10-06)** from last season's café chalkboards (photo `docs/photos/promo/cafe-counter.jpg`), including salads, breakfast, snacks, scones and cinnamon rolls. Blank (no price shown): chili, mac and cheese, soup (cup $5.__/bowl $7.__), decorated sugar cookies, NA beer, all snacks. Muffin $4.50 was smudged. The café chalkboards have been erased for the off-season, so **this year's prices wait until the season starts**; then get a photo of the boards and update `content/menu.json`.
 
+## Trail map (Nov 18)
+
+- New 2026-27 map from Linda Hinkle is live (images/trail-map-2026-27.webp). No tap symbols on the map (Todd). The old images/trail-map.webp is no longer used. Replaces the "Rental Cottages" issue: new key says Rental Cabins.
+
 ## Live trail map gray box (Nov 18)
 
 - Cause (confirmed on Todd's phone): Trailforks' security check (Cloudflare) can't run inside our app's frame, so the live map stays gray until the guest has visited trailforks.com directly. After Todd opened the direct link, the in-app map loaded. Widget use: Trailforks offers it for websites; no widget-specific terms found. Todd is watching how often it happens before deciding: email Trailforks (report + confirm widget use) and/or a "tap to load" safety net. www.trailforks.com added to the session network, but Cloudflare blocks cloud servers, so it can't be tested from here.
