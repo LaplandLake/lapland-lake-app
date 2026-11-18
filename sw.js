@@ -3,7 +3,7 @@
    - Content files (trail report, soup, menu) always try the internet first, and fall back
      to the last saved copy if there's no signal.
    Bump VERSION whenever app files (not content) change, so phones pick up the new version. */
-const VERSION = 'v63';
+const VERSION = 'v64';
 const APP_FILES = [
   './',
   'index.html',
@@ -18,7 +18,7 @@ const APP_FILES = [
   'images/icons/icon-192.png',
   'manifest.webmanifest',
   // So the app works out on the trails with no signal, even screens a guest hasn't opened yet
-  'images/trail-map.webp',
+  'images/trail-map-2026-27.webp',
   'images/guest-photos/sample-1.webp',
   'images/guest-photos/sample-2.webp',
   'images/guest-photos/sample-3.webp',

@@ -517,27 +517,21 @@ async function renderTrailMap(view) {
     ...data.trails.map((t, i) => ({ ...t, kind: 'trail', id: `t${i}` })),
     ...data.places.map((p, i) => ({ ...p, kind: 'place', id: `p${i}` })),
   ];
-  const byId = Object.fromEntries(items.map((it) => [it.id, it]));
-  const pos = ([x, y]) => `left:${(x / data.mapWidth) * 100}%;top:${(y / data.mapHeight) * 100}%`;
-  const pin = (it, spot) => it.kind === 'trail'
-    ? `<button class="pin" data-id="${it.id}" style="${pos(spot)}" aria-label="${esc(it.name)}, ${DIFFICULTY[it.difficulty]?.label}"><span class="sym sym-${it.difficulty}"></span></button>`
-    : `<button class="pin pin-place" data-id="${it.id}" style="${pos(spot)}" aria-label="${esc(it.name)}"><span class="place-icon">${PLACE_ICONS[it.icon] || ''}</span></button>`;
 
   const listRow = (it) => `
-    <li><button class="trail-row" data-id="${it.id}" ${it.spots?.length ? '' : 'data-nospot'}>
+    <li><div class="trail-row">
       <span class="sym sym-${it.difficulty}" aria-hidden="true"></span>
       <span class="trail-name">${esc(it.name)}${it.fromBridge ? ' *' : ''}${it.meaning ? `<small>${esc(it.meaning)}</small>` : ''}</span>
       <span class="trail-len">${esc(it.length)}</span>
-    </button></li>`;
+    </div></li>`;
 
   view.innerHTML = `
     <h1>Trail Maps</h1>
-    <p class="meta">Pinch or use the + and − buttons to zoom. Tap a symbol for trail details.</p>
+    <p class="meta">Pinch or use the + and − buttons to zoom in on trail names.</p>
     <div class="legend">${Object.keys(DIFFICULTY).map(diffBadge).join('')}</div>
     <div class="map-frame">
       <div class="map-canvas" style="aspect-ratio:${data.mapWidth}/${data.mapHeight}">
-        <img src="${esc(data.mapImage)}" alt="Lapland Lake cross-country ski trail map" draggable="false" fetchpriority="high">
-        ${items.flatMap((it) => (it.spots || []).map((spot) => pin(it, spot))).join('')}
+        <img src="${esc(data.mapImage)}" alt="Lapland Lake cross-country ski trail map, 2026-27" draggable="false" fetchpriority="high">
       </div>
       <div class="map-controls">
         <button type="button" data-zoom="in" aria-label="Zoom in">+</button>
@@ -546,7 +540,6 @@ async function renderTrailMap(view) {
       </div>
     </div>
 
-    <div class="info-card" id="map-info" role="region" aria-label="Trail details" aria-live="polite" hidden></div>
 
     <h2>Live trail status</h2>
     <div class="map-switch" role="group" aria-label="Choose a live map">
@@ -584,10 +577,10 @@ async function renderTrailMap(view) {
 
     <h2>Places</h2>
     <ul class="trail-list">${items.filter((it) => it.kind === 'place').map((it) => `
-      <li><button class="trail-row" data-id="${it.id}">
+      <li><div class="trail-row">
         <span class="place-icon small" aria-hidden="true">${PLACE_ICONS[it.icon] || ''}</span>
         <span class="trail-name">${esc(it.name)}${it.description ? `<small>${esc(it.description)}</small>` : ''}</span>
-      </button></li>`).join('')}</ul>
+      </div></li>`).join('')}</ul>
 
     ${data.routes?.length ? `
       <h2>Longer routes</h2>
@@ -645,65 +638,8 @@ async function renderTrailMap(view) {
     const z = e.target.closest('button')?.dataset.zoom;
     if (z === 'in') pz.zoomIn();
     if (z === 'out') pz.zoomOut();
-    if (z === 'reset') { pz.reset(); select(null); }
+    if (z === 'reset') pz.reset();
   });
-
-  // ----- Showing details -----
-  const info = view.querySelector('#map-info');
-  function select(id, { focusMap = false } = {}) {
-    canvas.querySelectorAll('.pin.active').forEach((p) => p.classList.remove('active'));
-    const it = id && byId[id];
-    view.classList.toggle('has-info', !!it);
-    if (!it) { info.hidden = true; view.style.paddingBottom = ''; return; }
-    canvas.querySelectorAll(`.pin[data-id="${id}"]`).forEach((p) => p.classList.add('active'));
-    info.innerHTML = `
-      <button type="button" class="info-close" aria-label="Close">${svg('close')}</button>
-      ${it.kind === 'trail' ? diffBadge(it.difficulty) : ''}
-      <div class="info-name">${esc(it.name)}</div>
-      ${it.meaning ? `<div class="info-meaning">${esc(it.meaning)}</div>` : ''}
-      ${it.length ? `<div class="info-length">${esc(it.length)}${it.fromBridge ? ' <small>measured from the bridge</small>' : ''}</div>` : ''}
-      ${it.description || it.note ? `<p>${esc(it.description || it.note)}</p>` : ''}
-      ${it.kind === 'trail' && !it.spots?.length ? '<p class="meta">Not marked on this map.</p>' : ''}`;
-    info.hidden = false;
-    // leave room at the bottom of the page so the card never covers the end of the page
-    view.style.paddingBottom = `${info.offsetHeight + 28}px`;
-    // If the card covers part of the map (and its + / − buttons), scroll the map up above it
-    if (!focusMap) requestAnimationFrame(() => {
-      const f = frame.getBoundingClientRect(), cardTop = info.getBoundingClientRect().top;
-      const headerBottom = document.querySelector('.topbar')?.getBoundingClientRect().bottom || 0;
-      if (f.bottom > cardTop - 8) window.scrollBy({ top: Math.min(f.bottom - cardTop + 12, f.top - headerBottom - 8), behavior: 'smooth' });
-    });
-    if (focusMap && it.spots?.length) {
-      const [x, y] = it.spots[0];
-      const w = canvas.offsetWidth, h = canvas.offsetHeight;
-      pz.zoom(3, { animate: false });
-      setTimeout(() => pz.pan(w / 2 - (x / data.mapWidth) * w, h / 2 - (y / data.mapHeight) * h, { animate: true }));
-      frame.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }
-  info.addEventListener('click', (e) => { if (e.target.closest('.info-close')) select(null); });
-
-  // A tap on a symbol opens its details; a drag (panning the map) does not.
-  let down = null;
-  canvas.addEventListener('pointerdown', (e) => { down = [e.clientX, e.clientY]; });
-  canvas.addEventListener('pointerup', (e) => {
-    if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 10) return;
-    // Pick the symbol closest to the finger, so neighbours don't steal the tap
-    let best = null, bestDist = 30;
-    canvas.querySelectorAll('.pin').forEach((p) => {
-      const r = p.getBoundingClientRect();
-      const dist = Math.hypot(e.clientX - (r.left + r.width / 2), e.clientY - (r.top + r.height / 2));
-      if (dist < bestDist) { best = p; bestDist = dist; }
-    });
-    if (best) select(best.dataset.id);
-  });
-  // Keyboard users (Enter/Space on a symbol)
-  canvas.addEventListener('click', (e) => {
-    const p = e.target.closest('.pin');
-    if (p && e.detail === 0) select(p.dataset.id);
-  });
-  view.querySelectorAll('.trail-row[data-id]').forEach((row) =>
-    row.addEventListener('click', () => select(row.dataset.id, { focusMap: true })));
 }
 
 // Today's date as year-month-day, the format used in soup.json
