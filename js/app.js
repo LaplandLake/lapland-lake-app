@@ -533,11 +533,11 @@ async function renderTrailMap(view) {
       <div class="map-canvas" style="aspect-ratio:${data.mapWidth}/${data.mapHeight}">
         <img src="${esc(data.mapImage)}" alt="Lapland Lake cross-country ski trail map, 2026-27" draggable="false" fetchpriority="high">
       </div>
-      <div class="map-controls">
-        <button type="button" data-zoom="in" aria-label="Zoom in">+</button>
-        <button type="button" data-zoom="out" aria-label="Zoom out">−</button>
-        <button type="button" data-zoom="reset" aria-label="Reset map">Reset</button>
-      </div>
+    </div>
+    <div class="map-controls">
+      <button type="button" data-zoom="in" aria-label="Zoom in">+</button>
+      <button type="button" data-zoom="out" aria-label="Zoom out">−</button>
+      <button type="button" data-zoom="reset" aria-label="Reset map">Reset</button>
     </div>
 
 
@@ -634,7 +634,7 @@ async function renderTrailMap(view) {
   frame.addEventListener('wheel', pz.zoomWithWheel);
   // Keep the tappable symbols the same size on screen at every zoom level
   canvas.addEventListener('panzoomchange', (e) => canvas.style.setProperty('--inv', 1 / e.detail.scale));
-  frame.querySelector('.map-controls').addEventListener('click', (e) => {
+  view.querySelector('.map-controls').addEventListener('click', (e) => {
     const z = e.target.closest('button')?.dataset.zoom;
     if (z === 'in') pz.zoomIn();
     if (z === 'out') pz.zoomOut();

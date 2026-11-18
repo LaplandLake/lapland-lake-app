@@ -278,11 +278,10 @@ main a:not(.btn):not(.tile) { color: var(--link); font-weight: 600; }
 .place-icon.small { width: 28px; height: 28px; border-radius: 50%; background: var(--brand); flex: none; }
 
 .map-controls {
-  position: absolute;
-  right: 10px;
-  bottom: 10px;
   display: flex;
-  gap: 6px;
+  justify-content: center;
+  gap: 10px;
+  margin: -6px 0 18px;
 }
 .map-controls button {
   min-width: 48px;
