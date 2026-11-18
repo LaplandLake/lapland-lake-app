@@ -92,6 +92,10 @@ Open questions: name for the lounge room; whether the café = Kuuma Feeding Stat
 - Lessons button: `lessonsUrl` in `content/settings.json` is FareHarbor item 328289 (lessons calendar), tracking codes removed.
 - **Menu prices published (2026-10-06)** from last season's café chalkboards (photo `docs/photos/promo/cafe-counter.jpg`), including salads, breakfast, snacks, scones and cinnamon rolls. Blank (no price shown): chili, mac and cheese, soup (cup $5.__/bowl $7.__), decorated sugar cookies, NA beer, all snacks. Muffin $4.50 was smudged. The café chalkboards have been erased for the off-season, so **this year's prices wait until the season starts**; then get a photo of the boards and update `content/menu.json`.
 
+## Live trail map gray box (Nov 18)
+
+- Cause (confirmed on Todd's phone): Trailforks' security check (Cloudflare) can't run inside our app's frame, so the live map stays gray until the guest has visited trailforks.com directly. After Todd opened the direct link, the in-app map loaded. Widget use: Trailforks offers it for websites; no widget-specific terms found. Todd is watching how often it happens before deciding: email Trailforks (report + confirm widget use) and/or a "tap to load" safety net. www.trailforks.com added to the session network, but Cloudflare blocks cloud servers, so it can't be tested from here.
+
 ## Getting the app onto phones (Todd's plan, Nov 9; one at a time, preview + yes each)
 
 1. iPhone steps (done, published). 2. Move the button up: tried at the top, Todd didn't like it; DROPPED, the banner (#5) will do the job. 3. Small pictures (published Nov 9; check against a real iPhone when one is handy). 4. Detect the Gmail app on iPhone and say open in Safari first. 5. Banner: built on branch claude/install-banner but NOT used. Todd (Nov 9): keep Home clean so guests first see what the app is; the add-to-phone button stays at the bottom, and QR signs will tell guests to scroll to the bottom and tap it. Don't add install banners or top-of-page install prompts.
@@ -266,5 +270,5 @@ Readable prices (last season; owner said menu prices may change):
 ## Ticket and lesson prices (Nov 6, 2026)
 - Buy Tickets shows full-day pass prices (Todd: no After 2pm prices) and day rental prices; Lessons shows $50 first person / $25 each additional. Copied from laplandlake.com/rates and /lessons-intro (2026-27). Stored in `content/prices.json`. Update every season from the website (the Company Brain doesn't keep prices).
 - No prices on Lodge With Us (Todd's call).
-- Flagged to Todd: CLAUDE.md says "never put prices in this repo"; guest-facing prices are in the app (café menu, tickets, lessons). Todd may ask Col to reword it.
+- Flagged to Todd: CLAUDE.md says "never put prices in this repo"; guest-facing prices are in the app (café menu, tickets, lessons). Todd may ask the crew to reword it.
 - Done Nov 6: app now says "cabins" (Lodge With Us button, trail map Places), per the Company Brain (never "cottages").
