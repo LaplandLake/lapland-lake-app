@@ -2,6 +2,7 @@
 
 Newest first. One plain-English line per change.
 
+- 2026-11-21: Café: Water Bottle $2.78; Mac and Cheese Cup $5.50 · Bowl $7.00 (same as soup, Todd confirmed); new line under "Closed until Ski Season": "Prices may change. This is a test version of the app." (menu.json titleSubNote; remove at full launch). Bottom "Menu items and prices may change." stays.
 - 2026-11-18: Trail Maps: zoom buttons moved below the map. New 2026-27 trail map from Linda Hinkle (images/trail-map-2026-27.webp, 3200 px, 574 KB, from the 4.3 MB original), still zoomable and saved for offline. Tap symbols on the map removed (Todd); trail and place lists are now plain reference lists. Trail names in the list all match the new map.
 - 2026-11-16: Trail report: GitHub is now asked to check the website every 10 minutes from about 5am to 11am Eastern, every half hour until 3pm, and every hour until 5am (Todd's schedule), at odd minutes, from November 1 through March 31. From April it rests until November; the Run workflow button still works. It was every 30 minutes, 5am to 7pm, and GitHub had been running only about 5 checks a day. No change to what guests see.
 - 2026-11-16: Bob's instructions (CLAUDE.md): trail total corrected to 40 km (30 km groomed for classic and skate, plus 10 km of marked snowshoe trails), matching the Company Brain. It said about 50 km. Todd's yes in chat.

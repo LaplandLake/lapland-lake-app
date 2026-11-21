@@ -92,6 +92,10 @@ Open questions: name for the lounge room; whether the café = Kuuma Feeding Stat
 - Lessons button: `lessonsUrl` in `content/settings.json` is FareHarbor item 328289 (lessons calendar), tracking codes removed.
 - **Menu prices published (2026-10-06)** from last season's café chalkboards (photo `docs/photos/promo/cafe-counter.jpg`), including salads, breakfast, snacks, scones and cinnamon rolls. Blank (no price shown): chili, mac and cheese, soup (cup $5.__/bowl $7.__), decorated sugar cookies, NA beer, all snacks. Muffin $4.50 was smudged. The café chalkboards have been erased for the off-season, so **this year's prices wait until the season starts**; then get a photo of the boards and update `content/menu.json`.
 
+## Café (Nov 21)
+
+- At full launch: remove titleSubNote ("Prices may change. This is a test version of the app.") from content/menu.json. Keep the bottom note. Soup prices may go up soon (Todd); mac and cheese is priced the same as soup, so update both together.
+
 ## Trail map (Nov 18)
 
 - New 2026-27 map from Linda Hinkle is live (images/trail-map-2026-27.webp). No tap symbols on the map (Todd). The old images/trail-map.webp is no longer used. Replaces the "Rental Cottages" issue: new key says Rental Cabins.
