@@ -662,6 +662,7 @@ async function renderMenu(view) {
     const grabAndGo = Boolean(soup.grabAndGo) && soup.date === todayString();
     view.innerHTML = `
       <h1 class="cafe-title">Upstairs Café${closed ? `<span class="title-note">${esc(menu.titleNote)}</span>` : ''}</h1>
+      ${menu.titleSubNote ? `<p class="title-subnote">${esc(menu.titleSubNote)}</p>` : ''}
       ${grabAndGo ? `
         <div class="card grab-and-go" role="note">
           <div class="label">Grab &amp; Go Today</div>

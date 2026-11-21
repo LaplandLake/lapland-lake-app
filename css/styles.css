@@ -537,3 +537,4 @@ button.trail-row { cursor: pointer; }
 .install-help .key-pic { padding: 2px 5px; line-height: 0; vertical-align: -6px; background: #fff; }
 .install-help .key-pic svg { width: 22px; height: 22px; fill: none; stroke: #0a84ff; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .install-help li { margin-bottom: 8px; line-height: 1.6; }
+.title-subnote { margin: -6px 0 16px; color: var(--ink-soft); font-size: 16px; }

@@ -1,5 +1,6 @@
 {
   "titleNote": "Closed until Ski Season",
+  "titleSubNote": "Prices may change. This is a test version of the app.",
   "grabAndGoNotice": "No one at the café counter today. Take what you'd like and pay at the register downstairs.",
   "sections": [
     {
@@ -15,7 +16,7 @@
         {
           "name": "Mac and Cheese",
           "description": "",
-          "price": "",
+          "price": "Cup $5.50 · Bowl $7.00",
           "cooked": true
         },
         {
@@ -138,7 +139,7 @@
         {
           "name": "Water Bottle",
           "description": "",
-          "price": "$2.50"
+          "price": "$2.78"
         },
         {
           "name": "Hot Chocolate",
