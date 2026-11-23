@@ -35,6 +35,11 @@ const SCREENS = [
   { path: 'photos',  title: 'Guest Photos',      sub: 'Share your Lapland Lake adventures',                 icon: 'camera', render: renderPhotos },
 ];
 
+// Pages reached by a link, not a Home button
+const PAGES = [
+  { path: 'privacy', title: 'Privacy', render: renderPrivacy },
+];
+
 /* ---------- Helpers ---------- */
 
 // Loads one of the editable files in /content. Always asks for a fresh copy;
@@ -125,6 +130,8 @@ function renderHome(view) {
         <a href="https://www.facebook.com/laplandlake" target="_blank" rel="noopener">Facebook</a>
         <span aria-hidden="true">·</span>
         <a href="https://www.instagram.com/laplandlake" target="_blank" rel="noopener">Instagram</a>
+        <span aria-hidden="true">·</span>
+        <a href="#/privacy">Privacy</a>
       </div>
     </footer>
     ${installButton()}
@@ -344,6 +351,23 @@ function noteHtml(note) {
       `<a href="${esc(link.href)}" target="_blank" rel="noopener">${esc(link.text)}</a>`);
   }
   return html;
+}
+
+function renderPrivacy(view) {
+  view.innerHTML = `
+    <h1>Privacy</h1>
+    <div class="card privacy">
+      <h2>What we collect</h2>
+      <p>Only what you choose to send in <a href="#/photos">Guest Photos</a>: your photos and, if you add one, a name or social media handle for credit. The app has no accounts, doesn't ask for your email, and doesn't track your location.</p>
+      <h2>What we do with it</h2>
+      <p>Photos go to a private Lapland Lake folder. Our staff look at every photo. Approved photos may appear in the app, on our website, in our emails, and on our Instagram, Facebook and Threads, with your credit if you gave one. Photos we don't use are deleted.</p>
+      <h2>On your phone</h2>
+      <p>The app saves its pages on your phone so it works without cell service. It also remembers your credit name so you don't have to type it again. These stay on your phone.</p>
+      <h2>Other websites</h2>
+      <p>Trail passes and lessons are booked through FareHarbor, lodging through RezStream, and the live trail map comes from Trailforks. Each has its own privacy policy.</p>
+      <h2>Questions or removal</h2>
+      <p>To have a photo taken down, call <a href="tel:+15188634974">518-863-4974</a> or email <a href="mailto:todd@laplandlake.com">todd@laplandlake.com</a>.</p>
+    </div>`;
 }
 
 async function renderLessons(view) {
@@ -725,7 +749,7 @@ const shareButton = () => `
     ${svg('photos')} ${canUseCamera() ? 'Choose from Gallery' : 'Share a Photo'}
     <input type="file" accept="image/*" multiple class="visually-hidden">
   </label>
-  <p class="meta share-note">By sharing, you confirm it's your photo and let Lapland Lake use it in our app, website, emails &amp; social media.</p>`;
+  <p class="meta share-note">By sharing, you confirm it's your photo and let Lapland Lake use it in our app, website, emails &amp; social media. <a href="#/privacy">Privacy</a></p>`;
 
 // Full-screen camera: live view, a shutter button, then Retake or Use Photo.
 // Resolves with the photo, or null if the guest closes it.
@@ -1199,7 +1223,7 @@ function route({ keepScroll = false } = {}) {
   currentHash = location.hash;
   let path = location.hash.replace(/^#\/?/, '');
   if (path === 'maps') path = 'map'; // "maps" with an s also opens Trail Maps
-  const screen = SCREENS.find((s) => s.path === path);
+  const screen = SCREENS.find((s) => s.path === path) || PAGES.find((s) => s.path === path);
   // Swap in a fresh page area, so a slow screen that finishes loading after the guest
   // has already moved on can't draw over the screen they're on now
   const old = document.getElementById('view');
