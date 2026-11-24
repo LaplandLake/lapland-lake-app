@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "node dev/server.mjs --seed demo",
-    "test": "node --test test/backend.test.mjs",
+    "test": "node --test test/backend.test.mjs test/ai-door.test.mjs",
     "test:e2e": "node test/e2e.mjs"
   },
   "devDependencies": {

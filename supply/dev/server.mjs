@@ -49,6 +49,8 @@ function send(res, code, body, type) {
 }
 
 const delay = { ms: Number(opt('delay', 0)) };
+const echoes = new Map();
+let echoSeq = 0;
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
   try {
@@ -61,6 +63,29 @@ const server = http.createServer(async (req, res) => {
       let body;
       try { body = JSON.parse(text); } catch (e) { return send(res, 200, JSON.stringify({ ok: false, error: { code: 'invalid', message: 'The request could not be read.' } })); }
       return send(res, 200, JSON.stringify(backend.handleApi_(body)));
+    }
+    // The AI door, the way the real thing is reached. /gas behaves like the Apps Script web app
+    // (every POST is answered with a redirect to a one-time address); /mcp is the relay
+    // (supply/relay/worker.js) in front of it. Connect an MCP client to /mcp?key=<an AI key>.
+    if (url.pathname === '/gas' && req.method === 'POST') {
+      const text = await readBody(req);
+      const id = String(++echoSeq);
+      echoes.set(id, backend.handlePost_(text, Object.fromEntries(url.searchParams)));
+      res.writeHead(302, { Location: '/gas-echo?id=' + id });
+      return res.end();
+    }
+    if (url.pathname === '/gas-echo' && req.method === 'GET') {
+      const id = url.searchParams.get('id');
+      const text = echoes.get(id);
+      echoes.delete(id);
+      return text === undefined ? send(res, 404, 'Not found', 'text/plain') : send(res, 200, text);
+    }
+    if (url.pathname === '/mcp') {
+      const { default: relay } = await import('../relay/worker.js');
+      const body = req.method === 'POST' ? await readBody(req) : undefined;
+      const out = await relay.fetch(new Request('http://localhost:' + port + req.url, { method: req.method, headers: req.headers, body }), { DOOR_URL: 'http://localhost:' + port + '/gas' });
+      res.writeHead(out.status, Object.fromEntries(out.headers));
+      return res.end(await out.text());
     }
     if (url.pathname.startsWith('/__test/')) {
       const what = url.pathname.slice(8);

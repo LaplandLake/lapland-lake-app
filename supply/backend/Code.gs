@@ -148,13 +148,24 @@ function doGet() {
 }
 
 function doPost(e) {
+  const text = handlePost_((e && e.postData && e.postData.contents) || '', (e && e.parameter) || {});
+  return ContentService.createTextOutput(text).setMimeType(ContentService.MimeType.JSON);
+}
+
+// The text to send back for a POST. The app's own screens send { action: ... }; an AI connection
+// (see "AI door" below) sends JSON-RPC messages with its key in the address.
+function handlePost_(text, params) {
   let body = null;
   try {
-    body = JSON.parse((e && e.postData && e.postData.contents) || '');
+    body = JSON.parse(text);
   } catch (err) {
-    return jsonOut_({ ok: false, error: { code: 'invalid', message: 'The request could not be read.' } });
+    return JSON.stringify({ ok: false, error: { code: 'invalid', message: 'The request could not be read.' } });
   }
-  return jsonOut_(handleApi_(body));
+  if (Array.isArray(body) || (body && body.jsonrpc === '2.0')) {
+    const reply = handleAiDoor_(params && params.key, body);
+    return reply === null ? '' : JSON.stringify(reply);
+  }
+  return JSON.stringify(handleApi_(body));
 }
 
 function jsonOut_(obj) {
@@ -243,6 +254,11 @@ const ACTIONS = {
   adminBackupNow: { role: 'admin', write: true, fn: () => backupNowAction_() },
   adminSupplierHistory: { role: 'admin', fn: () => supplierHistory_() },
   adminAudit: { role: 'admin', fn: () => ({ audit: db_().all('audit').slice(-300).reverse() }) },
+  adminAiKeys: { role: 'admin', fn: () => adminAiKeys_() },
+  adminAiKeyAdd: { role: 'admin', write: true, fn: (b) => adminAiKeyAdd_(b) },
+  adminAiKeySet: { role: 'admin', write: true, fn: (b) => adminAiKeySet_(b) },
+  adminAiKeyRenew: { role: 'admin', write: true, fn: (b) => adminAiKeyRenew_(b) },
+  adminAiRelay: { role: 'admin', write: true, fn: (b) => adminAiRelay_(b) },
 };
 
 function handleApi_(body) {
@@ -707,8 +723,9 @@ function saveCount_(b, actor) {
     session = openSession_(b.kind);
   }
   // No count in progress, but this week's finished count can still be fixed (see editableSession_).
-  const ed = !session && actor === 'staff' ? editableSession_(b.kind) : null;
+  const ed = !session && actor !== 'admin' ? editableSession_(b.kind) : null;
   if (ed) session = ed.session;
+  const byAi = isAiActor_(actor);
   const clear = !!b.clear;
   const v = clear ? null : validateCount_(b.kind, it, b);
   // Items kept in two places: each place is counted separately and the total is saved.
@@ -740,13 +757,7 @@ function saveCount_(b, actor) {
   const now = nowIso_();
   if (!session) {
     if (clear) return { cleared: true, session: null };
-    session = {
-      id: newId_('s'), kind: b.kind, status: 'open', weekPeriod: weekPeriodOf_(platform_().now()),
-      startedAt: now, completedAt: '', completedBy: '', incompleteAtCompletion: null,
-      totalAtCompletion: null, reportVersion: 0, note: '', origin: 'app', legacyId: '',
-      createdAt: now, updatedAt: now,
-    };
-    db_().insert('sessions', session);
+    session = newOpenSession_(b.kind, byAi ? actor : 'app');
   }
   const existing = db_().all('entries').filter((e) => e.sessionId === session.id && e.itemId === it.id)[0];
   if (ed && clear) fail_('This count is already finished. Enter the new number instead (0 if there are none).');
@@ -765,6 +776,8 @@ function saveCount_(b, actor) {
       : existing ? { fullCases: existing.fullCases, looseUnits: existing.looseUnits } : null;
     rec.changedAfterFinish = { from: first, at: now };
   }
+  // A number entered or changed through an AI key carries that AI's name.
+  if (byAi) rec.origin = actor;
   if (existing) db_().update('entries', existing.id, rec);
   else db_().insert('entries', Object.assign({ id: newId_('e'), origin: actor === 'admin' ? 'admin' : 'app', legacyId: '', createdAt: now }, rec));
   if (ed) {
@@ -780,6 +793,19 @@ function saveCount_(b, actor) {
 }
 
 function isCounted_(e) { return !!e && (e.fullCases !== null || e.looseUnits !== null); }
+
+// A new count in progress. "origin" says where it was started: 'app' (staff) or 'ai:<name>'.
+function newOpenSession_(kind, origin) {
+  const now = nowIso_();
+  const session = {
+    id: newId_('s'), kind, status: 'open', weekPeriod: weekPeriodOf_(platform_().now()),
+    startedAt: now, completedAt: '', completedBy: '', incompleteAtCompletion: null,
+    totalAtCompletion: null, reportVersion: 0, note: '', origin: origin || 'app', legacyId: '',
+    createdAt: now, updatedAt: now,
+  };
+  db_().insert('sessions', session);
+  return session;
+}
 
 function completeCount_(b, actor) {
   checkKind_(b.kind);
@@ -813,7 +839,7 @@ function completeCount_(b, actor) {
   if (b.kind === 'beverage') {
     // Staff only learn that the count is done; the email result is shown to the admin in Admin.
     const res = sendWeeklyReport_(session.id, 'auto', false);
-    if (actor === 'admin') out.email = res;
+    if (actor === 'admin' || isAiActor_(actor)) out.email = res;
   }
   return out;
 }
@@ -1697,6 +1723,429 @@ function installCountInbox() {
   db_().reset();
   const r = inboxOn_();
   platform_().log(r.turnedOn ? 'Count inbox is on (checks every 15 minutes).' : 'Could not turn on the Count inbox: ' + r.error);
+}
+
+/* ---------------------------------------------------------------- AI door */
+
+// A guarded entrance for AI assistants (Claude, Duet, ChatGPT...) to add counts by voice or chat.
+// It speaks MCP, the standard "connector" language: plain JSON-RPC messages sent by POST, with the
+// AI's key in the address (?key=...). Apps Script answers every POST with a redirect that Claude
+// will not follow, so a small relay (supply/relay/worker.js) sits in front and passes messages on.
+//
+// What an AI can do here: look at the count lists, start a count, save or change counts, finish a
+// count. Nothing else: no deleting, no orders, no items, no settings. Every save goes through
+// saveCount_ and completeCount_, the same code the staff screens use.
+//
+// Each AI has its own key. Keys are kept only as hashes in the script's private properties (never
+// in the Sheet, the website or the repository) and can be turned off one at a time in Admin.
+
+const AI_KEY_LIMIT = 10;
+const AI_CALLS_PER_HOUR = 1500;
+const AI_DOOR_VERSIONS = ['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05'];
+const AI_DOOR_RULES = 'Stock counts for the Lapland Lake Supply Manager. You can look at the count lists, start a count, ' +
+  'save or change counts, and finish a count. Nothing else is possible here. Rules: ' +
+  '(1) Before saving, look the item up with find_item or list_items. If more than one item could be meant, or none fits, ask the person which one they mean. Never guess. ' +
+  '(2) Counts are in cases. Part cases such as 0.5 are fine. 0 is a real count. An item nobody mentioned stays not counted. ' +
+  '(3) Some items are kept in two places. Send the place the number is for, and ask if the person did not say. ' +
+  '(4) After saving, say back the item and the number that was saved. ' +
+  '(5) Finish a count only when the person says to, and first tell them which items have no count.';
+
+function isAiActor_(actor) { return String(actor || '').indexOf('ai:') === 0; }
+function aiName_(actor) { return isAiActor_(actor) ? String(actor).slice(3) : ''; }
+function originLabel_(o) { return isAiActor_(o) ? aiName_(o) : o === 'admin' ? 'Admin' : o === 'count-file' ? 'Count file' : 'Staff'; }
+
+/* ---- keys */
+
+function aiKeys_() {
+  try { const v = JSON.parse(platform_().props.get('AI_KEYS') || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; }
+}
+function putAiKeys_(list) { platform_().props.set('AI_KEYS', JSON.stringify(list)); }
+function aiKeyHash_(key) { return hex_(platform_().sha256(utf8_(String(key)))); }
+function newAiKey_() { return 'll_' + randomToken_(); }
+// The key record for a key that is known and turned on, or null.
+function aiKeyFor_(key) {
+  const s = String(key === undefined || key === null ? '' : key);
+  if (s.length < 20 || s.length > 200) return null;
+  const hash = aiKeyHash_(s);
+  return aiKeys_().filter((k) => k.enabled && k.hash === hash)[0] || null;
+}
+// "Last used" is kept apart from the key list, so noting a use can never undo "turn off".
+function aiTouch_(k) {
+  const p = platform_();
+  const last = p.props.get('AI_USED_' + k.id);
+  if (!last || p.now().getTime() - new Date(last).getTime() > 60000) p.props.set('AI_USED_' + k.id, nowIso_());
+}
+function aiRateLimit_(k) {
+  const p = platform_();
+  const key = 'rl:ai:' + k.id + ':' + Math.floor(p.now().getTime() / 3600000);
+  const n = Number(p.cache.get(key) || 0) + 1;
+  p.cache.put(key, String(n), 3700);
+  if (n > AI_CALLS_PER_HOUR) fail_('Too many requests in the last hour. Wait a bit and try again.', 'rate');
+}
+function aiAddress_(key) {
+  const relay = platform_().props.get('AI_RELAY_URL') || '';
+  return relay ? relay + '?key=' + key : '';
+}
+
+function adminAiKeys_() {
+  const p = platform_();
+  return {
+    keys: aiKeys_().map((k) => ({ id: k.id, name: k.name, enabled: !!k.enabled, createdAt: k.createdAt, lastUsedAt: p.props.get('AI_USED_' + k.id) || '' })),
+    relayUrl: p.props.get('AI_RELAY_URL') || '',
+  };
+}
+// The key itself is shown once, here, and never again: only its hash is kept.
+function adminAiKeyAdd_(b) {
+  const name = str_(b.name, 30, 'Name');
+  if (!/^[A-Za-z0-9][A-Za-z0-9 ._-]*$/.test(name)) fail_('Give the AI a short name using letters and numbers, for example Claude.');
+  const list = aiKeys_();
+  if (list.some((k) => k.name.toLowerCase() === name.toLowerCase())) fail_('There is already a key with that name.');
+  if (list.length >= AI_KEY_LIMIT) fail_('There can be at most ' + AI_KEY_LIMIT + ' AI keys.');
+  const key = newAiKey_();
+  list.push({ id: newId_('k'), name, hash: aiKeyHash_(key), enabled: true, createdAt: nowIso_() });
+  putAiKeys_(list);
+  audit_('admin', 'ai-key-added', { name });
+  return Object.assign(adminAiKeys_(), { newKey: { name, key, address: aiAddress_(key) } });
+}
+function adminAiKeySet_(b) {
+  const list = aiKeys_();
+  const k = list.filter((x) => x.id === str_(b.id, 60))[0];
+  if (!k) fail_('Key not found.');
+  k.enabled = !!b.enabled;
+  putAiKeys_(list);
+  audit_('admin', k.enabled ? 'ai-key-turned-on' : 'ai-key-turned-off', { name: k.name });
+  return adminAiKeys_();
+}
+// A fresh key for the same AI (for example when the address was lost). The old key stops working.
+function adminAiKeyRenew_(b) {
+  const list = aiKeys_();
+  const k = list.filter((x) => x.id === str_(b.id, 60))[0];
+  if (!k) fail_('Key not found.');
+  const key = newAiKey_();
+  k.hash = aiKeyHash_(key);
+  k.enabled = true;
+  putAiKeys_(list);
+  audit_('admin', 'ai-key-renewed', { name: k.name });
+  return Object.assign(adminAiKeys_(), { newKey: { name: k.name, key, address: aiAddress_(key) } });
+}
+function adminAiRelay_(b) {
+  const url = str_(b.relayUrl, 300, 'Relay address');
+  if (url && !/^(https:\/\/|http:\/\/localhost[:/])[^\s?#]+$/.test(url)) fail_('The relay address must start with https:// and have no ? in it.');
+  if (url) platform_().props.set('AI_RELAY_URL', url); else platform_().props.del('AI_RELAY_URL');
+  audit_('admin', 'ai-relay-saved', null);
+  return adminAiKeys_();
+}
+
+/* ---- what the AI sees */
+
+function aiKind_(v) {
+  const kind = str_(v, 20).toLowerCase();
+  if (KINDS.indexOf(kind) < 0) fail_('countType must be housekeeping, cafe or beverage.');
+  return kind;
+}
+// The count that numbers go into right now: one in progress, or this week's finished count while
+// it can still be fixed (the same rule as the staff screens).
+function aiSession_(kind) {
+  const open = openSession_(kind);
+  if (open) return { session: open, state: 'in progress' };
+  const ed = editableSession_(kind);
+  if (ed) return { session: ed.session, state: 'finished this week; numbers can still be changed' };
+  return { session: null, state: 'no count in progress' };
+}
+function aiEntries_(session) {
+  const map = {};
+  if (session) db_().all('entries').filter((e) => e.sessionId === session.id).forEach((e) => { map[e.itemId] = e; });
+  return map;
+}
+function aiEntryView_(kind, c, e) {
+  if (!isCounted_(e)) return null;
+  const v = { fullCases: e.fullCases, looseUnits: e.looseUnits, savedAt: fmtNy_(e.countedAt), enteredBy: originLabel_(e.origin) };
+  const locs = kind !== 'beverage' ? locationsFor_(c) : null;
+  if (locs) v.places = entryParts_(e, locs);
+  return v;
+}
+function aiItemView_(kind, c, e) {
+  const out = { id: c.id, name: c.name, countType: kind };
+  if (kind === 'beverage') {
+    out.group = c.type || '';
+    out.countedIn = 'full cases and loose ' + (c.container ? c.container + 's' : 'bottles/cans') + ' (' + c.unitsPerCase + ' per case)';
+  } else {
+    const st = staffItem_(c);
+    out.group = st.category;
+    out.countedIn = st.allowLoose ? 'full cases and loose ' + st.looseUnitLabel + ' (' + st.unitsPerCase + ' per case)' : 'full cases only (part cases such as 0.5 are fine)';
+    if (st.locations) out.places = st.locations;
+  }
+  out.saved = aiEntryView_(kind, c, e);
+  return out;
+}
+function aiCountState_(kind) {
+  const t = aiSession_(kind);
+  const list = activeCountables_(kind);
+  const entries = aiEntries_(t.session);
+  const last = db_().all('sessions').filter((s) => s.kind === kind && s.status === 'completed' && s.completedAt)
+    .sort((a, b) => String(b.completedAt).localeCompare(String(a.completedAt)))[0];
+  return {
+    countType: kind, name: KIND_LABEL[kind], state: t.state,
+    startedAt: t.session ? fmtNy_(t.session.startedAt) : '',
+    itemsOnList: list.length,
+    itemsCounted: list.filter((c) => isCounted_(entries[c.id])).length,
+    notCountedYet: t.session ? list.filter((c) => !isCounted_(entries[c.id])).map((c) => c.name) : [],
+    lastFinished: last ? fmtNy_(last.completedAt) : '',
+  };
+}
+function aiList_(args) {
+  const kind = aiKind_(args.countType);
+  const t = aiSession_(kind);
+  const entries = aiEntries_(t.session);
+  return { countType: kind, name: KIND_LABEL[kind], state: t.state, items: activeCountables_(kind).map((c) => aiItemView_(kind, c, entries[c.id])) };
+}
+// "sure" is true only when exactly one item on the lists fits the words. Anything else means: ask.
+function aiFind_(args) {
+  const words = str_(args.words, 120, 'Words');
+  const W = nameTokens_(words);
+  if (!W.length) fail_('Say which item to look for.');
+  const kinds = args.countType ? [aiKind_(args.countType)] : KINDS;
+  const num = /^\d{3,}$/.test(words.replace(/\s+/g, '')) ? normNumber_(words.replace(/\s+/g, '')) : '';
+  const scored = [];
+  kinds.forEach((kind) => {
+    const t = aiSession_(kind);
+    const entries = aiEntries_(t.session);
+    activeCountables_(kind).forEach((c) => {
+      const N = nameTokens_(c.name);
+      const all = nameTokens_(c.name + ' ' + (c.description || ''));
+      const cover = W.filter((w, i) => W.indexOf(w) === i && all.indexOf(w) >= 0).length / W.filter((w, i) => W.indexOf(w) === i).length;
+      const byNumber = !!num && !!c.supplierItemNumber && normNumber_(c.supplierItemNumber) === num;
+      scored.push({ kind, c, e: entries[c.id], cover: byNumber ? 1 : cover, exact: byNumber || N.join(' ') === W.join(' '), close: nameScore_(words, c.name) });
+    });
+  });
+  const hits = scored.filter((x) => x.cover >= 0.5).sort((a, b) => (b.exact ? 1 : 0) - (a.exact ? 1 : 0) || b.cover - a.cover || b.close - a.close);
+  const exact = hits.filter((x) => x.exact);
+  const full = hits.filter((x) => x.cover === 1);
+  const sure = exact.length === 1 || (!exact.length && full.length === 1);
+  const matches = (sure ? [exact.length === 1 ? exact[0] : full[0]] : hits.slice(0, 8)).map((x) => aiItemView_(x.kind, x.c, x.e));
+  return {
+    sure, matches,
+    advice: sure ? 'One clear match.'
+      : matches.length ? 'More than one item could be meant. Ask the person which one before saving.'
+        : 'Nothing like that is on the count lists. Ask the person what they mean; do not guess. An item that is not on a list cannot be counted here.',
+  };
+}
+
+/* ---- what the AI can change */
+
+function aiStart_(args, actor) {
+  const kind = aiKind_(args.countType);
+  const t = aiSession_(kind);
+  if (t.session) {
+    return {
+      started: false, countType: kind, state: t.state,
+      note: t.state === 'in progress' ? 'A count is already in progress. Numbers you save go into it.' : 'This week\'s count is already finished. Numbers you save will change it.',
+    };
+  }
+  const s = newOpenSession_(kind, actor);
+  audit_(actor, 'count-started', { kind, sessionId: s.id });
+  return { started: true, countType: kind, state: 'in progress', startedAt: fmtNy_(s.startedAt) };
+}
+
+function aiSave_(args, actor, k) {
+  const kind = aiKind_(args.countType);
+  const c = activeCountables_(kind).filter((x) => x.id === str_(args.itemId, 60))[0];
+  if (!c) fail_('That item is not on the ' + KIND_LABEL[kind] + ' count list. Look it up again with find_item. If it is not there, tell the person it cannot be counted here.');
+  if (nameTokens_(args.itemName).join(' ') !== nameTokens_(c.name).join(' ')) {
+    fail_('The item id and the item name do not go together, so nothing was saved. Look the item up again with find_item.');
+  }
+  const p = platform_();
+  const rid = str_(args.requestId, 80);
+  const cacheKey = rid ? 'aireq:' + k.id + ':' + hex_(p.sha256(utf8_(rid))).slice(0, 32) : '';
+  if (cacheKey) {
+    const hit = p.cache.get(cacheKey);
+    if (hit) return Object.assign(JSON.parse(hit), { alreadySaved: true });
+  }
+  const fc = args.fullCases === undefined ? null : args.fullCases;
+  const lu = args.looseUnits === undefined ? null : args.looseUnits;
+  if (num_(fc) === null && num_(lu) === null) fail_('Give the number of full cases (or loose units). 0 is a real count; leaving the number out means not counted.');
+  const locs = kind !== 'beverage' ? locationsFor_(c) : null;
+  let place = '';
+  let idx = -1;
+  if (locs) {
+    idx = locs.map((l) => l.toLowerCase()).indexOf(str_(args.place, 60).toLowerCase());
+    if (idx < 0) fail_('"' + c.name + '" is kept in two places: ' + locs.join(' and ') + '. Ask the person which place this number is for, then send it again with that place.');
+    place = locs[idx];
+  }
+  const t = aiSession_(kind);
+  const prior = aiEntries_(t.session)[c.id] || null;
+  const was = locs ? entryParts_(prior, locs)[idx] : (isCounted_(prior) ? { fullCases: prior.fullCases, looseUnits: prior.looseUnits } : { fullCases: null, looseUnits: null });
+  const note = args.note === undefined ? (prior ? prior.note : '') : str_(args.note, 300, 'Note');
+  const view = (v) => (v.fullCases === null && v.looseUnits === null ? 'not counted' : { fullCases: v.fullCases, looseUnits: v.looseUnits });
+  const done = (out) => { if (cacheKey) p.cache.put(cacheKey, JSON.stringify(out), 21600); return out; };
+  const base = { saved: true, countType: kind, item: c.name };
+  if (place) base.place = place;
+  // The same number again (a repeat or a retry) changes nothing and is not written a second time.
+  const same = (a, b) => (a === null ? null : Number(a)) === (b === null ? null : Number(b));
+  if (prior && same(num_(fc), was.fullCases) && same(num_(lu), was.looseUnits) && note === (prior.note || '')) {
+    return done(Object.assign(base, { alreadySaved: true, now: view(was), note: 'This number was already saved. Nothing changed.' }));
+  }
+  const b = { kind, itemId: c.id, note };
+  if (locs) b.parts = locs.map((l, j) => (j === idx ? { fullCases: fc, looseUnits: lu } : null));
+  else { b.fullCases = fc; b.looseUnits = lu; }
+  const r = saveCount_(b, actor);
+  const now = locs ? r.entry.parts[idx] : r.entry;
+  audit_(actor, 'count-saved', { kind, sessionId: r.session.id, itemId: c.id, name: c.name, place, from: view(was), to: view(now) });
+  const out = Object.assign(base, { before: view(was), now: view(now) });
+  if (locs) out.totalAllPlaces = { fullCases: r.entry.fullCases, looseUnits: r.entry.looseUnits };
+  if (!t.session) out.note = 'No count was in progress, so a new ' + KIND_LABEL[kind] + ' count was started.';
+  else if (t.state !== 'in progress') out.note = 'This week\'s count was already finished; this changed it.';
+  return done(out);
+}
+
+function aiFinish_(args, actor) {
+  const kind = aiKind_(args.countType);
+  const open = openSession_(kind);
+  if (!open) {
+    const last = db_().all('sessions').filter((s) => s.kind === kind && s.status === 'completed' && s.completedAt)
+      .sort((a, b) => String(b.completedAt).localeCompare(String(a.completedAt)))[0];
+    if (last && weekPeriodOf_(new Date(last.completedAt)) === weekPeriodOf_(platform_().now())) {
+      return { finished: true, alreadyFinished: true, countType: kind, finishedAt: fmtNy_(last.completedAt), note: 'This count was already finished. Nothing was sent again.' };
+    }
+    fail_('There is no ' + KIND_LABEL[kind] + ' count in progress to finish.');
+  }
+  const entries = aiEntries_(open);
+  const missing = activeCountables_(kind).filter((c) => !isCounted_(entries[c.id])).map((c) => c.name);
+  if (missing.length && args.finishWithUncounted !== true) {
+    return {
+      finished: false, countType: kind, notCounted: missing,
+      note: 'Not finished: ' + missing.length + ' item(s) have no count. Tell the person which ones. If they still want to finish, call finish_count again with finishWithUncounted set to true.',
+    };
+  }
+  const r = completeCount_({ kind, sessionId: open.id }, actor);
+  const out = { finished: true, countType: kind, finishedAt: fmtNy_(nowIso_()), itemsOnList: r.total, notCounted: r.notCounted };
+  if (kind === 'beverage' && r.email) out.weeklyEmail = r.email.status === 'sent' ? 'sent' : 'not sent (' + r.email.status + ')';
+  return out;
+}
+
+/* ---- the tools, as the AI sees them */
+
+const AI_COUNT_TYPE = { type: 'string', enum: KINDS, description: 'Which count: housekeeping, cafe, or beverage (beer, cider, wine, craft soda).' };
+const AI_TOOLS = [
+  {
+    name: 'count_overview', title: 'See the counts',
+    description: 'Shows, for housekeeping, cafe and beverage: whether a count is in progress, how many items are counted, and which items have no count yet.',
+    inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+    annotations: { readOnlyHint: true },
+    run: () => ({ counts: KINDS.map(aiCountState_) }),
+  },
+  {
+    name: 'list_items', title: 'List the items on a count',
+    description: 'Lists every item on one count list with its id, how it is counted, its places (when it is kept in two places) and the number saved so far.',
+    inputSchema: { type: 'object', properties: { countType: AI_COUNT_TYPE }, required: ['countType'], additionalProperties: false },
+    annotations: { readOnlyHint: true },
+    run: (a) => aiList_(a),
+  },
+  {
+    name: 'find_item', title: 'Find an item',
+    description: 'Finds the item the person means from the words they said (or a supplier item number). If "sure" is false, ask the person which item they mean before saving. Never guess.',
+    inputSchema: {
+      type: 'object',
+      properties: { words: { type: 'string', description: 'The item as the person said it.' }, countType: Object.assign({}, AI_COUNT_TYPE, { description: 'Optional. Leave out to look on all three count lists.' }) },
+      required: ['words'], additionalProperties: false,
+    },
+    annotations: { readOnlyHint: true },
+    run: (a) => aiFind_(a),
+  },
+  {
+    name: 'start_count', title: 'Start a count', write: true,
+    description: 'Starts a count if none is in progress. Safe to call twice: a count already in progress is kept as it is.',
+    inputSchema: { type: 'object', properties: { countType: AI_COUNT_TYPE }, required: ['countType'], additionalProperties: false },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
+    run: (a, actor) => aiStart_(a, actor),
+  },
+  {
+    name: 'save_count', title: 'Save or change one count', write: true,
+    description: 'Saves the count for one item, or changes it. The number replaces what was saved before (it is not added to it). Use the id and the exact name from find_item or list_items. Only call this when you are sure which item the person means. Sending the same number twice saves it once.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        countType: AI_COUNT_TYPE,
+        itemId: { type: 'string', description: 'The item id from find_item or list_items.' },
+        itemName: { type: 'string', description: 'The item name exactly as find_item or list_items gave it. It must go with the id.' },
+        fullCases: { type: 'number', description: 'Cases on hand, 0 or more. Part cases such as 0.5 are fine.' },
+        looseUnits: { type: 'number', description: 'Loose units on top of the full cases, only for items counted in cases and loose units.' },
+        place: { type: 'string', description: 'For items kept in two places: which place this number is for, exactly as listed under "places".' },
+        note: { type: 'string', description: 'Optional short note for the admin.' },
+        requestId: { type: 'string', description: 'Optional. Any made-up id for this one spoken number. Send the same id if you have to try again.' },
+      },
+      required: ['countType', 'itemId', 'itemName'], additionalProperties: false,
+    },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
+    run: (a, actor, k) => aiSave_(a, actor, k),
+  },
+  {
+    name: 'finish_count', title: 'Finish a count', write: true,
+    description: 'Marks the count in progress as finished. Only when the person says to finish. If items have no count, it does not finish; it returns their names so you can tell the person first. Safe to call twice.',
+    inputSchema: {
+      type: 'object',
+      properties: { countType: AI_COUNT_TYPE, finishWithUncounted: { type: 'boolean', description: 'Set to true only after the person has heard which items have no count and still wants to finish.' } },
+      required: ['countType'], additionalProperties: false,
+    },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
+    run: (a, actor) => aiFinish_(a, actor),
+  },
+];
+
+/* ---- the door itself */
+
+// One message (or a short batch) from an AI connection. Returns the reply, or null when none is due.
+function handleAiDoor_(key, rpc) {
+  if (Array.isArray(rpc)) {
+    const out = rpc.slice(0, 20).map((m) => aiAnswer_(key, m)).filter((r) => r !== null);
+    return out.length ? out : null;
+  }
+  return aiAnswer_(key, rpc);
+}
+
+function aiAnswer_(key, m) {
+  const p = platform_();
+  const hasId = !!m && typeof m === 'object' && m.id !== undefined && m.id !== null;
+  const ok = (result) => ({ jsonrpc: '2.0', id: m.id, result });
+  const no = (code, message) => ({ jsonrpc: '2.0', id: hasId ? m.id : null, error: { code, message } });
+  if (!m || typeof m !== 'object' || typeof m.method !== 'string') return no(-32600, 'The message could not be read.');
+  if (!hasId) return null; // a notice from the AI's side; no reply is due
+  const k = aiKeyFor_(key);
+  if (!k) return no(-32001, 'This key is missing, not right, or turned off. The admin can check it in Admin > Settings > AI connections.');
+  if (m.method === 'initialize') {
+    const asked = m.params && m.params.protocolVersion;
+    return ok({
+      protocolVersion: AI_DOOR_VERSIONS.indexOf(asked) >= 0 ? asked : AI_DOOR_VERSIONS[0],
+      capabilities: { tools: {} },
+      serverInfo: { name: 'Lapland Lake Supply Manager counts', version: APP_VERSION },
+      instructions: AI_DOOR_RULES,
+    });
+  }
+  if (m.method === 'ping') return ok({});
+  if (m.method === 'tools/list') {
+    return ok({ tools: AI_TOOLS.map((t) => ({ name: t.name, title: t.title, description: t.description, inputSchema: t.inputSchema, annotations: t.annotations })) });
+  }
+  if (m.method !== 'tools/call') return no(-32601, 'This door does not do that.');
+  const tool = AI_TOOLS.filter((t) => t.name === (m.params && m.params.name))[0];
+  if (!tool) return no(-32602, 'This door has no tool with that name.');
+  const args = (m.params && m.params.arguments && typeof m.params.arguments === 'object') ? m.params.arguments : {};
+  const say = (data, isError) => ok({ content: [{ type: 'text', text: JSON.stringify(data) }], isError: !!isError });
+  try {
+    aiRateLimit_(k);
+    const run = () => {
+      db_().reset();
+      // Checked again inside the lock, so a key turned off a moment ago cannot slip a save through.
+      if (!aiKeyFor_(key)) fail_('This key was turned off. Nothing was saved.');
+      return tool.run(args, 'ai:' + k.name, k);
+    };
+    const data = tool.write ? p.withLock(run) : run();
+    aiTouch_(k);
+    return say(data);
+  } catch (err) {
+    if (err instanceof UserError) return say({ saved: false, problem: err.message }, true);
+    p.log('Error at the AI door in ' + tool.name + ': ' + (err && err.stack ? err.stack : err));
+    return say({ saved: false, problem: 'Something went wrong on the server. Nothing was saved for this step. Please try again.' }, true);
+  }
 }
 
 /* ---------------------------------------------------------------- requests and photos */
@@ -3523,5 +3972,5 @@ function setup() {
 }
 
 if (typeof module !== 'undefined') {
-  module.exports = { handleApi_, setPlatform_, TABLES, SheetStore, parseCasePack_, nextDelivery_, weekPeriodOf_, createAdminSetupCode, pbkdf2_, parseCsv_, bevReport_, matchItem_ };
+  module.exports = { handleApi_, handlePost_, handleAiDoor_, setPlatform_, TABLES, SheetStore, parseCasePack_, nextDelivery_, weekPeriodOf_, createAdminSetupCode, pbkdf2_, parseCsv_, bevReport_, matchItem_ };
 }
