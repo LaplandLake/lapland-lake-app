@@ -971,6 +971,9 @@
       field('Notes', f.notes), msg, h('div', { class: 'row', style: 'margin-top:10px' }, saveBtn, removeBtn)));
   }
   function fmtN(v) { return v === null || v === undefined ? 'no record' : String(v); }
+  // Where a count or a number came from. Numbers entered through an AI key carry that AI's name.
+  function isAi(o) { return String(o || '').indexOf('ai:') === 0; }
+  function enteredBy(o) { return isAi(o) ? o.slice(3) : o === 'admin' ? 'Admin' : o === 'count-file' ? 'Count file' : !o || o === 'app' ? 'Staff' : o; }
 
   /* ------------------------------------------------------------ counts */
   async function renderCounts(sessionId) {
@@ -984,7 +987,7 @@
           h('div', { class: 'row' }, h('b', { class: 'grow' }, KIND_HEADING[s.kind] + ' · week of ' + s.weekPeriod),
             h('span', { class: 'chip ' + (s.status === 'open' ? 'shopping' : 'ordered') }, s.status === 'open' ? 'In progress' : 'Finished')),
           h('div', { class: 'small muted' }, 'Started ' + fmtDateTime(s.startedAt) + (s.completedAt ? ' · finished ' + fmtDateTime(s.completedAt) : '') + ' · ' + s.countedItems + ' counted' +
-            (s.incompleteAtCompletion ? ' · ' + s.incompleteAtCompletion + ' not counted' : '') + (s.origin && s.origin !== 'app' ? ' · ' + s.origin : '')))) : h('p', { class: 'muted' }, 'No counts yet.'))));
+            (s.incompleteAtCompletion ? ' · ' + s.incompleteAtCompletion + ' not counted' : '') + (isAi(s.origin) ? ' · started by ' + enteredBy(s.origin) : s.origin && s.origin !== 'app' ? ' · ' + s.origin : '') + (isAi(s.completedBy) ? ' · finished by ' + enteredBy(s.completedBy) : '')))) : h('p', { class: 'muted' }, 'No counts yet.'))));
     } catch (err) { replace(box, errBox(err)); }
   }
   async function renderCountDetail(box, id) {
@@ -1013,16 +1016,16 @@
     };
     replace(box, h('p', null, h('a', { href: '#/admin/counts' }, '‹ All counts')),
       h('div', { class: 'card' }, h('h2', null, KIND_HEADING[s.kind] + ' count · week of ' + s.weekPeriod),
-        h('p', null, 'Started ' + fmtDateTime(s.startedAt) + (s.completedAt ? ' · finished ' + fmtDateTime(s.completedAt) + ' (report version ' + (s.reportVersion || 1) + ')' : ' · in progress')),
+        h('p', null, 'Started ' + fmtDateTime(s.startedAt) + (isAi(s.origin) ? ' by ' + enteredBy(s.origin) : '') + (s.completedAt ? ' · finished ' + fmtDateTime(s.completedAt) + (isAi(s.completedBy) ? ' by ' + enteredBy(s.completedBy) : '') + ' (report version ' + (s.reportVersion || 1) + ')' : ' · in progress')),
         s.note ? h('p', { class: 'small muted' }, s.note) : null, msg, act,
         s.status === 'open' ? h('p', null, h('a', { href: '#/count/' + s.kind }, 'Open the staff count screen')) : null),
       h('div', { class: 'table-wrap' }, h('table', { class: 'data' },
-        h('thead', null, h('tr', null, ['Item (as counted)', 'Full cases', 'Loose', 'Package at count time', 'Note', 'Counted at'].map((x) => h('th', null, x)))),
+        h('thead', null, h('tr', null, ['Item (as counted)', 'Full cases', 'Loose', 'Package at count time', 'Note', 'Counted at', 'Entered by'].map((x) => h('th', null, x)))),
         h('tbody', null, d.entries.map((e) => h('tr', null,
           h('td', null, (e.snapshot && e.snapshot.name) || e.currentName),
           h('td', { class: 'num' }, e.fullCases === null ? '—' : String(e.fullCases)),
           h('td', { class: 'num' }, e.looseUnits === null ? '—' : String(e.looseUnits)),
-          h('td', null, unit(e)), h('td', null, [e.note, e.flag].filter(Boolean).join(' · ')), h('td', null, fmtDateTime(e.countedAt))))))),
+          h('td', null, unit(e)), h('td', null, [e.note, e.flag].filter(Boolean).join(' · ')), h('td', null, fmtDateTime(e.countedAt)), h('td', null, enteredBy(e.origin))))))),
       d.notCounted.length ? h('div', { class: 'card' }, h('h3', null, 'Not counted yet'), h('p', null, d.notCounted.map((x) => x.name).join(', '))) : null);
   }
 
@@ -1491,6 +1494,56 @@
       try { const r = await aapi('adminSaveSettings', { ordering: { paused: paused.box.checked } }); s.ordering = r.settings.ordering; acClear(); replace(ordMsg, okBox(s.ordering.paused ? 'Ordering is paused. Counts continue; no drafts are made.' : 'Ordering is on. The next finished count builds a draft.')); }
       catch (err) { replace(ordMsg, errBox(err)); }
     });
+    // AI connections: one key per AI, and each key can be turned off on its own.
+    const aiBox = h('div', null, loading());
+    function drawAi(a, fresh) {
+      const relay = inp(a.relayUrl, { placeholder: 'https://…/mcp', inputmode: 'url', maxlength: 300 });
+      const relayMsg = h('div');
+      const relaySave = h('button', { class: 'btn secondary', type: 'button' }, 'Save relay address');
+      relaySave.onclick = busy(relaySave, async () => {
+        try { const r = await aapi('adminAiRelay', { relayUrl: relay.value }); drawAi(r); replace(aiBox.querySelector('.relay-msg'), okBox('Saved.')); } catch (err) { replace(relayMsg, errBox(err)); }
+      });
+      const name = inp('', { maxlength: 30, placeholder: 'For example: Claude' });
+      const addMsg = h('div');
+      const add = h('button', { class: 'btn', type: 'button' }, 'Add a key');
+      add.onclick = busy(add, async () => {
+        try { const r = await aapi('adminAiKeyAdd', { name: name.value }); drawAi(r, r.newKey); } catch (err) { replace(addMsg, errBox(err)); }
+      });
+      const rows = a.keys.map((k) => {
+        const toggle = h('button', { class: 'btn small secondary', type: 'button', 'aria-label': (k.enabled ? 'Turn off ' : 'Turn on ') + k.name }, k.enabled ? 'Turn off' : 'Turn on');
+        toggle.onclick = busy(toggle, async () => { try { drawAi(await aapi('adminAiKeySet', { id: k.id, enabled: !k.enabled })); } catch (err) { tell(err.message); } });
+        const renew = h('button', { class: 'btn small secondary', type: 'button', 'aria-label': 'New key for ' + k.name }, 'New key');
+        renew.onclick = busy(renew, async () => {
+          if (!await ask('Make a new key for ' + k.name + '? The old key stops working, so the connection has to be set up again with the new address.')) return;
+          try { const r = await aapi('adminAiKeyRenew', { id: k.id }); drawAi(r, r.newKey); } catch (err) { tell(err.message); }
+        });
+        return h('div', { class: 'list-item row ai-key' }, h('div', { class: 'grow' }, h('b', null, k.name), ' ', h('span', { class: 'chip ' + (k.enabled ? 'ordered' : 'shopping') }, k.enabled ? 'On' : 'Off'),
+          h('div', { class: 'small muted' }, 'Added ' + fmtDateTime(k.createdAt) + (k.lastUsedAt ? ' · last used ' + fmtDateTime(k.lastUsedAt) : ' · not used yet'))), toggle, renew);
+      });
+      let freshBox = null;
+      if (fresh) {
+        const text = fresh.address || fresh.key;
+        const out = h('textarea', { readonly: true, rows: 4, class: 'ai-address', 'aria-label': (fresh.address ? 'Connection address for ' : 'Key for ') + fresh.name, style: 'font-family:monospace;font-size:13px;word-break:break-all' }, text);
+        const copy = h('button', { class: 'btn small', type: 'button' }, 'Copy');
+        copy.onclick = async () => {
+          try { await navigator.clipboard.writeText(text); copy.textContent = 'Copied ✓'; } catch (e) { out.focus(); out.select(); copy.textContent = 'Selected: copy it now'; }
+          setTimeout(() => { copy.textContent = 'Copy'; }, 2500);
+        };
+        freshBox = h('div', { class: 'notice ok', role: 'status' },
+          h('b', null, (fresh.address ? 'Connection address for ' : 'Key for ') + fresh.name),
+          h('div', { class: 'small' }, 'This is shown once. Copy it now and paste it into the connector settings for ' + fresh.name + '. Don’t share it or paste it into a chat.' +
+            (fresh.address ? '' : ' No relay address is saved yet, so this is the key alone: the connection address is the relay address, then ?key=, then this key.')),
+          out, h('div', { class: 'row' }, copy));
+      }
+      replace(aiBox,
+        field('Relay address', relay, 'The address of the relay an AI connects to. It ends in /mcp.'),
+        h('div', { class: 'row' }, relaySave), h('div', { class: 'relay-msg' }), relayMsg,
+        h('h3', { style: 'margin-top:14px' }, 'Keys'),
+        rows.length ? rows : h('p', { class: 'muted' }, 'No keys yet.'),
+        freshBox,
+        field('Name of the AI', name), h('div', { class: 'row' }, add), addMsg);
+    }
+    aapi('adminAiKeys').then((a) => drawAi(a)).catch((err) => replace(aiBox, errBox(err)));
     replace(box,
       h('div', { class: 'card' }, h('h2', null, 'Ordering'),
         h('p', { class: 'small muted' }, 'Pause ordering at the end of the season and through the summer. Staff keep counting and fixing counts; no draft orders are made, and the home screen says "Ordering paused". Extras staff ask for show up on your Overview instead. Turn it back off right before ski season.'),
@@ -1499,6 +1552,9 @@
         h('p', { class: 'small muted' }, 'Sent from your Google account (free, about 100 emails a day) only to you, once per finished count. Staff are never emailed. Nothing is sent until you enter an address and tick the box.'),
         field('Send to', recipient), enabled.el, h('div', { class: 'row' }, emSave, test), emMsg,
         h('h3', { style: 'margin-top:14px' }, 'Email log'), logEl),
+      h('div', { class: 'card' }, h('h2', null, 'AI connections'),
+        h('p', { class: 'small muted' }, 'Lets an AI such as Claude add counts for you by voice or chat. Each AI gets its own key. An AI can start a count, add or change counts, and finish a count. It can’t delete anything, make or send orders, or change items or settings. Turn a key off any time; the others keep working.'),
+        aiBox),
       h('div', { class: 'card' }, h('h2', null, 'Ginsberg’s (private, Admin only)'),
         h('div', { class: 'grid2 stack' }, field('Supplier', sf.name), field('Customer #', sf.customerNumber)),
         field('Customer name on account', sf.customerName),

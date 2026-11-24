@@ -564,6 +564,57 @@ try {
     await admin.locator('button:has-text("Apply ticked")').first().click();
     await admin.waitForSelector('text=/Saved \\d+ items?/');
   });
+  await check('AI connections: add a key (shown once), count through the relay, see the AI\'s name in Admin, turn the key off', async () => {
+    await admin.setViewportSize({ width: 390, height: 800 });
+    await admin.goto(APP + '#/admin/settings');
+    await admin.waitForSelector('text=AI connections');
+    await admin.waitForSelector('text=No keys yet.');
+    const relayUrl = 'http://localhost:' + PORT + '/mcp';
+    await admin.getByLabel('Relay address').fill(relayUrl);
+    await admin.click('button:has-text("Save relay address")');
+    await admin.waitForSelector('.relay-msg .notice.ok');
+    await admin.getByLabel('Name of the AI').fill('Claude');
+    await admin.click('button:has-text("Add a key")');
+    await admin.waitForSelector('text=Connection address for Claude');
+    const address = await admin.locator('textarea.ai-address').inputValue();
+    expect(address.startsWith(relayUrl + '?key=ll_'), 'full connection address shown: ' + address.slice(0, 40));
+    await admin.locator('.card', { hasText: 'AI connections' }).screenshot({ path: path.join(SHOTS, 'admin-ai-connections-390.png') });
+    // An AI connection, the way Claude makes it: a redirect is an error, never followed.
+    const rpc = async (url, method, params) => (await fetch(url, { method: 'POST', redirect: 'error', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }) })).json();
+    const tool = async (name, args) => JSON.parse((await rpc(address, 'tools/call', { name, arguments: args })).result.content[0].text);
+    const found = await tool('find_item', { words: 'red lentil' });
+    expect(found.sure === true && found.matches.length === 1, 'one clear match for "red lentil"');
+    const it = found.matches[0];
+    const saved = await tool('save_count', { countType: it.countType, itemId: it.id, itemName: it.name, fullCases: 4.5 });
+    expect(saved.saved === true, 'count saved: ' + JSON.stringify(saved));
+    // The key was shown once: after a reload it is gone from the page.
+    await admin.reload();
+    await admin.waitForSelector('.ai-key');
+    expect(!(await admin.locator('textarea.ai-address').count()), 'the address is not shown again');
+    expect(/last used/.test(await admin.locator('.ai-key').textContent()), 'last used shown');
+    // The count shows in Admin with the AI's name on it.
+    await admin.goto(APP + '#/admin/counts');
+    await admin.waitForSelector('.list-item');
+    const row = admin.locator('.list-item', { hasText: 'Cafe' }).first(); // newest Cafe count (earlier checks may have finished it)
+    await row.click();
+    await admin.waitForSelector('table.data');
+    const line = admin.locator('table.data tr', { hasText: it.name });
+    expect(/4\.5/.test(await line.textContent()) && /Claude/.test(await line.textContent()), 'the entry shows 4.5 and Claude: ' + await line.textContent());
+    await admin.screenshot({ path: path.join(SHOTS, 'admin-count-entered-by-390.png'), fullPage: true });
+    // Staff see the number on their count screen too.
+    const staff = await newPage(390);
+    await staff.goto(APP + '#/count/cafe');
+    await staff.waitForSelector('text=' + it.name);
+    expect((await staff.locator('input[inputmode="decimal"]').evaluateAll((els) => els.map((e) => e.value))).includes('4.5'), 'staff screen shows 4.5');
+    await staff.close();
+    // Turn the key off: the same address stops working at once.
+    await admin.goto(APP + '#/admin/settings');
+    await admin.waitForSelector('.ai-key');
+    await admin.click('button[aria-label="Turn off Claude"]');
+    await admin.waitForSelector('button[aria-label="Turn on Claude"]');
+    const off = await rpc(address, 'tools/list');
+    expect(off.error && off.error.code === -32001, 'a turned-off key is refused: ' + JSON.stringify(off).slice(0, 120));
+  });
   for (const [hash, label] of [['#/admin/catalog', 'catalog'], ['#/admin/beverages', 'beverages'], ['#/admin/import', 'import'], ['#/admin/settings', 'settings'], ['#/admin/counts', 'counts']]) {
     await check('Admin ' + label + ' page loads without sideways scroll at 360px', async () => {
       await admin.setViewportSize({ width: 360, height: 800 });

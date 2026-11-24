@@ -105,6 +105,34 @@ For Housekeeping items the file's number fills the **Lodge storage room** box; t
 * Where it goes: a count in progress gets the numbers; this week's finished count is updated item by item (like a staff
   fix); otherwise a new finished count is made. A date before this week is kept as history only.
 
+## Counts by voice or chat (AI connections)
+
+An AI such as Claude can add counts through a guarded door in the backend ("AI door" in `backend/Code.gs`). It goes
+through the same code as the staff screens, so the checks, the draft and the weekly beverage email all still happen.
+
+```
+Claude (a "custom connector")  →  relay (Cloudflare Worker, supply/relay/worker.js)  →  Apps Script door  →  the Sheet
+```
+
+* **Why a relay:** Apps Script answers every request by forwarding to a second address, and Claude will not follow
+  that (tested Nov 24, 2026: "Not found, 302"). The relay follows it and hands the answer back. It holds no data and
+  no keys.
+* **What an AI can do:** see the count lists, start a count, save or change counts, finish a count. Nothing else: no
+  deleting, no orders, no items, no settings.
+* **Keys:** Admin > Settings > **AI connections**. Each AI gets its own key, shown once as a full connection address
+  (relay address + `?key=`). Only a hash is kept, in the script's private properties. **Turn off** stops one key at
+  once and leaves the others alone; **New key** replaces a lost one.
+* **Whose count:** every number an AI saves or changes carries its name (the `origin` column reads `ai:Claude`), shown
+  as "Entered by" in Admin > Counts, and each save is written to the history (audit) with before and after.
+* **Saved once:** a number replaces what was there (never added to it); the same number again changes nothing; a late
+  retry with the same `requestId` cannot undo a newer number. Finishing twice finishes once and emails once.
+* **Not sure which item:** `find_item` says `sure: false` when more than one item fits or none does, and `save_count`
+  refuses an id and a name that don't go together. Items kept in two places need the place.
+* **Relay setup:** create a Worker, paste `supply/relay/worker.js`, add the variable `DOOR_URL` = the web app address
+  (ends in `/exec`). The relay address is the Worker's address + `/mcp`; save it in Admin > Settings > AI connections.
+* **Local preview:** `npm run dev` serves the relay at `/mcp` and an Apps Script stand-in behind it at `/gas`.
+* `dev/test-door.gs` is a throwaway test door with pretend tools and no data, used to check the connection itself.
+
 ## Other suppliers
 
 Each item has a **Supplier**: Ginsberg's (the default) or Other, with an optional store name. Other-supplier items are
@@ -223,7 +251,7 @@ until a later count shows it restocked and then low again.
 cd supply
 npm install          # Playwright, for the browser tests only
 npm run dev          # http://localhost:8787/supply/?api=http://localhost:8787/api  (Admin password: test-password-123)
-npm test             # backend tests (Node)
+npm test             # backend tests, including the AI door and its relay (Node)
 npm run test:e2e     # phone-width browser tests (360/390/430 px)
 ```
 

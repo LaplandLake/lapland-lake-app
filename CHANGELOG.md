@@ -2,6 +2,7 @@
 
 Newest first. One plain-English line per change.
 
+- 2026-11-24: Supply Manager (built on a branch, NOT live): counts by voice or chat. A guarded door in the backend lets an AI start a count, save or change counts and finish a count, and nothing else; a small relay (supply/relay/worker.js) stands in front because Claude won't follow Google's forwarding. Admin > Settings > "AI connections" makes one key per AI and turns any one off; Admin > Counts shows "Entered by". Needs Todd: a free Cloudflare account for the relay, his yes on the new Admin wording, the Apps Script paste, and "publish".
 - 2026-11-24: Supply Manager, voice counts project: throwaway test door added (supply/dev/test-door.gs) to check whether Claude and Duet can connect to a Google Apps Script door. It is not part of the app and touches no data. Nothing live changed.
 - 2026-11-21: Café: Water Bottle $2.78; Mac and Cheese Cup $5.50 · Bowl $7.00 (same as soup, Todd confirmed); new line under "Closed until Ski Season": "Prices may change. This is a test version of the app." (menu.json titleSubNote; remove at full launch). Bottom "Menu items and prices may change." stays.
 - 2026-11-18: Trail Maps: zoom buttons moved below the map. New 2026-27 trail map from Linda Hinkle (images/trail-map-2026-27.webp, 3200 px, 574 KB, from the 4.3 MB original), still zoomable and saved for offline. Tap symbols on the map removed (Todd); trail and place lists are now plain reference lists. Trail names in the list all match the new map.
