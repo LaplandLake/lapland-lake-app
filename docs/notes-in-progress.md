@@ -1,6 +1,6 @@
 # Work in progress (notes for the next session)
 
-Last updated: 2026-10-05. These are notes from working with the owner's team, so a new session can pick up where we left off. Nothing here is shown in the app.
+Last updated: 2026-11-24. These are notes from working with the owner's team, so a new session can pick up where we left off. Nothing here is shown in the app.
 
 ## How we work
 - We're in "tweaking mode": the team gives notes, Claude says what it will change, shows a phone-size preview screenshot, and only publishes when told "publish".
@@ -9,6 +9,16 @@ Last updated: 2026-10-05. These are notes from working with the owner's team, so
 - Todd has final say on anything design-related (looks, wording, images, layout, share previews, QR styles). Describe it, show a preview, and wait for a yes. Behind-the-scenes fixes (speed, reliability, safety) can go ahead; tell him afterward.
 - `main` is protected (2026-10-15, GitHub Settings → Rules → Rulesets → "Protect main"): nobody can delete it or force-push (rewrite its history). Pull requests are NOT required, on purpose: the trail report bot in `.github/workflows/site.yml` saves straight to `main`, and requiring pull requests would block it. Open question: confirm the bot still saves fine the next time the trail report changes.
 - Live app: https://laplandlake.github.io/lapland-lake-app/ (GitHub user renamed from Tssngs75 to LaplandLake on 2026-10-05; old address no longer works).
+
+## Supply Manager: voice counts + usage report (started 2026-11-24)
+- Todd's project brief (Nov 24): Part 1, Claude and Duet add counts through the app's backend (start a count, add or change counts, finish a count; nothing else), one key per AI that Todd can turn off, every count shows which AI entered it, same count sent twice saved once, AI asks when unsure of the item, beverage email sent once. Part 2, a usage report for supplies and cafe food like the drink report ("Insufficient data", never zero) plus a "most used" list. Bonus, ChatGPT with its own key, only if easy. Also a learning project: explain each step to Todd in plain words.
+- "Duet" = Claude Duet, Anthropic's assistant app (research preview, Oct 2026). Anthropic says it uses the connectors on the Claude account; custom connectors are not confirmed, and an early review says they don't work in its scheduled runs.
+- Recommended and agreed (Nov 24): a protected door on the Apps Script backend that speaks the connector language (MCP), so no new service is needed. Todd said yes to a throwaway test door first.
+- Test door: `supply/dev/test-door.gs` (stand-alone Apps Script project, no Lapland data, two pretend tools, key in the address, a log of what reached it). Checked here with the standard connector client against a stand-in that forwards the way Google does: it works when the client follows the forwarding.
+- FOUND Nov 24: Apps Script answers every POST by forwarding (302) to a second address on another Google site. The two standard connector client kits (TypeScript 1.32.2, Python 2.3.0) refuse that kind of forward by default. Whether Claude's own connector does the same is not confirmed, but a direct connection will probably fail. Fallback: a small free relay between Claude and the Apps Script door (new account, needs Todd's yes). A relay can also read the key from the hidden header, which Apps Script can't.
+- Not checked yet: whether Claude keeps the "?key=" part of a connector address; whether Todd's account shows the "Request headers" box when adding a connector (Anthropic calls it beta); ChatGPT Plus.
+- Cloud sessions can't reach script.google.com (blocked by the session's network settings), so any test against real Apps Script has to run from Todd's side.
+- Part 2 not started: interview Todd first (how deliveries for supplies and food get recorded, short or swapped deliveries).
 
 ## Supply Manager: Housekeeping counted in two places (built 2026-11-01, waiting for Todd's wording yes and "publish")
 - Todd: Housekeeping items are kept in two places, counted by two people. Every Housekeeping item gets two boxes, "Lodge storage room" and "Housekeeping"; each saves on its own; the app adds them up.
